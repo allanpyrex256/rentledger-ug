@@ -2,3 +2,5 @@
 preview-*.err.log
 preview-*.log
 .vercel/
+
+.vercel
