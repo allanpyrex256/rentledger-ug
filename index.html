@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RentLedger UG</title>
+    <link rel="icon" type="image/png" href="assets/rentledger-logo-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section id="landingScreen" class="landing-page">
+      <header class="landing-nav">
+        <div class="brand-block landing-brand">
+          <div class="brand-mark">
+            <img src="assets/rentledger-logo-icon.png" alt="RentLedger UG logo" />
+          </div>
+          <div>
+            <div class="brand-name">RentLedger UG</div>
+            <div class="brand-meta">Rental income operating system</div>
+          </div>
+        </div>
+        <nav class="landing-links" aria-label="Landing navigation">
+          <a href="#features">Features</a>
+          <a href="#howItWorks">How It Works</a>
+          <a href="#pricing">Pricing</a>
+          <button class="ghost-button" data-open-auth="signin" type="button">Sign In</button>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero-section">
+          <div class="hero-copy">
+            <span class="hero-kicker">Premium rental fintech for Uganda</span>
+            <h1>Know Who Paid, Who Owes, and What You’re Earning — Instantly</h1>
+            <p>
+              Track rent, tenants, vacancies, expenses, and payments from one powerful dashboard.
+            </p>
+            <div class="hero-actions">
+              <button class="primary-button" data-start-demo type="button">Start Free Trial</button>
+              <button class="ghost-button" data-scroll-target="pricing" type="button">Book Demo</button>
+            </div>
+            <div class="hero-proof">
+              <span>94% occupancy insight</span>
+              <span>Mobile money ready</span>
+              <span>Multi-property accounts</span>
+            </div>
+          </div>
+
+        </section>
+
+        <section class="trust-bar" aria-label="Platform metrics">
+          <div><strong>500+</strong><span>Units Managed</span></div>
+          <div><strong>UGX 120M+</strong><span>Rent Tracked</span></div>
+          <div><strong>Kampala</strong><span>Landlord Ready</span></div>
+          <div><strong>Secure</strong><span>Cloud-Based Records</span></div>
+        </section>
+
+        <section class="photo-story landing-section" aria-label="Rental management moments">
+          <article class="photo-card large-photo">
+            <img src="assets/apartment-exterior.jpg" alt="Modern apartment building exterior" />
+            <div>
+              <span>Portfolio visibility</span>
+              <h3>Monitor houses, apartments, and vacant units from one place.</h3>
+            </div>
+          </article>
+          <article class="photo-card">
+            <img src="assets/mobile-payment.jpg" alt="Person making a payment with a smartphone" />
+            <div>
+              <span>Payment confidence</span>
+              <h3>Keep rent records aligned with mobile money collections.</h3>
+            </div>
+          </article>
+          <article class="photo-card">
+            <img src="assets/property-keys.jpg" alt="House keys in a modern apartment" />
+            <div>
+              <span>Tenant handover</span>
+              <h3>Store tenant details, deposits, and move-in history.</h3>
+            </div>
+          </article>
+        </section>
+
+        <section id="features" class="landing-section">
+          <div class="section-heading">
+            <span class="hero-kicker">Everything in one place</span>
+            <h2>Run your rental business without books, guesswork, or scattered messages.</h2>
+          </div>
+          <div class="feature-grid">
+            <article class="feature-card">
+              <span class="feature-icon">RT</span>
+              <h3>Smart Rent Tracking</h3>
+              <p>Track paid, overdue, and upcoming rent instantly.</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-icon">TM</span>
+              <h3>Tenant Management</h3>
+              <p>Store tenant details, unit allocation, and payment history.</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-icon">VM</span>
+              <h3>Vacancy Monitoring</h3>
+              <p>Know which rooms are occupied or vacant in real time.</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-icon">EX</span>
+              <h3>Expense Tracking</h3>
+              <p>Monitor repairs, utilities, salaries, and maintenance costs.</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-icon">PR</span>
+              <h3>Payment Reports</h3>
+              <p>Generate monthly financial summaries automatically.</p>
+            </article>
+            <article class="feature-card">
+              <span class="feature-icon">SMS</span>
+              <h3>SMS & Reminders</h3>
+              <p>Send automatic payment reminders to tenants.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="howItWorks" class="landing-section steps-section">
+          <div class="section-heading">
+            <span class="hero-kicker">Simple setup</span>
+            <h2>Start monitoring your houses and apartments in three steps.</h2>
+          </div>
+          <div class="steps-grid">
+            <article>
+              <span>1</span>
+              <h3>Add your properties</h3>
+              <p>Create houses, apartments, rooms, and monthly rent amounts.</p>
+            </article>
+            <article>
+              <span>2</span>
+              <h3>Register tenants & units</h3>
+              <p>Assign tenants to units and keep contact details organized.</p>
+            </article>
+            <article>
+              <span>3</span>
+              <h3>Track rent automatically</h3>
+              <p>See income, balances, reminders, and expenses from the dashboard.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="dashboardPreview" class="dashboard-preview landing-section">
+          <div class="section-heading">
+            <span class="hero-kicker">Dashboard preview</span>
+            <h2>See income, vacancies, payments, and tenant activity at a glance.</h2>
+          </div>
+          <div class="preview-shell">
+            <div class="preview-sidebar">
+              <strong>RentLedger UG</strong>
+              <span>Dashboard</span>
+              <span>Properties</span>
+              <span>Tenants</span>
+              <span>Rent</span>
+            </div>
+            <div class="preview-main">
+              <div class="preview-metrics">
+                <article><span>Total Units</span><strong>48</strong></article>
+                <article><span>Revenue</span><strong>UGX 12.8M</strong></article>
+                <article><span>Late Payments</span><strong>8</strong></article>
+                <article><span>Net Income</span><strong>UGX 9.7M</strong></article>
+              </div>
+              <div class="preview-panels">
+                <div class="preview-panel">
+                  <h3>Occupancy</h3>
+                  <div class="mini-units">
+                    <span class="occupied">A1</span>
+                    <span class="occupied">A2</span>
+                    <span class="vacant">B1</span>
+                    <span class="occupied">B2</span>
+                    <span class="occupied">N1</span>
+                    <span class="vacant">N2</span>
+                  </div>
+                </div>
+                <div class="preview-panel">
+                  <h3>Recent Payments</h3>
+                  <div class="payment-row"><span>Sarah A.</span><strong>UGX 450,000</strong></div>
+                  <div class="payment-row"><span>Moses K.</span><strong>UGX 260,000</strong></div>
+                  <div class="payment-row"><span>Ruth N.</span><strong>UGX 380,000</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="landing-section benefits-section">
+          <div class="benefit-copy">
+            <span class="hero-kicker">Why landlords use it</span>
+            <h2>Less chasing. Better records. Clearer rental income.</h2>
+          </div>
+          <div class="benefit-grid">
+            <article><h3>Save Time</h3><p>Stop using books and Excel sheets for daily rent tracking.</p></article>
+            <article><h3>Reduce Late Payments</h3><p>Automated reminders help tenants pay on time.</p></article>
+            <article><h3>Grow Your Rental Business</h3><p>Manage multiple properties from anywhere.</p></article>
+            <article><h3>Secure Records</h3><p>Keep rent, tenant, and expense history backed up.</p></article>
+          </div>
+        </section>
+
+        <section class="landing-section testimonial-section">
+          <blockquote>
+            "RentLedger helped me manage all my apartments in Kira without paperwork."
+            <cite>Property Owner, Kampala</cite>
+          </blockquote>
+          <blockquote>
+            "I can now see rent balances, expenses, and vacant units from my phone."
+            <cite>Landlord, Ntinda</cite>
+          </blockquote>
+        </section>
+
+        <section id="pricing" class="landing-section pricing-section">
+          <div class="section-heading">
+            <span class="hero-kicker">Pricing</span>
+            <h2>Simple plans for small and growing property owners.</h2>
+          </div>
+          <div class="pricing-grid">
+            <article class="price-card">
+              <h3>Starter</h3>
+              <strong>UGX 50,000<span>/month</span></strong>
+              <p>For landlords starting with a few units.</p>
+              <button class="ghost-button" data-open-auth="signup" type="button">Create Account</button>
+            </article>
+            <article class="price-card featured-price">
+              <h3>Professional</h3>
+              <strong>UGX 120,000<span>/month</span></strong>
+              <p>For landlords managing multiple properties.</p>
+              <button class="primary-button" data-start-demo type="button">Start Free Trial</button>
+            </article>
+            <article class="price-card">
+              <h3>Enterprise</h3>
+              <strong>Custom</strong>
+              <p>For agencies, estates, and larger portfolios.</p>
+              <button class="ghost-button" data-open-auth="signup" type="button">Talk to Sales</button>
+            </article>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <section id="authScreen" class="auth-screen hidden">
+      <div class="auth-card">
+        <div class="brand-block auth-brand">
+          <div class="brand-mark">
+            <img src="assets/rentledger-logo-icon.png" alt="RentLedger UG logo" />
+          </div>
+          <div>
+            <div class="brand-name">RentLedger UG</div>
+            <div class="brand-meta">Landlord accounts for houses and apartments</div>
+          </div>
+        </div>
+
+        <div class="auth-tabs" role="tablist" aria-label="Account actions">
+          <button class="auth-tab active" data-auth-tab="signin" type="button">Sign In</button>
+          <button class="auth-tab" data-auth-tab="signup" type="button">Create Account</button>
+        </div>
+
+        <form id="signInForm" class="stacked-form auth-form">
+          <label>
+            Phone Number
+            <input id="signInPhone" autocomplete="tel" required />
+          </label>
+          <label>
+            Password
+            <input id="signInPassword" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="primary-button" type="submit">Sign In</button>
+          <button id="demoLogin" class="ghost-button" type="button">Use Demo Account</button>
+        </form>
+
+        <form id="createAccountForm" class="stacked-form auth-form hidden">
+          <label>
+            Full Name
+            <input id="accountName" autocomplete="name" required />
+          </label>
+          <label>
+            Phone Number
+            <input id="accountPhone" autocomplete="tel" required />
+          </label>
+          <label>
+            Password
+            <input id="accountPassword" type="password" autocomplete="new-password" minlength="4" required />
+          </label>
+          <button class="primary-button" type="submit">Open Landlord Account</button>
+        </form>
+      </div>
+    </section>
+
+    <div id="appShell" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-mark">
+            <img src="assets/rentledger-logo-icon.png" alt="RentLedger UG logo" />
+          </div>
+          <div>
+            <div class="brand-name">RentLedger UG</div>
+            <div class="brand-meta">Landlord SaaS MVP</div>
+          </div>
+        </div>
+
+        <nav class="side-nav" aria-label="Main navigation">
+          <button class="nav-item active" data-view="dashboard" type="button">Dashboard</button>
+          <button class="nav-item" data-view="properties" type="button">Properties</button>
+          <button class="nav-item" data-view="tenants" type="button">Tenants</button>
+          <button class="nav-item" data-view="rent" type="button">Rent</button>
+          <button class="nav-item" data-view="expenses" type="button">Expenses</button>
+          <button class="nav-item" data-view="reminders" type="button">Reminders</button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="account-card">
+            <span>Account</span>
+            <strong id="currentAccountName">Landlord</strong>
+            <small id="currentAccountPhone"></small>
+          </div>
+          <label for="roleSelect">Role</label>
+          <select id="roleSelect">
+            <option value="landlord">Landlord</option>
+            <option value="caretaker">Caretaker</option>
+          </select>
+          <button id="logoutButton" class="ghost-button" type="button">Sign Out</button>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <h1 id="viewTitle">Dashboard</h1>
+            <p id="viewSubtitle">Rent, occupancy, expenses, and balances at a glance.</p>
+          </div>
+
+          <div class="topbar-actions">
+            <select id="propertyFilter" aria-label="Property filter"></select>
+            <button id="resetDemo" class="ghost-button" type="button">Reset Demo</button>
+          </div>
+        </header>
+
+        <nav class="mobile-tabs" aria-label="Mobile navigation">
+          <button class="mobile-tab active" data-view="dashboard" type="button">Dashboard</button>
+          <button class="mobile-tab" data-view="properties" type="button">Properties</button>
+          <button class="mobile-tab" data-view="tenants" type="button">Tenants</button>
+          <button class="mobile-tab" data-view="rent" type="button">Rent</button>
+          <button class="mobile-tab" data-view="expenses" type="button">Expenses</button>
+          <button class="mobile-tab" data-view="reminders" type="button">Reminders</button>
+        </nav>
+
+        <section id="dashboard" class="view active-view" aria-labelledby="viewTitle">
+          <div class="metric-grid" id="metricGrid"></div>
+
+          <div class="content-grid two-columns">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Occupancy</h2>
+                <span id="occupancyLabel" class="pill neutral">0 units</span>
+              </div>
+              <div id="unitStatusGrid" class="unit-grid"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Upcoming Dues</h2>
+                <span id="dueSoonLabel" class="pill warning">0 due</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tenant</th>
+                      <th>Unit</th>
+                      <th>Due</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="upcomingDuesTable"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Recent Payments</h2>
+              <span id="monthLabel" class="pill success"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tenant</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Date</th>
+                    <th>Balance</th>
+                  </tr>
+                </thead>
+                <tbody id="recentPaymentsTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="properties" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2 id="propertyFormTitle">Add Property</h2>
+                <span id="propertyFormMode" class="pill neutral">New</span>
+              </div>
+              <form id="propertyForm" class="stacked-form">
+                <input type="hidden" id="propertyId" />
+                <label>
+                  Property Name
+                  <input id="propertyName" placeholder="e.g. Kira Road Apartments" required />
+                </label>
+                <label>
+                  Location
+                  <input id="propertyLocation" placeholder="e.g. Kira, Ntinda, Mukono" required />
+                </label>
+                <label>
+                  Type
+                  <select id="propertyType">
+                    <option value="Apartment">Apartment</option>
+                    <option value="House">House</option>
+                    <option value="Mixed">Mixed</option>
+                  </select>
+                </label>
+                <div class="form-actions">
+                  <button id="cancelPropertyEdit" class="ghost-button hidden" type="button">Cancel</button>
+                  <button class="primary-button" type="submit">Save Property</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Add House / Unit</h2>
+                <span class="pill neutral">Vacant by default</span>
+              </div>
+              <form id="unitForm" class="stacked-form">
+                <label>
+                  Property
+                  <select id="unitProperty" required></select>
+                </label>
+                <label>
+                  House / Unit Number
+                  <input id="unitNumber" placeholder="e.g. A1, House 4, Room 12" required />
+                </label>
+                <label>
+                  Monthly Rent
+                  <input id="unitRent" type="number" min="0" step="1000" required />
+                </label>
+                <button class="primary-button" type="submit">Add Unit</button>
+              </form>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Property Portfolio</h2>
+              <span id="propertyCountLabel" class="pill success">0 properties</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Property</th>
+                    <th>Location</th>
+                    <th>Type</th>
+                    <th>Units</th>
+                    <th>Occupancy</th>
+                    <th>Expected Rent</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="propertyTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>House / Unit Setup</h2>
+              <span id="unitCountLabel" class="pill neutral">0 units</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Unit</th>
+                    <th>Property</th>
+                    <th>Rent</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="unitTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="tenants" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2 id="tenantFormTitle">Add Tenant</h2>
+                <span id="tenantFormMode" class="pill neutral">New</span>
+              </div>
+              <form id="tenantForm" class="stacked-form">
+                <input type="hidden" id="tenantId" />
+                <label>
+                  Name
+                  <input id="tenantName" name="tenantName" autocomplete="name" required />
+                </label>
+                <label>
+                  Phone Number
+                  <input id="tenantPhone" name="tenantPhone" autocomplete="tel" required />
+                </label>
+                <label>
+                  National ID
+                  <input id="tenantNationalId" name="tenantNationalId" required />
+                </label>
+                <label>
+                  House / Unit
+                  <select id="tenantUnit" name="tenantUnit" required></select>
+                </label>
+                <div class="split-fields">
+                  <label>
+                    Rent Amount
+                    <input id="tenantRent" name="tenantRent" type="number" min="0" step="1000" required />
+                  </label>
+                  <label>
+                    Deposit Paid
+                    <input id="tenantDeposit" name="tenantDeposit" type="number" min="0" step="1000" required />
+                  </label>
+                </div>
+                <label>
+                  Move-in Date
+                  <input id="tenantMoveIn" name="tenantMoveIn" type="date" required />
+                </label>
+                <div class="form-actions">
+                  <button id="cancelTenantEdit" class="ghost-button hidden" type="button">Cancel</button>
+                  <button class="primary-button" type="submit">Save Tenant</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel wide-panel">
+              <div class="panel-header">
+                <h2>Tenant Records</h2>
+                <input id="tenantSearch" class="search-input" placeholder="Search tenants" />
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Phone</th>
+                      <th>Unit</th>
+                      <th>Rent</th>
+                      <th>Deposit</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tenantTable"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="rent" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Record Payment</h2>
+                <span id="paymentStatusPill" class="pill neutral">Ready</span>
+              </div>
+              <form id="paymentForm" class="stacked-form">
+                <label>
+                  Tenant
+                  <select id="paymentTenant" name="paymentTenant" required></select>
+                </label>
+                <div class="split-fields">
+                  <label>
+                    Amount
+                    <input id="paymentAmount" name="paymentAmount" type="number" min="0" step="1000" required />
+                  </label>
+                  <label>
+                    Date
+                    <input id="paymentDate" name="paymentDate" type="date" required />
+                  </label>
+                </div>
+                <label>
+                  Method
+                  <select id="paymentMethod" name="paymentMethod">
+                    <option value="MTN MoMo">MTN MoMo</option>
+                    <option value="Airtel Money">Airtel Money</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                  </select>
+                </label>
+                <label>
+                  Transaction Reference
+                  <input id="paymentReference" name="paymentReference" placeholder="e.g. MOMO-48391" />
+                </label>
+                <div id="tenantBalancePreview" class="balance-preview"></div>
+                <button class="primary-button" type="submit">Confirm Payment</button>
+              </form>
+            </section>
+
+            <section class="panel wide-panel">
+              <div class="panel-header">
+                <h2>Rent Status</h2>
+                <span id="rentStatusLabel" class="pill neutral">Current month</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tenant</th>
+                      <th>Unit</th>
+                      <th>Paid</th>
+                      <th>Balance</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rentStatusTable"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Payment History</h2>
+              <span id="paymentCountLabel" class="pill success">0 payments</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tenant</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th>Date</th>
+                    <th>Balance</th>
+                  </tr>
+                </thead>
+                <tbody id="paymentHistoryTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="expenses" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Add Expense</h2>
+                <span id="expenseMonthLabel" class="pill neutral"></span>
+              </div>
+              <form id="expenseForm" class="stacked-form">
+                <label>
+                  Property
+                  <select id="expenseProperty" name="expenseProperty" required></select>
+                </label>
+                <label>
+                  Type
+                  <select id="expenseType" name="expenseType">
+                    <option value="Repairs">Repairs</option>
+                    <option value="Water Bill">Water Bill</option>
+                    <option value="Electricity">Electricity</option>
+                    <option value="Caretaker Salary">Caretaker Salary</option>
+                    <option value="Security">Security</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </label>
+                <div class="split-fields">
+                  <label>
+                    Amount
+                    <input id="expenseAmount" name="expenseAmount" type="number" min="0" step="1000" required />
+                  </label>
+                  <label>
+                    Date
+                    <input id="expenseDate" name="expenseDate" type="date" required />
+                  </label>
+                </div>
+                <button class="primary-button" type="submit">Save Expense</button>
+              </form>
+            </section>
+
+            <section class="panel wide-panel">
+              <div class="panel-header">
+                <h2>Expense Records</h2>
+                <span id="expenseTotalLabel" class="pill danger">UGX 0</span>
+              </div>
+              <div class="expense-summary" id="expenseSummary"></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Property</th>
+                      <th>Amount</th>
+                      <th>Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="expenseTable"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="reminders" class="view" aria-labelledby="viewTitle">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Reminder Queue</h2>
+              <span id="reminderCountLabel" class="pill warning">0 reminders</span>
+            </div>
+            <div id="reminderList" class="reminder-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Message Templates</h2>
+              <span class="pill neutral">SMS / WhatsApp</span>
+            </div>
+            <div class="template-grid">
+              <article class="template-item">
+                <h3>Due Tomorrow</h3>
+                <p id="dueTomorrowTemplate"></p>
+              </article>
+              <article class="template-item">
+                <h3>Payment Received</h3>
+                <p id="receivedTemplate"></p>
+              </article>
+              <article class="template-item">
+                <h3>Overdue Balance</h3>
+                <p id="overdueTemplate"></p>
+              </article>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
