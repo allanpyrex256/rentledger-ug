@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Essence Connect MVP</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar" aria-label="Primary">
+        <a class="brand" href="#marketplace" aria-label="Essence Connect home">
+          <span class="brand-mark" aria-hidden="true">EC</span>
+          <span>
+            <strong>Essence Connect</strong>
+            <small>AI perfume commerce</small>
+          </span>
+        </a>
+
+        <nav class="nav-links" aria-label="Sections">
+          <a href="#marketplace">Marketplace</a>
+          <a href="#creators">Creators</a>
+          <a href="#seller">Seller</a>
+          <a href="#owner">Owner</a>
+          <a href="#roadmap">Roadmap</a>
+        </nav>
+
+        <div class="topbar-actions">
+          <button class="ghost-button" id="creatorLoginButton" type="button">Creator Login</button>
+          <button class="ghost-button quiet-button" id="ownerDashboardButton" type="button">
+            Super Admin
+          </button>
+          <button class="ghost-button quiet-button" id="openAccountButton" type="button">
+            Open Account
+          </button>
+          <button class="ghost-button quiet-button" id="forgotPasswordButton" type="button">
+            Forgot Password
+          </button>
+          <button class="primary-button" type="button">Launch Marketplace</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="workspace" aria-labelledby="app-title">
+          <div class="workspace-copy">
+            <p class="eyebrow">AI-powered perfume ecosystem</p>
+            <h1 id="app-title">Essence Connect</h1>
+            <p class="intro">
+              A creator-driven perfume marketplace for sellers, affiliates,
+              mobile money commerce, and AI-generated campaigns.
+            </p>
+
+            <div class="metric-row" aria-label="Marketplace metrics">
+              <article>
+                <span>UGX 4.8M</span>
+                <small>Total sales</small>
+              </article>
+              <article>
+                <span>42</span>
+                <small>Creator partners</small>
+              </article>
+              <article>
+                <span>96%</span>
+                <small>Trust score</small>
+              </article>
+            </div>
+          </div>
+
+          <aside class="campaign-panel" aria-label="AI marketing preview">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">AI Marketing Engine</p>
+                <h2>Campaign draft</h2>
+              </div>
+              <span class="status-pill">Live</span>
+            </div>
+            <div class="prompt-box">
+              <small>Generated caption</small>
+              <p id="campaignCaption">
+                Experience luxury in every spray with Midnight Essence.
+              </p>
+            </div>
+            <div class="tag-cloud" id="tagCloud" aria-label="Suggested hashtags">
+              <span>#LuxuryPerfume</span>
+              <span>#EssenceConnect</span>
+              <span>#FragranceTok</span>
+            </div>
+            <button class="primary-button full-width" id="generateCampaign" type="button">
+              Generate New Campaign
+            </button>
+          </aside>
+        </section>
+
+        <section class="content-band marketplace-band" id="marketplace" aria-labelledby="marketplace-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Marketplace</p>
+              <h2 id="marketplace-title">Featured perfumes</h2>
+            </div>
+            <div class="segmented-control" role="tablist" aria-label="Product filter">
+              <button class="active" type="button" data-filter="all">All</button>
+              <button type="button" data-filter="premium">Premium</button>
+              <button type="button" data-filter="creator">Creator led</button>
+            </div>
+          </div>
+
+          <div class="product-grid" id="productGrid"></div>
+        </section>
+
+        <section class="content-band split-section" id="creators" aria-labelledby="ecosystem-title">
+          <div>
+            <p class="eyebrow">Infrastructure</p>
+            <h2 id="ecosystem-title">Ecosystem modules</h2>
+            <p class="section-copy">
+              Modular features give the MVP room to grow from perfume retail
+              into a broader AI commerce network.
+            </p>
+          </div>
+
+          <div class="feature-grid" id="featureGrid"></div>
+        </section>
+
+        <section class="content-band dashboard-preview" id="seller" aria-label="Dashboard preview">
+          <article class="seller-dashboard">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Seller dashboard</p>
+                <h2>Luxury Scents UG</h2>
+              </div>
+              <span class="status-pill amber">Trusted</span>
+            </div>
+
+            <div class="dashboard-list">
+              <div>
+                <span>Total Sales</span>
+                <strong>UGX 4.8M</strong>
+              </div>
+              <div>
+                <span>Trust Score</span>
+                <strong>96%</strong>
+              </div>
+              <div>
+                <span>Creator Partnerships</span>
+                <strong>42</strong>
+              </div>
+              <div>
+                <span>Mobile Money Readiness</span>
+                <strong>Ready</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="creator-card">
+            <p class="eyebrow">Affiliate creator system</p>
+            <h2>Creator Wave</h2>
+            <p>
+              Campaign attribution, performance tracking, and commission-ready
+              creator flows for social-first perfume sales.
+            </p>
+            <div class="creator-stats">
+              <span><strong>18.6k</strong><small>Reach</small></span>
+              <span><strong>12%</strong><small>Conversion</small></span>
+              <span><strong>UGX 710k</strong><small>Commission</small></span>
+            </div>
+          </article>
+        </section>
+
+        <section class="content-band owner-dashboard" id="owner" aria-labelledby="owner-dashboard-title">
+          <div class="section-heading owner-heading">
+            <div>
+              <p class="eyebrow">Owner control center</p>
+              <h2 id="owner-dashboard-title">Super Admin Dashboard</h2>
+            </div>
+            <span class="status-pill owner-pill">App Owner</span>
+          </div>
+
+          <div class="owner-hero">
+            <article class="owner-command">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Full platform access</p>
+                  <h3>Essence Connect HQ</h3>
+                </div>
+                <span class="status-pill">Super Admin</span>
+              </div>
+              <p>
+                Manage sellers, creators, products, payouts, trust scores, campaigns,
+                and system settings from one owner dashboard.
+              </p>
+              <div class="owner-actions">
+                <button class="primary-button" type="button" data-admin-action="approve">
+                  Review Approvals
+                </button>
+                <button class="secondary-button" type="button" data-admin-action="security">
+                  Security Center
+                </button>
+                <button class="secondary-button" type="button" data-admin-action="settings">
+                  Platform Settings
+                </button>
+              </div>
+            </article>
+
+            <div class="admin-metric-grid" id="adminMetricGrid" aria-label="Super admin metrics"></div>
+          </div>
+
+          <div class="admin-grid">
+            <article class="admin-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Admin controls</p>
+                  <h3>Platform management</h3>
+                </div>
+              </div>
+              <div class="admin-control-grid" id="adminControlGrid"></div>
+            </article>
+
+            <article class="admin-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Live oversight</p>
+                  <h3>Recent activity</h3>
+                </div>
+              </div>
+              <div class="activity-feed" id="adminActivityFeed"></div>
+            </article>
+          </div>
+
+          <article class="admin-panel full-admin-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Access control</p>
+                <h3>Users and roles</h3>
+              </div>
+              <span class="status-pill amber">Owner managed</span>
+            </div>
+            <div class="admin-table" id="adminUserTable" aria-label="Users and roles"></div>
+          </article>
+        </section>
+
+        <section class="content-band roadmap" id="roadmap" aria-labelledby="roadmap-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Expansion</p>
+              <h2 id="roadmap-title">Future ecosystem</h2>
+            </div>
+            <p class="section-copy">
+              The perfume layer can expand into connected commerce categories
+              while keeping seller trust and creator attribution at the center.
+            </p>
+          </div>
+
+          <div class="roadmap-grid" id="roadmapGrid"></div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="authModal" role="dialog" aria-modal="true" aria-label="Account access" hidden>
+      <div class="auth-modal">
+        <button class="modal-close" id="closeAuthModal" type="button" aria-label="Close">&times;</button>
+
+        <section class="auth-step" id="loginStep">
+          <p class="eyebrow">Creator access</p>
+          <h2 id="authModalTitle">Login</h2>
+          <form class="auth-form" id="loginForm">
+            <label>
+              Email or phone number
+              <input id="loginIdentifier" type="text" autocomplete="username" placeholder="you@example.com or +256 700 123 456" required />
+            </label>
+            <label>
+              Password
+              <input id="loginPassword" type="password" autocomplete="current-password" required />
+            </label>
+            <button class="primary-button full-width" type="submit">Login</button>
+          </form>
+          <div class="auth-link-row">
+            <button class="link-button" id="switchToRegister" type="button">Create account</button>
+            <button class="link-button" id="switchToReset" type="button">Forgot password?</button>
+          </div>
+          <p class="form-message" id="loginMessage" aria-live="polite"></p>
+        </section>
+
+        <section class="auth-step" id="registerStep" hidden>
+          <p class="eyebrow">New account</p>
+          <h2>Open account</h2>
+          <form class="auth-form" id="registerForm">
+            <label>
+              Account name
+              <input id="registerName" type="text" autocomplete="name" placeholder="Luxury Scents UG" required />
+            </label>
+            <label>
+              Email address
+              <input id="registerEmail" type="email" autocomplete="email" placeholder="you@example.com" required />
+            </label>
+            <label>
+              Phone number
+              <input id="registerPhone" type="tel" autocomplete="tel" placeholder="+256 700 123 456" />
+            </label>
+            <label>
+              Account type
+              <select id="registerRole" required>
+                <option value="Seller">Seller</option>
+                <option value="Creator Admin">Creator</option>
+              </select>
+            </label>
+            <label>
+              Password
+              <input id="registerPassword" type="password" autocomplete="new-password" minlength="6" required />
+            </label>
+            <label>
+              Confirm password
+              <input id="registerConfirmPassword" type="password" autocomplete="new-password" minlength="6" required />
+            </label>
+            <button class="primary-button full-width" type="submit">Create Account</button>
+          </form>
+          <button class="link-button" id="backToLoginFromRegister" type="button">Back to login</button>
+          <p class="form-message" id="registerMessage" aria-live="polite"></p>
+        </section>
+
+        <section class="auth-step" id="resetRequestStep" hidden>
+          <p class="eyebrow">Password recovery</p>
+          <h2>Reset password</h2>
+          <form class="auth-form" id="otpRequestForm">
+            <label>
+              Registered email or phone number
+              <input id="resetIdentifier" type="text" autocomplete="username" placeholder="you@example.com or +256 700 123 456" required />
+            </label>
+            <button class="primary-button full-width" type="submit">Send OTP</button>
+          </form>
+          <button class="link-button" id="backToLogin" type="button">Back to login</button>
+          <p class="form-message" id="resetRequestMessage" aria-live="polite"></p>
+        </section>
+
+        <section class="auth-step" id="otpVerifyStep" hidden>
+          <p class="eyebrow">OTP verification</p>
+          <h2>Set new password</h2>
+          <p class="reset-copy" id="otpDeliveryLabel"></p>
+          <p class="demo-otp" id="demoOtpLabel"></p>
+          <form class="auth-form" id="passwordResetForm">
+            <label>
+              OTP code
+              <input id="otpCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required />
+            </label>
+            <label>
+              New password
+              <input id="newPassword" type="password" autocomplete="new-password" minlength="6" required />
+            </label>
+            <label>
+              Confirm password
+              <input id="confirmPassword" type="password" autocomplete="new-password" minlength="6" required />
+            </label>
+            <button class="primary-button full-width" type="submit">Reset Password</button>
+          </form>
+          <button class="link-button" id="resendOtpButton" type="button">Resend OTP</button>
+          <p class="form-message" id="passwordResetMessage" aria-live="polite"></p>
+        </section>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
