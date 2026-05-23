@@ -31,6 +31,13 @@
     "users",
   ];
 
+  const PACKAGE_OPTIONS = [
+    { plan: "Trial", fee: 0, status: "Trial" },
+    { plan: "Starter", fee: 50000, status: "Active" },
+    { plan: "Professional", fee: 120000, status: "Active" },
+    { plan: "Enterprise", fee: 250000, status: "Active" },
+  ];
+
   const ui = {
     landingScreen: document.getElementById("landingScreen"),
     authScreen: document.getElementById("authScreen"),
@@ -157,6 +164,7 @@
     ownerLandlordCountLabel: document.getElementById("ownerLandlordCountLabel"),
     ownerLandlordSummary: document.getElementById("ownerLandlordSummary"),
     ownerLandlordTable: document.getElementById("ownerLandlordTable"),
+    createDemoAccountButton: document.getElementById("createDemoAccountButton"),
     ownerPaymentForm: document.getElementById("ownerPaymentForm"),
     ownerPaymentLandlord: document.getElementById("ownerPaymentLandlord"),
     ownerPaymentAmount: document.getElementById("ownerPaymentAmount"),
@@ -174,6 +182,9 @@
     supportNote: document.getElementById("supportNote"),
     supportTicketCount: document.getElementById("supportTicketCount"),
     supportTicketList: document.getElementById("supportTicketList"),
+    systemStorageLabel: document.getElementById("systemStorageLabel"),
+    systemMonitorSummary: document.getElementById("systemMonitorSummary"),
+    systemSignalList: document.getElementById("systemSignalList"),
     adminPasswordResetForm: document.getElementById("adminPasswordResetForm"),
     adminPasswordResetUser: document.getElementById("adminPasswordResetUser"),
     receiptModal: document.getElementById("receiptModal"),
@@ -192,9 +203,9 @@
     rent: ["Rent", "Record payments, partial balances, and Mobile Money references."],
     expenses: ["Expenses", "Repairs, utilities, salaries, and operating costs."],
     reminders: ["Reminders", "SMS and WhatsApp messages for rent collection."],
-    platformLandlords: ["Landlords", "Manage landlord accounts, portfolios, plans, and assistance status."],
-    platformBilling: ["Billing", "Monitor software revenue, subscriptions, and payment status."],
-    platformSupport: ["Support", "Handle landlord assistance requests from the backend."],
+    platformLandlords: ["Account Management", "Approve landlords, create demos, reset passwords, and manage packages."],
+    platformBilling: ["Billing", "Track subscriptions, pending payments, expiring plans, and revenue analytics."],
+    platformSupport: ["System Monitoring", "Watch notifications, support tickets, errors, and storage health."],
   };
 
   const landlordNav = [
@@ -208,13 +219,10 @@
   ];
 
   const ownerNav = [
-    ["dashboard", "Owner Dashboard"],
-    ["platformLandlords", "Landlords"],
-    ["properties", "Properties"],
-    ["tenants", "Tenants"],
-    ["rent", "Rent"],
+    ["dashboard", "Platform Overview"],
+    ["platformLandlords", "Accounts"],
     ["platformBilling", "Billing"],
-    ["platformSupport", "Support"],
+    ["platformSupport", "Monitoring"],
   ];
 
   const staffNav = [
@@ -288,7 +296,7 @@
         state.role === "caretaker"
           ? "Caretaker mode limits removals."
           : state.role === "saas-owner"
-            ? "Website owner platform mode active."
+            ? "Super admin platform mode active."
             : "Landlord mode restored."
       );
     });
@@ -305,6 +313,7 @@
     ui.paymentTenant.addEventListener("change", updatePaymentPreview);
     ui.paymentAmount.addEventListener("input", updatePaymentPreview);
     ui.expenseForm.addEventListener("submit", saveExpense);
+    ui.createDemoAccountButton.addEventListener("click", createDemoLandlordAccount);
     ui.ownerPaymentForm.addEventListener("submit", saveOwnerPayment);
     ui.supportTicketForm.addEventListener("submit", saveSupportTicket);
     ui.adminPasswordResetForm.addEventListener("submit", sendAdminPasswordReset);
@@ -347,6 +356,10 @@
 
     if (!user || !["landlord", "saas-owner", "staff"].includes(user.role)) {
       showToast("Use a valid phone or email and password.");
+      return;
+    }
+    if (isAccountSuspended(user)) {
+      showToast("This account is suspended. Contact support.");
       return;
     }
 
@@ -498,6 +511,8 @@
       creator_email: email,
       password: ui.accountPassword.value,
       role: "landlord",
+      account_status: "Active",
+      created_at: new Date().toISOString(),
     };
 
     state.users.push(user);
@@ -542,6 +557,7 @@
     ui.currentAccountName.textContent = user.name;
     ui.currentAccountPhone.textContent = `${userContactLabel(user)} - ${roleLabel(user.role)}`;
     ui.globalSearch.value = state.searchTerm || "";
+    ui.propertyFilter.classList.toggle("hidden", isSaasOwner(user));
     renderNavigation();
     ensureSelectedProperty();
     renderAll();
@@ -574,6 +590,7 @@
       .map(([viewName, label]) => navButton("mobile-tab", viewName, label, viewName === nextActive))
       .join("");
     if (!activeExists) setView(nextActive);
+    else updateViewHeader(nextActive);
   }
 
   function navButton(className, viewName, label, active) {
@@ -631,7 +648,7 @@
     const user = currentUser();
     const options =
       user && user.role === "saas-owner"
-        ? [{ value: "saas-owner", label: "Website Owner" }]
+        ? [{ value: "saas-owner", label: "Super Admin" }]
         : user && user.role === "staff"
           ? [{ value: "staff", label: "Staff / Manager" }]
         : [
@@ -674,13 +691,17 @@
     document.querySelectorAll("[data-view]").forEach((button) => {
       button.classList.toggle("active", button.dataset.view === viewName);
     });
+    updateViewHeader(viewName);
+    clearAppLoading();
+  }
+
+  function updateViewHeader(viewName) {
     const [title, subtitle] =
       viewName === "dashboard" && isSaasOwner()
-        ? ["Owner Dashboard", "Track SaaS revenue, landlord accounts, billing, and support from one console."]
+        ? ["RentLedger UG Admin", "SaaS analytics for landlords, signups, subscriptions, support, and system health."]
         : viewCopy[viewName] || viewCopy.dashboard;
     ui.viewTitle.textContent = title;
     ui.viewSubtitle.textContent = subtitle;
-    clearAppLoading();
   }
 
   function renderDashboard() {
@@ -781,74 +802,80 @@
     const landlords = landlordUsers();
     const subscriptions = state.subscriptions || [];
     const tickets = state.supportTickets || [];
-    const activeSubscriptions = subscriptions.filter((subscription) => subscription.status !== "Paused");
+    const activeAccounts = landlords.filter((user) => accountStatus(user) === "Active");
+    const newSignups = newLandlordSignups();
     const openTickets = tickets.filter((ticket) => ticket.status !== "Resolved");
-    const portfolios = landlords.map((user) => ownerPortfolio(user.id));
-    const totalProperties = portfolios.reduce((sum, item) => sum + item.properties.length, 0);
-    const totalUnits = portfolios.reduce((sum, item) => sum + item.units.length, 0);
-    const totalTenants = portfolios.reduce((sum, item) => sum + item.tenants.length, 0);
-    const rentTracked = portfolios.reduce(
-      (sum, item) => sum + getCurrentMonthPayments(item.payments).reduce((paymentSum, payment) => paymentSum + Number(payment.amount), 0),
-      0
-    );
-    const monthlyRecurringRevenue = activeSubscriptions.reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
+    const monthlyRecurringRevenue = subscriptions
+      .filter((subscription) => subscription.status !== "Paused" && subscription.status !== "Trial")
+      .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
     const paidThisMonth = subscriptions
       .filter((subscription) => isCurrentMonth(subscription.last_payment_date))
       .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
-    const billingAttention = subscriptions.filter((subscription) => subscription.status === "Overdue").length;
+    const pendingPayments = pendingSubscriptions().length;
+    const expiredAccounts = expiredSubscriptions();
+    const expiringPlans = expiringSubscriptions().length;
+    const storageUsage = estimateStorageUsage();
+    const systemHealth = systemHealthLabel();
 
-    ui.dashboardPrimaryTitle.textContent = "Platform Health";
-    ui.dashboardSecondaryTitle.textContent = "Subscription Watchlist";
-    ui.dashboardRecentTitle.textContent = "Support Activity";
-    ui.dashboardActivityTitle.textContent = "Operator Activity";
+    ui.dashboardPrimaryTitle.textContent = "Admin Signals";
+    ui.dashboardSecondaryTitle.textContent = "Subscriptions & Expiry";
+    ui.dashboardRecentTitle.textContent = "Support Messages";
+    ui.dashboardActivityTitle.textContent = "Recent Platform Activity";
     ui.upcomingDuesHead.innerHTML = `
       <th>Landlord</th>
-      <th>Plan</th>
-      <th>Monthly Fee</th>
+      <th>Package</th>
       <th>Next Billing</th>
+      <th>Amount</th>
       <th>Status</th>
     `;
     ui.recentPaymentsHead.innerHTML = `
-      <th>Landlord</th>
-      <th>Issue</th>
+      <th>Message</th>
       <th>Priority</th>
       <th>Updated</th>
       <th>Status</th>
     `;
 
     ui.metricGrid.innerHTML = [
-      metricCard("SaaS MRR", formatMoney(monthlyRecurringRevenue), `${activeSubscriptions.length} paying accounts`),
-      metricCard("Paid This Month", formatMoney(paidThisMonth), "Software subscription income"),
-      metricCard("Landlords", landlords.length, `${totalProperties} properties managed`),
-      metricCard("Open Support", openTickets.length, `${billingAttention} billing account needs attention`),
+      metricCard("Active Landlords", activeAccounts.length, `${landlords.length} total accounts`),
+      metricCard("New Signups", newSignups.length, "This month"),
+      metricCard("Subscription Revenue", formatMoney(monthlyRecurringRevenue), `${formatMoney(paidThisMonth)} collected`),
+      metricCard("Expired Accounts", expiredAccounts.length, `${pendingPayments} pending payments`),
+      metricCard("System Health", systemHealth, `${storageUsage.records} records / ${storageUsage.label}`),
+      metricCard("Support Messages", openTickets.length, `${expiringPlans} plans expiring soon`),
     ].join("");
 
-    ui.occupancyLabel.textContent = `${totalUnits} managed units`;
-    ui.dueSoonLabel.textContent = `${billingAttention} billing alerts`;
-    ui.monthLabel.textContent = "Owner console";
+    ui.occupancyLabel.textContent = `${systemHealth}`;
+    ui.dueSoonLabel.textContent = `${pendingPayments} billing alerts`;
+    ui.monthLabel.textContent = "Messages";
 
     ui.unitStatusGrid.innerHTML = [
-      ownerSummaryTile("Properties", totalProperties),
-      ownerSummaryTile("Units", totalUnits),
-      ownerSummaryTile("Tenants", totalTenants),
-      ownerSummaryTile("Rent Tracked", formatMoney(rentTracked)),
-      ownerSummaryTile("Subscriptions", subscriptions.length),
-      ownerSummaryTile("Support Tickets", tickets.length),
+      ownerSummaryTile("Total Landlords", landlords.length),
+      ownerSummaryTile("New Signups", newSignups.length),
+      ownerSummaryTile("Trials", landlords.filter((user) => isTrialAccount(user)).length),
+      ownerSummaryTile("Expired", expiredAccounts.length),
+      ownerSummaryTile("Storage", storageUsage.label),
+      ownerSummaryTile("Support", openTickets.length),
     ].join("");
 
     ui.upcomingDuesTable.innerHTML =
       subscriptions
         .slice()
         .sort((a, b) => new Date(a.next_billing_date) - new Date(b.next_billing_date))
+        .slice(0, 10)
         .map((subscription) => {
           const user = userById(subscription.owner_id);
+          const status = isSubscriptionExpired(subscription)
+            ? "Expired"
+            : isSubscriptionExpiring(subscription) && subscription.status === "Active"
+              ? "Expiring"
+              : subscription.status;
           return `
             <tr>
               <td>${escapeHtml(user ? user.name : "Unknown landlord")}</td>
               <td>${escapeHtml(subscription.plan)}</td>
-              <td>${formatMoney(subscription.monthly_fee)}</td>
               <td>${formatDate(subscription.next_billing_date)}</td>
-              <td>${statusPill(subscription.status)}</td>
+              <td>${formatMoney(subscription.monthly_fee)}</td>
+              <td>${statusPill(status)}</td>
             </tr>
           `;
         })
@@ -863,19 +890,18 @@
           const user = userById(ticket.owner_id);
           return `
             <tr>
-              <td>${personCell(user ? user.name : "Unknown landlord", timeAgo(ticket.updated_at))}</td>
-              <td>${escapeHtml(ticket.subject)}</td>
+              <td>${personCell(ticket.subject, user ? user.name : "Unknown landlord")}</td>
               <td>${statusPill(ticket.priority)}</td>
               <td>${formatDate(ticket.updated_at)}</td>
               <td>${statusPill(ticket.status)}</td>
             </tr>
           `;
         })
-        .join("") || emptyTableRow(5, "No support activity yet.");
+        .join("") || emptyTableRow(4, "No support messages yet.");
 
-    ui.dashboardChartTitle.textContent = "Platform Revenue";
-    ui.dashboardChartLabel.textContent = "MRR + billing";
-    ui.dashboardChart.innerHTML = renderOwnerChart(subscriptions);
+    ui.dashboardChartTitle.textContent = "SaaS Analytics";
+    ui.dashboardChartLabel.textContent = "Revenue + signups";
+    ui.dashboardChart.innerHTML = renderAdminAnalyticsCharts(subscriptions, landlords, tickets);
     renderActivityFeed(buildPlatformActivityItems().slice(0, 8));
   }
 
@@ -953,6 +979,114 @@
     return [...ticketItems, ...billingItems].sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
+  function buildSystemMonitorRows() {
+    const supportRows = (state.supportTickets || []).map((ticket) => {
+      const user = userById(ticket.owner_id);
+      return {
+        title: ticket.subject,
+        detail: user ? user.name : "Unknown landlord",
+        type: "Support",
+        date: `${ticket.updated_at}T00:00:00`,
+        dateLabel: formatDate(ticket.updated_at),
+        status: ticket.status,
+      };
+    });
+    const notificationRows = (state.notifications || []).map((notification) => ({
+      title: notification.title,
+      detail: notification.message,
+      type: "Notification",
+      date: notification.created_at,
+      dateLabel: timeAgo(notification.created_at),
+      status: notification.read ? "Read" : "Open",
+    }));
+    const storage = estimateStorageUsage();
+    const systemRows = [
+      {
+        title: "Database / storage usage",
+        detail: `${storage.records} records, ${storage.label}`,
+        type: "Storage",
+        date: new Date().toISOString(),
+        dateLabel: "Now",
+        status: supabaseReady ? "Active" : "In Progress",
+      },
+      {
+        title: "Bugs and runtime errors",
+        detail: "No captured error reports in this MVP.",
+        type: "Bugs",
+        date: new Date().toISOString(),
+        dateLabel: "Now",
+        status: "Resolved",
+      },
+    ];
+    return [...supportRows, ...notificationRows, ...systemRows].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
+  function pendingSubscriptions() {
+    return (state.subscriptions || []).filter((subscription) => ["Overdue", "Pending"].includes(subscription.status));
+  }
+
+  function newLandlordSignups() {
+    return landlordUsers().filter((user) => isCurrentMonth(user.created_at));
+  }
+
+  function expiredSubscriptions() {
+    return (state.subscriptions || []).filter(isSubscriptionExpired);
+  }
+
+  function isSubscriptionExpired(subscription) {
+    if (subscription.status === "Expired" || subscription.status === "Overdue") return true;
+    if (!subscription.next_billing_date) return false;
+    const today = new Date();
+    const nextBilling = new Date(`${subscription.next_billing_date}T00:00:00`);
+    return nextBilling < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  }
+
+  function expiringSubscriptions() {
+    return (state.subscriptions || []).filter(isSubscriptionExpiring);
+  }
+
+  function isSubscriptionExpiring(subscription) {
+    if (!subscription.next_billing_date) return false;
+    const today = new Date();
+    const soon = new Date(today);
+    soon.setDate(today.getDate() + 14);
+    const nextBilling = new Date(`${subscription.next_billing_date}T00:00:00`);
+    return nextBilling >= today && nextBilling <= soon;
+  }
+
+  function isTrialAccount(user) {
+    const subscription = subscriptionByOwner(user.id);
+    return accountStatus(user) === "Trial" || subscription?.plan === "Trial" || subscription?.status === "Trial";
+  }
+
+  function systemHealthLabel() {
+    if (!supabaseReady) return "Local";
+    const storage = estimateStorageUsage();
+    const openHighPriority = (state.supportTickets || []).some(
+      (ticket) => ticket.status !== "Resolved" && ticket.priority === "High"
+    );
+    if (storage.bytes > 4 * 1024 * 1024 || openHighPriority) return "Attention";
+    return "Healthy";
+  }
+
+  function estimateStorageUsage() {
+    const payload = JSON.stringify({
+      users: state.users,
+      properties: state.properties,
+      units: state.units,
+      tenants: state.tenants,
+      payments: state.payments,
+      expenses: state.expenses,
+      subscriptions: state.subscriptions,
+      supportTickets: state.supportTickets,
+      notifications: state.notifications,
+    });
+    const bytes = new Blob([payload]).size;
+    const records = SUPABASE_TABLES.reduce((sum, table) => sum + ((state[table.stateKey] || []).length || 0), 0);
+    const label = bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return { bytes, label, records };
+  }
+
   function renderIncomeChart(payments) {
     const days = [5, 10, 15, 20, 25, 30];
     const buckets = days.map((day) => {
@@ -970,6 +1104,44 @@
       total: Number(subscription.monthly_fee),
     }));
     return chartMarkup(buckets, "MRR");
+  }
+
+  function renderAdminAnalyticsCharts(subscriptions, landlords, tickets) {
+    const packageTotals = PACKAGE_OPTIONS.map((option) => ({
+      label: option.plan.slice(0, 5),
+      total: subscriptions
+        .filter((subscription) => subscription.plan === option.plan)
+        .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0),
+    }));
+    const accountMix = [
+      { label: "Active", total: landlords.filter((user) => accountStatus(user) === "Active").length },
+      { label: "Trial", total: landlords.filter((user) => isTrialAccount(user)).length },
+      { label: "Expired", total: expiredSubscriptions().length },
+      { label: "Paused", total: landlords.filter((user) => accountStatus(user) === "Suspended").length },
+    ];
+    const supportMix = [
+      { label: "Open", total: tickets.filter((ticket) => ticket.status === "Open").length },
+      { label: "Prog", total: tickets.filter((ticket) => ticket.status === "In Progress").length },
+      { label: "Done", total: tickets.filter((ticket) => ticket.status === "Resolved").length },
+      { label: "High", total: tickets.filter((ticket) => ticket.priority === "High" && ticket.status !== "Resolved").length },
+    ];
+
+    return `
+      <div class="analytics-chart-grid">
+        <article class="mini-chart">
+          <strong>Revenue by Package</strong>
+          ${chartMarkup(packageTotals, "Package revenue")}
+        </article>
+        <article class="mini-chart">
+          <strong>Account Status</strong>
+          ${chartMarkup(accountMix, "Account status")}
+        </article>
+        <article class="mini-chart">
+          <strong>Support Load</strong>
+          ${chartMarkup(supportMix, "Support load")}
+        </article>
+      </div>
+    `;
   }
 
   function chartMarkup(buckets, caption) {
@@ -997,16 +1169,21 @@
     const subscriptions = state.subscriptions || [];
     const tickets = state.supportTickets || [];
     const totalMrr = subscriptions
-      .filter((subscription) => subscription.status !== "Paused")
+      .filter((subscription) => subscription.status !== "Paused" && subscription.status !== "Trial")
       .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
     const totalOpenTickets = tickets.filter((ticket) => ticket.status !== "Resolved").length;
+    const activeAccounts = landlords.filter((user) => accountStatus(user) === "Active").length;
+    const inactiveAccounts = landlords.filter((user) => accountStatus(user) === "Suspended" || accountStatus(user) === "Inactive").length;
+    const trialAccounts = landlords.filter((user) => isTrialAccount(user)).length;
 
     ui.ownerLandlordCountLabel.textContent = `${landlords.length} landlords`;
     ui.ownerLandlordSummary.innerHTML = [
+      ownerSummaryItem("Active Accounts", activeAccounts),
+      ownerSummaryItem("Inactive Accounts", inactiveAccounts),
+      ownerSummaryItem("Trial Accounts", trialAccounts),
       ownerSummaryItem("Monthly SaaS Revenue", formatMoney(totalMrr)),
+      ownerSummaryItem("Pending Payments", pendingSubscriptions().length),
       ownerSummaryItem("Open Support", totalOpenTickets),
-      ownerSummaryItem("Total Properties", state.properties.length),
-      ownerSummaryItem("Total Units", state.units.length),
     ].join("");
 
     ui.ownerLandlordTable.innerHTML =
@@ -1014,13 +1191,22 @@
         .filter((user) => {
           const subscription = subscriptionByOwner(user.id);
           const portfolio = ownerPortfolio(user.id);
-          return matchesSearch([user.name, user.phone, user.email, subscription ? subscription.plan : "", portfolio.properties.map((property) => property.property_name).join(" ")]);
+          return matchesSearch([
+            user.name,
+            user.phone,
+            user.email,
+            accountStatus(user),
+            subscription ? subscription.plan : "",
+            subscription ? subscription.status : "",
+            portfolio.properties.map((property) => property.property_name).join(" "),
+          ]);
         })
         .map((user) => {
           const portfolio = ownerPortfolio(user.id);
           const subscription = subscriptionByOwner(user.id);
           const openTicketCount = tickets.filter((ticket) => ticket.owner_id === user.id && ticket.status !== "Resolved").length;
-          const rentTracked = getCurrentMonthPayments(portfolio.payments).reduce((sum, payment) => sum + Number(payment.amount), 0);
+          const status = accountStatus(user);
+          const nextAction = status === "Suspended" || status === "Inactive" ? "Approve" : "Suspend";
           return `
             <tr>
               <td>
@@ -1031,12 +1217,16 @@
                 ${escapeHtml(subscription ? subscription.plan : "No plan")}
                 <small class="table-subtext">${subscription ? statusPill(subscription.status) : ""}</small>
               </td>
+              <td>${statusPill(status)}</td>
               <td>${portfolio.properties.length} properties / ${portfolio.units.length} units</td>
-              <td>${formatMoney(rentTracked)}</td>
-              <td>${openTicketCount} open</td>
+              <td>
+                ${escapeHtml(openTicketCount ? `${openTicketCount} support open` : "No open support")}
+                <small class="table-subtext">${subscription ? `Next: ${formatDate(subscription.next_billing_date)}` : "No subscription"}</small>
+              </td>
               <td>
                 <div class="button-row">
-                  <button class="text-button" data-open-landlord="${user.id}" type="button">Open Portfolio</button>
+                  <button class="text-button" data-toggle-account-status="${user.id}" type="button">${nextAction}</button>
+                  <button class="text-button" data-cycle-plan="${user.id}" type="button">Package</button>
                   <button class="text-button" data-admin-reset-user="${user.id}" type="button">Send Reset OTP</button>
                 </div>
               </td>
@@ -1045,8 +1235,11 @@
         })
         .join("") || emptyTableRow(6, "No landlord accounts yet.");
 
-    ui.ownerLandlordTable.querySelectorAll("[data-open-landlord]").forEach((button) => {
-      button.addEventListener("click", () => openLandlordPortfolio(button.dataset.openLandlord));
+    ui.ownerLandlordTable.querySelectorAll("[data-toggle-account-status]").forEach((button) => {
+      button.addEventListener("click", () => toggleLandlordAccountStatus(button.dataset.toggleAccountStatus));
+    });
+    ui.ownerLandlordTable.querySelectorAll("[data-cycle-plan]").forEach((button) => {
+      button.addEventListener("click", () => cycleSubscriptionPackage(button.dataset.cyclePlan));
     });
     ui.ownerLandlordTable.querySelectorAll("[data-admin-reset-user]").forEach((button) => {
       button.addEventListener("click", () => createAdminPasswordReset(button.dataset.adminResetUser));
@@ -1061,13 +1254,16 @@
     const paidThisMonth = subscriptions
       .filter((subscription) => isCurrentMonth(subscription.last_payment_date))
       .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
-    const overdue = subscriptions.filter((subscription) => subscription.status === "Overdue").length;
+    const expiring = expiringSubscriptions().length;
+    const trials = subscriptions.filter((subscription) => subscription.plan === "Trial" || subscription.status === "Trial").length;
 
     ui.ownerBillingTotalLabel.textContent = formatMoney(currentMrr);
     ui.ownerBillingSummary.innerHTML = [
       ownerSummaryItem("MRR", formatMoney(currentMrr)),
       ownerSummaryItem("Paid This Month", formatMoney(paidThisMonth)),
-      ownerSummaryItem("Overdue Accounts", overdue),
+      ownerSummaryItem("Pending Payments", pendingSubscriptions().length),
+      ownerSummaryItem("Expiring Plans", expiring),
+      ownerSummaryItem("Trial Accounts", trials),
       ownerSummaryItem("Active Plans", subscriptions.filter((subscription) => subscription.status === "Active").length),
     ].join("");
 
@@ -1081,6 +1277,7 @@
         .sort((a, b) => new Date(a.next_billing_date) - new Date(b.next_billing_date))
         .map((subscription) => {
           const user = userById(subscription.owner_id);
+          const status = isSubscriptionExpiring(subscription) && subscription.status === "Active" ? "Expiring" : subscription.status;
           return `
             <tr>
               <td>${escapeHtml(user ? user.name : "Unknown landlord")}</td>
@@ -1088,7 +1285,7 @@
               <td>${formatMoney(subscription.monthly_fee)}</td>
               <td>${formatDate(subscription.last_payment_date)}</td>
               <td>${formatDate(subscription.next_billing_date)}</td>
-              <td>${statusPill(subscription.status)}</td>
+              <td>${statusPill(status)}</td>
             </tr>
           `;
         })
@@ -1098,6 +1295,39 @@
   function renderPlatformSupport() {
     const tickets = state.supportTickets || [];
     const openTickets = tickets.filter((ticket) => ticket.status !== "Resolved");
+    const notifications = state.notifications || [];
+    const unreadNotifications = notifications.filter((notification) => !notification.read).length;
+    const storage = estimateStorageUsage();
+    const systemRows = buildSystemMonitorRows();
+    ui.systemStorageLabel.textContent = supabaseReady ? "Supabase active" : "Browser fallback";
+    ui.systemStorageLabel.className = `pill ${supabaseReady ? "success" : "warning"}`;
+    ui.systemMonitorSummary.innerHTML = [
+      ownerSummaryItem("Notifications", notifications.length),
+      ownerSummaryItem("Unread Alerts", unreadNotifications),
+      ownerSummaryItem("Support Tickets", tickets.length),
+      ownerSummaryItem("Open Requests", openTickets.length),
+      ownerSummaryItem("Bug Reports", 0),
+      ownerSummaryItem("Storage Used", storage.label),
+    ].join("");
+    ui.systemSignalList.innerHTML =
+      systemRows
+        .slice(0, 8)
+        .map(
+          (row) => `
+            <article class="support-card">
+              <div class="support-card-header">
+                <div class="support-card-title">
+                  <strong>${escapeHtml(row.title)}</strong>
+                  <small>${escapeHtml(row.type)} - ${escapeHtml(row.dateLabel)}</small>
+                </div>
+                ${statusPill(row.status)}
+              </div>
+              <p class="support-note">${escapeHtml(row.detail)}</p>
+            </article>
+          `
+        )
+        .join("") || emptyBlock("No system signals yet.");
+
     ui.supportTicketCount.textContent = `${openTickets.length} open`;
     ui.supportTicketList.innerHTML =
       tickets
@@ -1124,7 +1354,7 @@
               </div>
               <p class="support-note">${escapeHtml(ticket.note || "No support note added.")}</p>
               <div class="button-row">
-                <button class="text-button" data-open-landlord="${ticket.owner_id}" type="button">Open Account</button>
+                <button class="text-button" data-focus-landlord="${ticket.owner_id}" type="button">View Account</button>
                 <button class="${resolved ? "text-button" : "primary-button"}" data-toggle-ticket="${ticket.id}" type="button">
                   ${resolved ? "Reopen" : "Mark Resolved"}
                 </button>
@@ -1137,8 +1367,8 @@
     ui.supportTicketList.querySelectorAll("[data-toggle-ticket]").forEach((button) => {
       button.addEventListener("click", () => toggleSupportTicket(button.dataset.toggleTicket));
     });
-    ui.supportTicketList.querySelectorAll("[data-open-landlord]").forEach((button) => {
-      button.addEventListener("click", () => openLandlordPortfolio(button.dataset.openLandlord));
+    ui.supportTicketList.querySelectorAll("[data-focus-landlord]").forEach((button) => {
+      button.addEventListener("click", () => focusLandlordAccount(button.dataset.focusLandlord));
     });
   }
 
@@ -1719,9 +1949,11 @@
       creator_email: user.email || user.creator_email || "",
       password: ui.staffPassword.value,
       role: "staff",
+      account_status: "Active",
       company_owner_id: user.id,
       assigned_property_ids: assignedPropertyIds,
       invitation_status: "Invited",
+      created_at: new Date().toISOString(),
     };
 
     state.users.push(staffUser);
@@ -1905,6 +2137,162 @@
     showToast("Support ticket saved.");
   }
 
+  function createDemoLandlordAccount() {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can create demo accounts.");
+      return;
+    }
+
+    state.subscriptions = state.subscriptions || [];
+    const demoNumber = landlordUsers().filter((user) => user.name.startsWith("Demo Landlord")).length + 1;
+    const userId = makeId("user");
+    const propertyId = makeId("property");
+    const occupiedUnitId = makeId("unit");
+    const vacantUnitId = makeId("unit");
+    const tenantId = makeId("tenant");
+    const paymentId = makeId("payment");
+    const today = isoDate(new Date());
+    const email = `demo.landlord.${Date.now()}@rentledger.ug`;
+
+    const demoUser = {
+      id: userId,
+      name: `Demo Landlord ${demoNumber}`,
+      phone: `0799${String(100000 + demoNumber).slice(-6)}`,
+      email,
+      creator_email: currentUser()?.email || currentUser()?.creator_email || "",
+      password: "demo123",
+      role: "landlord",
+      account_status: "Trial",
+      created_at: new Date().toISOString(),
+    };
+    const property = {
+      id: propertyId,
+      property_name: `Demo Estate ${demoNumber}`,
+      location: "Kampala",
+      property_type: "Apartment",
+      owner_id: userId,
+    };
+    const units = [
+      { id: occupiedUnitId, property_id: propertyId, unit_number: "A1", rent_amount: 650000, status: "occupied" },
+      { id: vacantUnitId, property_id: propertyId, unit_number: "A2", rent_amount: 650000, status: "vacant" },
+    ];
+    const tenant = {
+      id: tenantId,
+      unit_id: occupiedUnitId,
+      name: "Demo Tenant",
+      phone: "0770000001",
+      national_id: "DEMO-001",
+      rent_amount: 650000,
+      deposit_paid: 650000,
+      move_in_date: today,
+    };
+    const payment = {
+      id: paymentId,
+      tenant_id: tenantId,
+      amount: 650000,
+      payment_method: "MTN MoMo",
+      payment_date: today,
+      balance: 0,
+      reference: autoReference("MTN MoMo"),
+    };
+    const subscription = {
+      id: makeId("subscription"),
+      owner_id: userId,
+      plan: "Trial",
+      monthly_fee: 0,
+      status: "Trial",
+      last_payment_date: today,
+      last_payment_method: "Trial",
+      last_payment_note: "Demo trial account created by super admin",
+      next_billing_date: addMonths(today, 1),
+    };
+
+    state.users.push(demoUser);
+    state.properties.push(property);
+    state.units.push(...units);
+    state.tenants.push(tenant);
+    state.payments.push(payment);
+    state.subscriptions.push(subscription);
+    addNotification({
+      type: "support",
+      title: "Demo account created",
+      message: `${demoUser.name} was created with trial access.`,
+    });
+    saveState();
+    renderAll();
+    showToast(`Demo account created: ${email} / demo123`);
+  }
+
+  function toggleLandlordAccountStatus(userId) {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can approve or suspend accounts.");
+      return;
+    }
+
+    const user = userById(userId);
+    if (!user || user.role !== "landlord") return;
+    const nextStatus = accountStatus(user) === "Suspended" || accountStatus(user) === "Inactive" ? "Active" : "Suspended";
+    state.users = state.users.map((item) =>
+      item.id === userId
+        ? {
+            ...item,
+            account_status: nextStatus,
+          }
+        : item
+    );
+    saveState();
+    renderAll();
+    showToast(`${user.name} ${nextStatus === "Active" ? "approved" : "suspended"}.`);
+  }
+
+  function cycleSubscriptionPackage(ownerId) {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can manage packages.");
+      return;
+    }
+
+    state.subscriptions = state.subscriptions || [];
+    const subscription = subscriptionByOwner(ownerId);
+    const today = isoDate(new Date());
+    const currentIndex = Math.max(0, PACKAGE_OPTIONS.findIndex((option) => option.plan === subscription?.plan));
+    const nextPackage = PACKAGE_OPTIONS[(currentIndex + 1) % PACKAGE_OPTIONS.length];
+
+    if (subscription) {
+      state.subscriptions = state.subscriptions.map((item) =>
+        item.id === subscription.id
+          ? {
+              ...item,
+              plan: nextPackage.plan,
+              monthly_fee: nextPackage.fee,
+              status: nextPackage.status,
+              next_billing_date: item.next_billing_date || addMonths(today, 1),
+            }
+          : item
+      );
+    } else {
+      state.subscriptions.push({
+        id: makeId("subscription"),
+        owner_id: ownerId,
+        plan: nextPackage.plan,
+        monthly_fee: nextPackage.fee,
+        status: nextPackage.status,
+        last_payment_date: today,
+        last_payment_method: "Manual",
+        last_payment_note: "Package assigned by super admin",
+        next_billing_date: addMonths(today, 1),
+      });
+    }
+
+    state.users = state.users.map((item) =>
+      item.id === ownerId
+        ? { ...item, account_status: nextPackage.status === "Trial" ? "Trial" : "Active" }
+        : item
+    );
+    saveState();
+    renderAll();
+    showToast(`Package changed to ${nextPackage.plan}.`);
+  }
+
   function sendAdminPasswordReset(event) {
     event.preventDefault();
     createAdminPasswordReset(ui.adminPasswordResetUser.value);
@@ -1960,6 +2348,17 @@
     saveState();
     renderAll();
     showToast("Support ticket updated.");
+  }
+
+  function focusLandlordAccount(ownerId) {
+    const user = userById(ownerId);
+    if (!user) return;
+    state.searchTerm = user.name;
+    saveState();
+    ui.globalSearch.value = state.searchTerm;
+    renderAll();
+    setView("platformLandlords");
+    showToast(`Showing account for ${user.name}.`);
   }
 
   function openLandlordPortfolio(ownerId) {
@@ -2028,6 +2427,17 @@
     return state.users.find((user) => user.id === id) || null;
   }
 
+  function accountStatus(user) {
+    if (!user) return "Inactive";
+    return user.account_status || (user.role === "staff" ? user.invitation_status || "Invited" : "Active");
+  }
+
+  function isAccountSuspended(user) {
+    if (accountStatus(user) === "Suspended") return true;
+    const owner = user.company_owner_id ? userById(user.company_owner_id) : null;
+    return accountStatus(owner) === "Suspended";
+  }
+
   function landlordUsers() {
     return state.users.filter((user) => user.role === "landlord");
   }
@@ -2081,7 +2491,7 @@
   }
 
   function roleLabel(role) {
-    if (role === "saas-owner") return "Website Owner";
+    if (role === "saas-owner") return "Super Admin";
     if (role === "staff") return "Staff / Manager";
     if (role === "caretaker") return "Caretaker";
     return "Landlord";
@@ -2521,6 +2931,8 @@
         creator_email: row.creator_email || "",
         password: row.password || "demo123",
         role: row.role,
+        account_status: row.account_status || "Active",
+        created_at: row.created_at || new Date().toISOString(),
         company_owner_id: row.company_owner_id || undefined,
         assigned_property_ids: row.assigned_property_ids || [],
         invitation_status: row.invitation_status || undefined,
@@ -2594,6 +3006,8 @@
         creator_email: row.creator_email || row.email || null,
         password: row.password || "demo123",
         role: row.role,
+        account_status: row.account_status || "Active",
+        created_at: row.created_at || new Date().toISOString(),
         company_owner_id: row.company_owner_id || null,
         assigned_property_ids: row.assigned_property_ids || [],
         invitation_status: row.invitation_status || null,
@@ -2669,6 +3083,8 @@
         ...user,
         email: user.email || (seedUser ? seedUser.email : ""),
         creator_email: user.creator_email || (seedUser ? seedUser.creator_email : "") || user.email || "",
+        account_status: user.account_status || (seedUser ? seedUser.account_status : "") || "Active",
+        created_at: user.created_at || (seedUser ? seedUser.created_at : "") || new Date().toISOString(),
       };
     });
     seeded.users.forEach((seedUser) => {
@@ -2697,6 +3113,7 @@
           creator_email: "allanpyrex5@gmail.com",
           password: "Etochu@2727",
           role: "saas-owner",
+          account_status: "Active",
         };
       }
       if (user.id === "staff-1") {
@@ -2775,6 +3192,8 @@
           creator_email: "allanpyrex5@gmail.com",
           password: "Etochu@2727",
           role: "saas-owner",
+          account_status: "Active",
+          created_at: date(1),
         },
         {
           id: "user-1",
@@ -2784,6 +3203,8 @@
           creator_email: "landlord@rentledger.ug",
           password: "demo123",
           role: "landlord",
+          account_status: "Active",
+          created_at: date(2),
         },
         {
           id: "user-2",
@@ -2793,6 +3214,8 @@
           creator_email: "daniel@rentledger.ug",
           password: "demo123",
           role: "landlord",
+          account_status: "Active",
+          created_at: previousDate(14),
         },
         {
           id: "staff-1",
@@ -2802,9 +3225,11 @@
           creator_email: "landlord@rentledger.ug",
           password: "staff123",
           role: "staff",
+          account_status: "Active",
           company_owner_id: "user-1",
           assigned_property_ids: ["property-1", "property-4"],
           invitation_status: "Invited",
+          created_at: date(5),
         },
       ],
       properties: [
@@ -3399,11 +3824,11 @@
 
   function statusPill(status) {
     const className =
-      status === "Paid" || status === "Occupied" || status === "Active" || status === "Resolved" || status === "Low"
+      status === "Paid" || status === "Occupied" || status === "Active" || status === "Resolved" || status === "Low" || status === "Read"
         ? "success"
-        : status === "Overdue" || status === "Open" || status === "High"
+        : status === "Overdue" || status === "Open" || status === "High" || status === "Suspended" || status === "Inactive" || status === "Expired"
           ? "danger"
-          : status === "Partial" || status === "Vacant" || status === "Due" || status === "Medium" || status === "In Progress" || status === "Invited"
+          : status === "Partial" || status === "Vacant" || status === "Due" || status === "Medium" || status === "In Progress" || status === "Invited" || status === "Pending" || status === "Expiring" || status === "Attention" || status === "Local"
             ? "warning"
             : "info";
     return `<span class="pill ${className}">${escapeHtml(status)}</span>`;

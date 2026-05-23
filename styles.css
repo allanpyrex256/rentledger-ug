@@ -1188,6 +1188,16 @@ h1 {
   border-color: #efb2aa;
 }
 
+.metric-card:nth-child(5) {
+  background: #f0fbff;
+  border-color: #a7d8e8;
+}
+
+.metric-card:nth-child(6) {
+  background: #f7f2ff;
+  border-color: #c9b7ec;
+}
+
 .metric-label {
   color: var(--muted);
   font-size: 13px;
@@ -1242,6 +1252,31 @@ h1 {
   border-radius: 8px 8px 0 0;
   background: linear-gradient(180deg, #f59e0b, #0f766e);
   transition: height 280ms ease;
+}
+
+.analytics-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mini-chart {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mini-chart > strong {
+  font-size: 13px;
+}
+
+.mini-chart .bar-chart {
+  min-height: 210px;
+  grid-template-columns: repeat(4, minmax(42px, 1fr));
+}
+
+.mini-chart .bar-track {
+  height: 130px;
 }
 
 .bar-item strong {
@@ -2034,7 +2069,8 @@ tbody tr:last-child td {
   .metric-grid,
   .expense-summary,
   .template-grid,
-  .owner-summary-grid {
+  .owner-summary-grid,
+  .analytics-chart-grid {
     grid-template-columns: 1fr;
   }
 

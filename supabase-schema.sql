@@ -14,6 +14,7 @@ create table if not exists app_users (
   creator_email text,
   password text not null,
   role text not null check (role in ('saas-owner', 'landlord', 'staff')),
+  account_status text not null default 'Active',
   company_owner_id text references app_users(id) on delete cascade,
   assigned_property_ids text[] not null default '{}',
   invitation_status text,

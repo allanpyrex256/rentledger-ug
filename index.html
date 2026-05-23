@@ -883,18 +883,21 @@
           <section class="panel">
             <div class="panel-header">
               <h2>Landlord Accounts</h2>
-              <span id="ownerLandlordCountLabel" class="pill success">0 landlords</span>
+              <div class="button-row">
+                <span id="ownerLandlordCountLabel" class="pill success">0 landlords</span>
+                <button id="createDemoAccountButton" class="text-button" type="button">Create Demo Account</button>
+              </div>
             </div>
             <div id="ownerLandlordSummary" class="owner-summary-grid"></div>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Landlord</th>
-                    <th>Plan</th>
+                    <th>Account</th>
+                    <th>Package</th>
+                    <th>Status</th>
                     <th>Portfolio</th>
-                    <th>Rent Tracked</th>
-                    <th>Support</th>
+                    <th>Billing</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -1008,6 +1011,15 @@
                 </label>
                 <button class="primary-button" type="submit">Save Support Ticket</button>
               </form>
+            </section>
+
+            <section class="panel wide-panel">
+              <div class="panel-header">
+                <h2>System Health</h2>
+                <span id="systemStorageLabel" class="pill info">Checking</span>
+              </div>
+              <div id="systemMonitorSummary" class="owner-summary-grid"></div>
+              <div id="systemSignalList" class="support-list"></div>
             </section>
 
             <section class="panel wide-panel">

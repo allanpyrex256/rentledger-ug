@@ -15,7 +15,7 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 - Expense tracking for repairs, utilities, caretaker salary, security, and other costs.
 - SMS and WhatsApp reminder templates for due, received, and overdue rent.
 - Notifications for payment, staff, expense, and overdue rent events.
-- Website-owner console for SaaS revenue, landlord accounts, billing status, and backend support tickets.
+- Super-admin console for SaaS revenue, account management, billing, monitoring, and backend support tickets.
 - Supabase-backed persistence with local browser storage as an offline fallback.
 
 ## Open It
@@ -24,13 +24,19 @@ Open `index.html` in a browser. If `supabase-config.js` has real project keys, r
 
 ## Demo Login Details
 
-- Website owner: `0700000000` or `allanpyrex5@gmail.com` / `Etochu@2727`
+- Super admin: `0700000000` or `allanpyrex5@gmail.com` / `Etochu@2727`
 - Landlord Demo: `0772123456` or `landlord@rentledger.ug` / `demo123`
   Includes 5 properties, 20 tenants, expenses, rent balances, and payment history.
 - Staff Demo: `0700111222` or `staff@rentledger.ug` / `staff123`
   Limited to assigned properties only.
 - Forgot password sends a demo OTP to the account creator email shown in the reset form.
 - Super admin can send reset OTPs for landlord and staff accounts from the Support console.
+
+## Portal Structure
+
+- Super Admin: platform overview, account management, billing, system monitoring, support tickets, subscriptions, and password resets.
+- Landlord: properties, units, tenants, rent, expenses, reminders, and staff access.
+- Staff: assigned properties, tenants, rent, and reminders only.
 
 ## Supabase Backend Setup
 
@@ -44,8 +50,8 @@ If you already ran an older version of the schema with UUID columns, use a fresh
 The app stores real rows in these tables:
 
 ```sql
-app_users(id, name, phone, email, creator_email, password, role)
-subscriptions(id, owner_id, plan, monthly_fee, status, last_payment_date, next_billing_date)
+app_users(id, name, phone, email, creator_email, password, role, account_status, created_at)
+subscriptions(id, owner_id, plan, monthly_fee, status, last_payment_date, next_billing_date, created_at)
 properties(id, property_name, location, property_type, owner_id)
 units(id, property_id, unit_number, rent_amount, status)
 tenants(id, unit_id, name, phone, national_id, rent_amount, deposit_paid, move_in_date)
