@@ -22,6 +22,7 @@
         <nav class="landing-links" aria-label="Landing navigation">
           <a href="#features">Features</a>
           <a href="#howItWorks">How It Works</a>
+          <a href="#dashboardPreview">Preview</a>
           <a href="#pricing">Pricing</a>
           <button class="ghost-button" data-open-auth="signin" type="button">Sign In</button>
         </nav>
@@ -32,12 +33,14 @@
           <div class="hero-copy">
             <span class="hero-kicker">Premium rental fintech for Uganda</span>
             <h1>Know Who Paid, Who Owes, and What You’re Earning — Instantly</h1>
+            <h1>Manage Rent, Tenants & Payments in One Place</h1>
             <p>
               Track rent, tenants, vacancies, expenses, and payments from one powerful dashboard.
             </p>
             <div class="hero-actions">
-              <button class="primary-button" data-start-demo type="button">Start Free Trial</button>
-              <button class="ghost-button" data-scroll-target="pricing" type="button">Book Demo</button>
+              <button class="primary-button" data-open-auth="signup" type="button">Start Free Trial</button>
+              <button class="ghost-button" data-scroll-target="dashboardPreview" type="button">Watch Demo</button>
+              <button class="ghost-button" data-start-demo type="button">Real Dashboard Preview</button>
             </div>
             <div class="hero-proof">
               <span>94% occupancy insight</span>
@@ -225,7 +228,7 @@
               <h3>Professional</h3>
               <strong>UGX 120,000<span>/month</span></strong>
               <p>For landlords managing multiple properties.</p>
-              <button class="primary-button" data-start-demo type="button">Start Free Trial</button>
+              <button class="primary-button" data-open-auth="signup" type="button">Start Free Trial</button>
             </article>
             <article class="price-card">
               <h3>Enterprise</h3>
@@ -257,15 +260,15 @@
 
         <form id="signInForm" class="stacked-form auth-form">
           <label>
-            Phone Number
-            <input id="signInPhone" autocomplete="tel" required />
+            Phone Number or Email
+            <input id="signInIdentifier" autocomplete="username" required />
           </label>
           <label>
             Password
             <input id="signInPassword" type="password" autocomplete="current-password" required />
           </label>
           <button class="primary-button" type="submit">Sign In</button>
-          <button id="demoLogin" class="ghost-button" type="button">Use Demo Account</button>
+          <button id="forgotPasswordButton" class="text-button auth-secondary-button" type="button">Forgot Password?</button>
         </form>
 
         <form id="createAccountForm" class="stacked-form auth-form hidden">
@@ -278,15 +281,58 @@
             <input id="accountPhone" autocomplete="tel" required />
           </label>
           <label>
+            Email Address
+            <input id="accountEmail" type="email" autocomplete="email" required />
+          </label>
+          <label>
             Password
             <input id="accountPassword" type="password" autocomplete="new-password" minlength="4" required />
           </label>
           <button class="primary-button" type="submit">Open Landlord Account</button>
         </form>
+
+        <form id="forgotPasswordForm" class="stacked-form auth-form hidden">
+          <label>
+            Account Phone or Email
+            <input id="resetIdentifier" autocomplete="username" required />
+          </label>
+          <div class="form-actions auth-form-actions">
+            <button id="cancelPasswordReset" class="ghost-button" type="button">Back</button>
+            <button class="primary-button" type="submit">Send OTP</button>
+          </div>
+        </form>
+
+        <form id="resetPasswordForm" class="stacked-form auth-form hidden">
+          <label>
+            Creator Email
+            <input id="resetOtpEmail" readonly />
+          </label>
+          <label>
+            Email OTP
+            <input id="resetOtp" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required />
+          </label>
+          <label>
+            New Password
+            <input id="resetNewPassword" type="password" autocomplete="new-password" minlength="4" required />
+          </label>
+          <label>
+            Confirm Password
+            <input id="resetConfirmPassword" type="password" autocomplete="new-password" minlength="4" required />
+          </label>
+          <small id="resetOtpNotice" class="reset-otp-notice hidden"></small>
+          <div class="form-actions auth-form-actions">
+            <button id="resetPasswordBack" class="ghost-button" type="button">Back</button>
+            <button class="primary-button" type="submit">Reset Password</button>
+          </div>
+        </form>
       </div>
     </section>
 
     <div id="appShell" class="app-shell hidden">
+      <div id="loadingBar" class="loading-bar hidden" role="status" aria-live="polite">
+        <span></span>
+        <strong>Loading</strong>
+      </div>
       <aside class="sidebar">
         <div class="brand-block">
           <div class="brand-mark">
@@ -298,7 +344,7 @@
           </div>
         </div>
 
-        <nav class="side-nav" aria-label="Main navigation">
+        <nav id="sideNav" class="side-nav" aria-label="Main navigation">
           <button class="nav-item active" data-view="dashboard" type="button">Dashboard</button>
           <button class="nav-item" data-view="properties" type="button">Properties</button>
           <button class="nav-item" data-view="tenants" type="button">Tenants</button>
@@ -330,15 +376,29 @@
           </div>
 
           <div class="topbar-actions">
+            <input id="globalSearch" class="search-input" placeholder="Search records" />
             <select id="propertyFilter" aria-label="Property filter"></select>
+            <div class="notification-shell">
+              <button id="notificationToggle" class="ghost-button notification-button" type="button">
+                Notifications <span id="notificationCount" class="notification-count">0</span>
+              </button>
+              <div id="notificationPanel" class="notification-panel hidden">
+                <div class="notification-panel-header">
+                  <strong>Notifications</strong>
+                  <button id="markNotificationsRead" class="text-button" type="button">Mark Read</button>
+                </div>
+                <div id="notificationList" class="notification-list"></div>
+              </div>
+            </div>
             <button id="resetDemo" class="ghost-button" type="button">Reset Demo</button>
           </div>
         </header>
 
-        <nav class="mobile-tabs" aria-label="Mobile navigation">
+        <nav id="mobileTabs" class="mobile-tabs" aria-label="Mobile navigation">
           <button class="mobile-tab active" data-view="dashboard" type="button">Dashboard</button>
           <button class="mobile-tab" data-view="properties" type="button">Properties</button>
           <button class="mobile-tab" data-view="tenants" type="button">Tenants</button>
+          <button class="mobile-tab" data-view="staff" type="button">Staff</button>
           <button class="mobile-tab" data-view="rent" type="button">Rent</button>
           <button class="mobile-tab" data-view="expenses" type="button">Expenses</button>
           <button class="mobile-tab" data-view="reminders" type="button">Reminders</button>
@@ -350,7 +410,7 @@
           <div class="content-grid two-columns">
             <section class="panel">
               <div class="panel-header">
-                <h2>Occupancy</h2>
+                <h2 id="dashboardPrimaryTitle">Occupancy</h2>
                 <span id="occupancyLabel" class="pill neutral">0 units</span>
               </div>
               <div id="unitStatusGrid" class="unit-grid"></div>
@@ -358,13 +418,13 @@
 
             <section class="panel">
               <div class="panel-header">
-                <h2>Upcoming Dues</h2>
+                <h2 id="dashboardSecondaryTitle">Upcoming Dues</h2>
                 <span id="dueSoonLabel" class="pill warning">0 due</span>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
-                    <tr>
+                    <tr id="upcomingDuesHead">
                       <th>Tenant</th>
                       <th>Unit</th>
                       <th>Due</th>
@@ -379,13 +439,13 @@
 
           <section class="panel">
             <div class="panel-header">
-              <h2>Recent Payments</h2>
+              <h2 id="dashboardRecentTitle">Recent Payments</h2>
               <span id="monthLabel" class="pill success"></span>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr>
+                  <tr id="recentPaymentsHead">
                     <th>Tenant</th>
                     <th>Amount</th>
                     <th>Method</th>
@@ -397,6 +457,24 @@
               </table>
             </div>
           </section>
+
+          <div class="content-grid two-columns">
+            <section class="panel">
+              <div class="panel-header">
+                <h2 id="dashboardChartTitle">Income Trend</h2>
+                <span id="dashboardChartLabel" class="pill info">Live view</span>
+              </div>
+              <div id="dashboardChart" class="chart-panel"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2 id="dashboardActivityTitle">Recent Activity</h2>
+                <span id="activityCountLabel" class="pill neutral">0 updates</span>
+              </div>
+              <div id="activityList" class="activity-list"></div>
+            </section>
+          </div>
         </section>
 
         <section id="properties" class="view" aria-labelledby="viewTitle">
@@ -569,6 +647,60 @@
           </div>
         </section>
 
+        <section id="staff" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Invite Staff / Manager</h2>
+                <span class="pill neutral">Role-based access</span>
+              </div>
+              <form id="staffInviteForm" class="stacked-form">
+                <label>
+                  Full Name
+                  <input id="staffName" autocomplete="name" required />
+                </label>
+                <label>
+                  Phone Number
+                  <input id="staffPhone" autocomplete="tel" required />
+                </label>
+                <label>
+                  Email Address (optional)
+                  <input id="staffEmail" type="email" autocomplete="email" />
+                </label>
+                <label>
+                  Temporary Password
+                  <input id="staffPassword" type="password" minlength="4" required />
+                </label>
+                <label>
+                  Assigned Properties
+                  <select id="staffProperties" multiple required></select>
+                </label>
+                <button class="primary-button" type="submit">Send Staff Invitation</button>
+              </form>
+            </section>
+
+            <section class="panel wide-panel">
+              <div class="panel-header">
+                <h2>Staff Access</h2>
+                <span id="staffCountLabel" class="pill success">0 staff</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Staff</th>
+                      <th>Assigned Properties</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="staffTable"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
         <section id="rent" class="view" aria-labelledby="viewTitle">
           <div class="content-grid form-layout">
             <section class="panel">
@@ -646,6 +778,7 @@
                     <th>Reference</th>
                     <th>Date</th>
                     <th>Balance</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="paymentHistoryTable"></tbody>
@@ -745,11 +878,181 @@
             </div>
           </section>
         </section>
+
+        <section id="platformLandlords" class="view" aria-labelledby="viewTitle">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Landlord Accounts</h2>
+              <span id="ownerLandlordCountLabel" class="pill success">0 landlords</span>
+            </div>
+            <div id="ownerLandlordSummary" class="owner-summary-grid"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Landlord</th>
+                    <th>Plan</th>
+                    <th>Portfolio</th>
+                    <th>Rent Tracked</th>
+                    <th>Support</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerLandlordTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="platformBilling" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Record SaaS Payment</h2>
+                <span class="pill neutral">Subscription income</span>
+              </div>
+              <form id="ownerPaymentForm" class="stacked-form">
+                <label>
+                  Landlord
+                  <select id="ownerPaymentLandlord" required></select>
+                </label>
+                <label>
+                  Amount
+                  <input id="ownerPaymentAmount" type="number" min="0" step="1000" required />
+                </label>
+                <div class="split-fields">
+                  <label>
+                    Date
+                    <input id="ownerPaymentDate" type="date" required />
+                  </label>
+                  <label>
+                    Method
+                    <select id="ownerPaymentMethod">
+                      <option value="MTN MoMo">MTN MoMo</option>
+                      <option value="Airtel Money">Airtel Money</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Cash">Cash</option>
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  Note
+                  <input id="ownerPaymentNote" placeholder="e.g. May subscription cleared" />
+                </label>
+                <button class="primary-button" type="submit">Save Subscription Payment</button>
+              </form>
+            </section>
+
+            <section class="panel wide-panel">
+              <div class="panel-header">
+                <h2>Software Revenue</h2>
+                <span id="ownerBillingTotalLabel" class="pill success">UGX 0</span>
+              </div>
+              <div id="ownerBillingSummary" class="owner-summary-grid"></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Landlord</th>
+                      <th>Plan</th>
+                      <th>Monthly Fee</th>
+                      <th>Last Paid</th>
+                      <th>Next Billing</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ownerBillingTable"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="platformSupport" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Log Landlord Assistance</h2>
+                <span class="pill neutral">Backend support</span>
+              </div>
+              <form id="supportTicketForm" class="stacked-form">
+                <label>
+                  Landlord
+                  <select id="supportOwner" required></select>
+                </label>
+                <label>
+                  Issue
+                  <input id="supportSubject" placeholder="e.g. Help correcting tenant balance" required />
+                </label>
+                <div class="split-fields">
+                  <label>
+                    Priority
+                    <select id="supportPriority">
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+                  </label>
+                  <label>
+                    Status
+                    <select id="supportStatus">
+                      <option value="Open">Open</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  Support Note
+                  <textarea id="supportNote" rows="4" placeholder="What the landlord needs help with"></textarea>
+                </label>
+                <button class="primary-button" type="submit">Save Support Ticket</button>
+              </form>
+            </section>
+
+            <section class="panel wide-panel">
+              <div class="panel-header">
+                <h2>Support Desk</h2>
+                <span id="supportTicketCount" class="pill warning">0 open</span>
+              </div>
+              <div id="supportTicketList" class="support-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Admin Password Reset</h2>
+                <span class="pill warning">Super admin</span>
+              </div>
+              <form id="adminPasswordResetForm" class="stacked-form">
+                <label>
+                  Account
+                  <select id="adminPasswordResetUser" required></select>
+                </label>
+                <button class="primary-button" type="submit">Send Reset OTP</button>
+              </form>
+            </section>
+          </div>
+        </section>
       </main>
+    </div>
+
+    <div id="receiptModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="receiptTitle">
+      <section class="receipt-modal">
+        <div class="panel-header">
+          <h2 id="receiptTitle">Payment Receipt</h2>
+          <button id="closeReceipt" class="ghost-button" type="button">Close</button>
+        </div>
+        <div id="receiptContent" class="receipt-content"></div>
+        <div class="form-actions">
+          <button id="downloadReceipt" class="ghost-button" type="button">Download</button>
+          <button id="printReceipt" class="primary-button" type="button">Print Receipt</button>
+        </div>
+      </section>
     </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+    <script src="supabase-config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
