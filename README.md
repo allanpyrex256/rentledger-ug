@@ -15,7 +15,8 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 - Expense tracking for repairs, utilities, caretaker salary, security, and other costs.
 - SMS and WhatsApp reminder templates for due, received, and overdue rent.
 - Notifications for payment, staff, expense, and overdue rent events.
-- Super-admin console for SaaS revenue, account management, billing, monitoring, and backend support tickets.
+- Separate Super Admin SaaS dashboard for landlords, subscriptions, revenue, signups, support tickets, and expired accounts.
+- Super-admin console for account management, billing, monitoring, and backend support tickets.
 - Supabase-backed persistence with local browser storage as an offline fallback.
 
 ## Open It

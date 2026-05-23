@@ -404,6 +404,59 @@
           <button class="mobile-tab" data-view="reminders" type="button">Reminders</button>
         </nav>
 
+        <section id="superAdminDashboard" class="view super-admin-dashboard" aria-labelledby="viewTitle">
+          <div id="adminMetricGrid" class="admin-metric-grid"></div>
+
+          <div class="admin-dashboard-grid admin-dashboard-grid-main">
+            <section class="admin-card">
+              <div class="panel-header">
+                <h2>SaaS Analytics</h2>
+                <span class="pill info">Live platform</span>
+              </div>
+              <div id="adminAnalyticsChart" class="admin-chart-panel"></div>
+            </section>
+
+            <section class="admin-card">
+              <div class="panel-header">
+                <h2>Recent Activity</h2>
+                <span id="adminActivityCountLabel" class="pill neutral">0 updates</span>
+              </div>
+              <div id="adminActivityList" class="activity-list admin-activity-list"></div>
+            </section>
+          </div>
+
+          <div class="admin-dashboard-grid">
+            <section class="admin-card">
+              <div class="panel-header">
+                <h2>Subscription Watchlist</h2>
+                <span id="adminSubscriptionCountLabel" class="pill warning">0 alerts</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Landlord</th>
+                      <th>Package</th>
+                      <th>Next Billing</th>
+                      <th>Revenue</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminSubscriptionTable"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="admin-card">
+              <div class="panel-header">
+                <h2>Support Tickets</h2>
+                <span id="adminSupportCountLabel" class="pill warning">0 open</span>
+              </div>
+              <div id="adminSupportList" class="support-list admin-support-list"></div>
+            </section>
+          </div>
+        </section>
+
         <section id="dashboard" class="view active-view" aria-labelledby="viewTitle">
           <div class="metric-grid" id="metricGrid"></div>
 

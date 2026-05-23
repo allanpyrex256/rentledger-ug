@@ -78,6 +78,14 @@
     notificationList: document.getElementById("notificationList"),
     markNotificationsRead: document.getElementById("markNotificationsRead"),
     roleSelect: document.getElementById("roleSelect"),
+    adminMetricGrid: document.getElementById("adminMetricGrid"),
+    adminAnalyticsChart: document.getElementById("adminAnalyticsChart"),
+    adminActivityCountLabel: document.getElementById("adminActivityCountLabel"),
+    adminActivityList: document.getElementById("adminActivityList"),
+    adminSubscriptionCountLabel: document.getElementById("adminSubscriptionCountLabel"),
+    adminSubscriptionTable: document.getElementById("adminSubscriptionTable"),
+    adminSupportCountLabel: document.getElementById("adminSupportCountLabel"),
+    adminSupportList: document.getElementById("adminSupportList"),
     metricGrid: document.getElementById("metricGrid"),
     dashboardPrimaryTitle: document.getElementById("dashboardPrimaryTitle"),
     dashboardSecondaryTitle: document.getElementById("dashboardSecondaryTitle"),
@@ -196,6 +204,7 @@
   };
 
   const viewCopy = {
+    superAdminDashboard: ["RentLedger UG Admin", "SaaS analytics for landlords, subscriptions, revenue, support, and account health."],
     dashboard: ["Dashboard", "Rent, occupancy, expenses, and balances at a glance."],
     properties: ["Properties", "Set up houses, apartments, units, and monthly rent."],
     tenants: ["Tenants", "Tenant records, units, deposits, and contacts."],
@@ -219,7 +228,7 @@
   ];
 
   const ownerNav = [
-    ["dashboard", "Platform Overview"],
+    ["superAdminDashboard", "Overview"],
     ["platformLandlords", "Accounts"],
     ["platformBilling", "Billing"],
     ["platformSupport", "Monitoring"],
@@ -603,7 +612,7 @@
   }
 
   function defaultView() {
-    return "dashboard";
+    return isSaasOwner() ? "superAdminDashboard" : "dashboard";
   }
 
   function populateStaticControls() {
@@ -672,6 +681,7 @@
     populateStaticControls();
     populateDynamicSelects();
     renderDashboard();
+    renderSuperAdminDashboard();
     renderProperties();
     renderTenants();
     renderStaff();
@@ -685,30 +695,26 @@
 
   function setView(viewName) {
     setAppLoading("Loading view");
+    const allowedViewNames = currentNavItems().map(([itemViewName]) => itemViewName);
+    const resolvedViewName = allowedViewNames.includes(viewName) ? viewName : defaultView();
     document.querySelectorAll(".view").forEach((view) => {
-      view.classList.toggle("active-view", view.id === viewName);
+      view.classList.toggle("active-view", view.id === resolvedViewName);
     });
     document.querySelectorAll("[data-view]").forEach((button) => {
-      button.classList.toggle("active", button.dataset.view === viewName);
+      button.classList.toggle("active", button.dataset.view === resolvedViewName);
     });
-    updateViewHeader(viewName);
+    updateViewHeader(resolvedViewName);
     clearAppLoading();
   }
 
   function updateViewHeader(viewName) {
-    const [title, subtitle] =
-      viewName === "dashboard" && isSaasOwner()
-        ? ["RentLedger UG Admin", "SaaS analytics for landlords, signups, subscriptions, support, and system health."]
-        : viewCopy[viewName] || viewCopy.dashboard;
+    const [title, subtitle] = viewCopy[viewName] || viewCopy.dashboard;
     ui.viewTitle.textContent = title;
     ui.viewSubtitle.textContent = subtitle;
   }
 
   function renderDashboard() {
-    if (isSaasOwner()) {
-      renderPlatformDashboard();
-      return;
-    }
+    if (isSaasOwner()) return;
 
     const scope = getScopedData();
     const rentRows = getRentRows(scope.tenants);
@@ -798,66 +804,38 @@
     renderActivityFeed(buildActivityItems(scope).slice(0, 8));
   }
 
-  function renderPlatformDashboard() {
+  function renderSuperAdminDashboard() {
+    if (!isSaasOwner()) return;
     const landlords = landlordUsers();
     const subscriptions = state.subscriptions || [];
     const tickets = state.supportTickets || [];
     const activeAccounts = landlords.filter((user) => accountStatus(user) === "Active");
     const newSignups = newLandlordSignups();
     const openTickets = tickets.filter((ticket) => ticket.status !== "Resolved");
-    const monthlyRecurringRevenue = subscriptions
-      .filter((subscription) => subscription.status !== "Paused" && subscription.status !== "Trial")
-      .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
-    const paidThisMonth = subscriptions
-      .filter((subscription) => isCurrentMonth(subscription.last_payment_date))
-      .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
+    const activeSubscriptions = subscriptions.filter(
+      (subscription) => subscription.status === "Active" && !isSubscriptionExpired(subscription)
+    );
+    const monthlyRecurringRevenue = activeSubscriptions.reduce(
+      (sum, subscription) => sum + Number(subscription.monthly_fee),
+      0
+    );
     const pendingPayments = pendingSubscriptions().length;
     const expiredAccounts = expiredSubscriptions();
     const expiringPlans = expiringSubscriptions().length;
-    const storageUsage = estimateStorageUsage();
-    const systemHealth = systemHealthLabel();
 
-    ui.dashboardPrimaryTitle.textContent = "Admin Signals";
-    ui.dashboardSecondaryTitle.textContent = "Subscriptions & Expiry";
-    ui.dashboardRecentTitle.textContent = "Support Messages";
-    ui.dashboardActivityTitle.textContent = "Recent Platform Activity";
-    ui.upcomingDuesHead.innerHTML = `
-      <th>Landlord</th>
-      <th>Package</th>
-      <th>Next Billing</th>
-      <th>Amount</th>
-      <th>Status</th>
-    `;
-    ui.recentPaymentsHead.innerHTML = `
-      <th>Message</th>
-      <th>Priority</th>
-      <th>Updated</th>
-      <th>Status</th>
-    `;
-
-    ui.metricGrid.innerHTML = [
-      metricCard("Active Landlords", activeAccounts.length, `${landlords.length} total accounts`),
-      metricCard("New Signups", newSignups.length, "This month"),
-      metricCard("Subscription Revenue", formatMoney(monthlyRecurringRevenue), `${formatMoney(paidThisMonth)} collected`),
-      metricCard("Expired Accounts", expiredAccounts.length, `${pendingPayments} pending payments`),
-      metricCard("System Health", systemHealth, `${storageUsage.records} records / ${storageUsage.label}`),
-      metricCard("Support Messages", openTickets.length, `${expiringPlans} plans expiring soon`),
+    ui.adminMetricGrid.innerHTML = [
+      adminMetricCard("Total Landlords", landlords.length, `${activeAccounts.length} active accounts`, "teal"),
+      adminMetricCard("Active Subscriptions", activeSubscriptions.length, `${pendingPayments} pending payments`, "blue"),
+      adminMetricCard("Monthly Revenue", formatMoney(monthlyRecurringRevenue), "Subscription MRR", "green"),
+      adminMetricCard("New Signups", newSignups.length, "This month", "amber"),
+      adminMetricCard("Support Tickets", tickets.length, `${openTickets.length} open`, "rose"),
+      adminMetricCard("Expired Accounts", expiredAccounts.length, `${expiringPlans} plans expiring soon`, "slate"),
     ].join("");
 
-    ui.occupancyLabel.textContent = `${systemHealth}`;
-    ui.dueSoonLabel.textContent = `${pendingPayments} billing alerts`;
-    ui.monthLabel.textContent = "Messages";
+    ui.adminAnalyticsChart.innerHTML = renderAdminAnalyticsCharts(subscriptions, landlords, tickets);
 
-    ui.unitStatusGrid.innerHTML = [
-      ownerSummaryTile("Total Landlords", landlords.length),
-      ownerSummaryTile("New Signups", newSignups.length),
-      ownerSummaryTile("Trials", landlords.filter((user) => isTrialAccount(user)).length),
-      ownerSummaryTile("Expired", expiredAccounts.length),
-      ownerSummaryTile("Storage", storageUsage.label),
-      ownerSummaryTile("Support", openTickets.length),
-    ].join("");
-
-    ui.upcomingDuesTable.innerHTML =
+    ui.adminSubscriptionCountLabel.textContent = `${pendingPayments + expiredAccounts.length + expiringPlans} alerts`;
+    ui.adminSubscriptionTable.innerHTML =
       subscriptions
         .slice()
         .sort((a, b) => new Date(a.next_billing_date) - new Date(b.next_billing_date))
@@ -881,28 +859,35 @@
         })
         .join("") || emptyTableRow(5, "No subscriptions yet.");
 
-    ui.recentPaymentsTable.innerHTML =
+    ui.adminSupportCountLabel.textContent = `${openTickets.length} open`;
+    ui.adminSupportList.innerHTML =
       tickets
         .slice()
         .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-        .slice(0, 8)
+        .slice(0, 5)
         .map((ticket) => {
           const user = userById(ticket.owner_id);
           return `
-            <tr>
-              <td>${personCell(ticket.subject, user ? user.name : "Unknown landlord")}</td>
-              <td>${statusPill(ticket.priority)}</td>
-              <td>${formatDate(ticket.updated_at)}</td>
-              <td>${statusPill(ticket.status)}</td>
-            </tr>
+            <article class="support-card">
+              <div class="support-card-header">
+                <div class="support-card-title">
+                  <strong>${escapeHtml(ticket.subject)}</strong>
+                  <small>${escapeHtml(user ? user.name : "Unknown landlord")} - ${formatDate(ticket.updated_at)}</small>
+                </div>
+                <div class="button-row">
+                  ${statusPill(ticket.priority)}
+                  ${statusPill(ticket.status)}
+                </div>
+              </div>
+              <p class="support-note">${escapeHtml(ticket.note || "No support note added.")}</p>
+            </article>
           `;
         })
-        .join("") || emptyTableRow(4, "No support messages yet.");
+        .join("") || emptyBlock("No support tickets yet.");
 
-    ui.dashboardChartTitle.textContent = "SaaS Analytics";
-    ui.dashboardChartLabel.textContent = "Revenue + signups";
-    ui.dashboardChart.innerHTML = renderAdminAnalyticsCharts(subscriptions, landlords, tickets);
-    renderActivityFeed(buildPlatformActivityItems().slice(0, 8));
+    const activityItems = buildPlatformActivityItems().slice(0, 8);
+    ui.adminActivityCountLabel.textContent = `${activityItems.length} updates`;
+    ui.adminActivityList.innerHTML = activityFeedMarkup(activityItems);
   }
 
   function renderPlatformViews() {
@@ -914,19 +899,22 @@
 
   function renderActivityFeed(items) {
     ui.activityCountLabel.textContent = `${items.length} updates`;
-    ui.activityList.innerHTML =
-      items
-        .map((item) => `
-          <article class="activity-item">
-            ${avatar(item.name || item.title)}
-            <div class="activity-copy">
-              <strong>${escapeHtml(item.title)}</strong>
-              <span>${escapeHtml(item.detail)}</span>
-            </div>
-            <time>${escapeHtml(timeAgo(item.date))}</time>
-          </article>
-        `)
-        .join("") || emptyBlock("No recent activity yet.");
+    ui.activityList.innerHTML = activityFeedMarkup(items);
+  }
+
+  function activityFeedMarkup(items) {
+    return items
+      .map((item) => `
+        <article class="activity-item">
+          ${avatar(item.name || item.title)}
+          <div class="activity-copy">
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.detail)}</span>
+          </div>
+          <time>${escapeHtml(timeAgo(item.date))}</time>
+        </article>
+      `)
+      .join("") || emptyBlock("No recent activity yet.");
   }
 
   function buildActivityItems(scope) {
@@ -958,6 +946,12 @@
   }
 
   function buildPlatformActivityItems() {
+    const signupItems = landlordUsers().map((user) => ({
+      title: "Landlord signup",
+      detail: `${user.name} joined RentLedger UG as ${accountStatus(user).toLowerCase()}.`,
+      date: user.created_at || new Date().toISOString(),
+      name: user.name,
+    }));
     const ticketItems = (state.supportTickets || []).map((ticket) => {
       const user = userById(ticket.owner_id);
       return {
@@ -976,7 +970,7 @@
         name: user ? user.name : subscription.plan,
       };
     });
-    return [...ticketItems, ...billingItems].sort((a, b) => new Date(b.date) - new Date(a.date));
+    return [...signupItems, ...ticketItems, ...billingItems].sort((a, b) => new Date(b.date) - new Date(a.date));
   }
 
   function buildSystemMonitorRows() {
@@ -3775,6 +3769,16 @@
         <div class="metric-label">${escapeHtml(label)}</div>
         <div class="metric-value">${escapeHtml(String(value))}</div>
         <div class="metric-note">${escapeHtml(note)}</div>
+      </article>
+    `;
+  }
+
+  function adminMetricCard(label, value, note, tone) {
+    return `
+      <article class="admin-metric-card ${escapeHtml(tone)}">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(String(value))}</strong>
+        <small>${escapeHtml(note)}</small>
       </article>
     `;
   }
