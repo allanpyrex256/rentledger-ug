@@ -12,6 +12,7 @@ create table if not exists app_users (
   phone text unique not null,
   email text unique,
   creator_email text,
+  platform_owner_id text references app_users(id) on delete set null,
   password text not null,
   role text not null check (role in ('saas-owner', 'landlord', 'staff')),
   account_status text not null default 'Active',
@@ -20,6 +21,9 @@ create table if not exists app_users (
   invitation_status text,
   created_at timestamptz not null default now()
 );
+
+alter table app_users
+  add column if not exists platform_owner_id text references app_users(id) on delete set null;
 
 create table if not exists subscriptions (
   id text primary key,
@@ -49,8 +53,22 @@ create table if not exists units (
   unit_number text not null,
   rent_amount numeric(12, 2) not null default 0,
   status text not null default 'vacant',
+  listing_published boolean not null default false,
+  listing_bedrooms integer not null default 1,
+  listing_bathrooms integer not null default 1,
+  listing_furnished boolean not null default false,
+  listing_photo text,
+  listing_note text,
   created_at timestamptz not null default now()
 );
+
+alter table units
+  add column if not exists listing_published boolean not null default false,
+  add column if not exists listing_bedrooms integer not null default 1,
+  add column if not exists listing_bathrooms integer not null default 1,
+  add column if not exists listing_furnished boolean not null default false,
+  add column if not exists listing_photo text,
+  add column if not exists listing_note text;
 
 create table if not exists tenants (
   id text primary key,

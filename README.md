@@ -4,13 +4,14 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 
 ## What Is Included
 
-- Landlord dashboard with unit occupancy, monthly revenue, late payments, and net income.
+- Landlord daily dashboard with rent collected today, late tenants, vacant rooms, recent expenses, and monthly revenue.
 - Landlord account signup/sign-in prototype with owner-specific data views.
-- Property setup for houses, apartments, and individual units.
+- Property setup for rooms, shops, boys quarters, houses, and rent amounts.
+- Public rental listings connected to vacant rooms, with publish/unpublish controls.
 - Landing page with local photo assets for apartments, mobile payments, and property handover moments.
 - Tenant management with phone, National ID, unit, rent, deposit, and move-in date.
 - Rent tracking with partial payments, balances, payment history, and MTN/Airtel reference fields.
-- Receipt generation for recorded rent payments.
+- Receipt generation, monthly rent report downloads, and expense report downloads.
 - Staff invitations with assigned-property access for managers.
 - Expense tracking for repairs, utilities, caretaker salary, security, and other costs.
 - SMS and WhatsApp reminder templates for due, received, and overdue rent.
@@ -30,6 +31,9 @@ Open `index.html` in a browser. If `supabase-config.js` has real project keys, r
   Includes 5 properties, 20 tenants, expenses, rent balances, and payment history.
 - Staff Demo: `0700111222` or `staff@rentledger.ug` / `staff123`
   Limited to assigned properties only.
+- The sign-in screen includes one-click demo buttons for Super Admin, Landlord, and Staff testing.
+- Seeded and admin-created demo accounts are linked back to the Super Admin account.
+- New landlord signup generates a Super Admin OTP notification for the admin email/SMS contact.
 - Forgot password sends a demo OTP to the account creator email shown in the reset form.
 - Super admin can send reset OTPs for landlord and staff accounts from the Support console.
 
@@ -51,7 +55,7 @@ If you already ran an older version of the schema with UUID columns, use a fresh
 The app stores real rows in these tables:
 
 ```sql
-app_users(id, name, phone, email, creator_email, password, role, account_status, created_at)
+app_users(id, name, phone, email, creator_email, platform_owner_id, password, role, account_status, created_at)
 subscriptions(id, owner_id, plan, monthly_fee, status, last_payment_date, next_billing_date, created_at)
 properties(id, property_name, location, property_type, owner_id)
 units(id, property_id, unit_number, rent_amount, status)

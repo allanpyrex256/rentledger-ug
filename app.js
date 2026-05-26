@@ -38,6 +38,10 @@
     { plan: "Enterprise", fee: 250000, status: "Active" },
   ];
 
+  const SUPER_ADMIN_USER_ID = "user-saas-owner";
+  const SUPER_ADMIN_EMAIL = "allanpyrex5@gmail.com";
+  const DEMO_ACCOUNT_IDS = [SUPER_ADMIN_USER_ID, "user-1", "staff-1"];
+
   const ui = {
     landingScreen: document.getElementById("landingScreen"),
     authScreen: document.getElementById("authScreen"),
@@ -63,6 +67,11 @@
     accountEmail: document.getElementById("accountEmail"),
     accountPassword: document.getElementById("accountPassword"),
     demoLogin: document.getElementById("demoLogin"),
+    listingLocationFilter: document.getElementById("listingLocationFilter"),
+    listingPriceFilter: document.getElementById("listingPriceFilter"),
+    listingTypeFilter: document.getElementById("listingTypeFilter"),
+    listingFurnishedFilter: document.getElementById("listingFurnishedFilter"),
+    publicListingGrid: document.getElementById("publicListingGrid"),
     logoutButton: document.getElementById("logoutButton"),
     sideNav: document.getElementById("sideNav"),
     mobileTabs: document.getElementById("mobileTabs"),
@@ -77,6 +86,20 @@
     notificationPanel: document.getElementById("notificationPanel"),
     notificationList: document.getElementById("notificationList"),
     markNotificationsRead: document.getElementById("markNotificationsRead"),
+    notificationModal: document.getElementById("notificationModal"),
+    notificationModalTitle: document.getElementById("notificationModalTitle"),
+    notificationModalMeta: document.getElementById("notificationModalMeta"),
+    notificationModalMessage: document.getElementById("notificationModalMessage"),
+    closeNotificationModal: document.getElementById("closeNotificationModal"),
+    moveOutModal: document.getElementById("moveOutModal"),
+    moveOutForm: document.getElementById("moveOutForm"),
+    moveOutTenantId: document.getElementById("moveOutTenantId"),
+    moveOutTenantMeta: document.getElementById("moveOutTenantMeta"),
+    moveOutBalance: document.getElementById("moveOutBalance"),
+    moveOutDamages: document.getElementById("moveOutDamages"),
+    moveOutRefund: document.getElementById("moveOutRefund"),
+    moveOutNote: document.getElementById("moveOutNote"),
+    cancelMoveOut: document.getElementById("cancelMoveOut"),
     roleSelect: document.getElementById("roleSelect"),
     adminMetricGrid: document.getElementById("adminMetricGrid"),
     adminAnalyticsChart: document.getElementById("adminAnalyticsChart"),
@@ -87,6 +110,7 @@
     adminSupportCountLabel: document.getElementById("adminSupportCountLabel"),
     adminSupportList: document.getElementById("adminSupportList"),
     metricGrid: document.getElementById("metricGrid"),
+    dailyOpsGrid: document.getElementById("dailyOpsGrid"),
     dashboardPrimaryTitle: document.getElementById("dashboardPrimaryTitle"),
     dashboardSecondaryTitle: document.getElementById("dashboardSecondaryTitle"),
     dashboardRecentTitle: document.getElementById("dashboardRecentTitle"),
@@ -98,6 +122,8 @@
     dashboardChartTitle: document.getElementById("dashboardChartTitle"),
     dashboardChartLabel: document.getElementById("dashboardChartLabel"),
     dashboardChart: document.getElementById("dashboardChart"),
+    expenseTodayLabel: document.getElementById("expenseTodayLabel"),
+    dashboardExpenseList: document.getElementById("dashboardExpenseList"),
     dashboardActivityTitle: document.getElementById("dashboardActivityTitle"),
     activityCountLabel: document.getElementById("activityCountLabel"),
     activityList: document.getElementById("activityList"),
@@ -150,6 +176,7 @@
     rentStatusTable: document.getElementById("rentStatusTable"),
     paymentHistoryTable: document.getElementById("paymentHistoryTable"),
     paymentCountLabel: document.getElementById("paymentCountLabel"),
+    downloadRentReport: document.getElementById("downloadRentReport"),
     expenseForm: document.getElementById("expenseForm"),
     expenseProperty: document.getElementById("expenseProperty"),
     expenseType: document.getElementById("expenseType"),
@@ -157,6 +184,7 @@
     expenseDate: document.getElementById("expenseDate"),
     expenseTable: document.getElementById("expenseTable"),
     expenseTotalLabel: document.getElementById("expenseTotalLabel"),
+    downloadExpenseReport: document.getElementById("downloadExpenseReport"),
     expenseMonthLabel: document.getElementById("expenseMonthLabel"),
     expenseSummary: document.getElementById("expenseSummary"),
     reminderList: document.getElementById("reminderList"),
@@ -205,12 +233,12 @@
 
   const viewCopy = {
     superAdminDashboard: ["RentLedger UG Admin", "SaaS analytics for landlords, subscriptions, revenue, support, and account health."],
-    dashboard: ["Dashboard", "Rent, occupancy, expenses, and balances at a glance."],
-    properties: ["Properties", "Set up houses, apartments, units, and monthly rent."],
-    tenants: ["Tenants", "Tenant records, units, deposits, and contacts."],
+    dashboard: ["Daily Control Center", "Who paid, who is late, vacant rooms, and expenses at a glance."],
+    properties: ["Properties", "Set up rooms, shops, boys quarters, houses, and monthly rent."],
+    tenants: ["Tenants", "Tenant move-in records, deposits, balances, and contacts."],
     staff: ["Staff", "Invite managers and assign access to specific properties."],
-    rent: ["Rent", "Record payments, partial balances, and Mobile Money references."],
-    expenses: ["Expenses", "Repairs, utilities, salaries, and operating costs."],
+    rent: ["Rent Collection", "Record paid, partial, overdue, balances, and Mobile Money references."],
+    expenses: ["Expenses & Maintenance", "Broken taps, wiring, painting, plumbing, utilities, and caretaker costs."],
     reminders: ["Reminders", "SMS and WhatsApp messages for rent collection."],
     platformLandlords: ["Account Management", "Approve landlords, create demos, reset passwords, and manage packages."],
     platformBilling: ["Billing", "Track subscriptions, pending payments, expiring plans, and revenue analytics."],
@@ -248,6 +276,7 @@
     await hydrateStateFromSupabase();
     setTodayDefaults();
     bindEvents();
+    renderPublicListings();
     renderSession();
   }
 
@@ -260,6 +289,14 @@
       button.addEventListener("click", signInDemoAccount);
     });
 
+    document.querySelectorAll("[data-demo-account]").forEach((button) => {
+      button.addEventListener("click", () => signInDemoAccount(button.dataset.demoAccount));
+    });
+
+    document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+      button.addEventListener("click", () => togglePasswordVisibility(button));
+    });
+
     document.querySelectorAll("[data-scroll-target]").forEach((button) => {
       button.addEventListener("click", () => {
         const target = document.getElementById(button.dataset.scrollTarget);
@@ -270,6 +307,12 @@
     document.querySelectorAll("[data-auth-tab]").forEach((button) => {
       button.addEventListener("click", () => setAuthTab(button.dataset.authTab));
     });
+    [ui.listingLocationFilter, ui.listingPriceFilter, ui.listingTypeFilter, ui.listingFurnishedFilter]
+      .filter(Boolean)
+      .forEach((input) => {
+        input.addEventListener("input", renderPublicListings);
+        input.addEventListener("change", renderPublicListings);
+      });
 
     ui.signInForm.addEventListener("submit", signIn);
     ui.forgotPasswordButton.addEventListener("click", showForgotPassword);
@@ -280,6 +323,7 @@
     ui.createAccountForm.addEventListener("submit", createAccount);
     if (ui.demoLogin) ui.demoLogin.addEventListener("click", signInDemoAccount);
     ui.logoutButton.addEventListener("click", signOut);
+    document.addEventListener("click", handleActionClick);
 
     ui.sideNav.addEventListener("click", navigateFromEvent);
     ui.mobileTabs.addEventListener("click", navigateFromEvent);
@@ -290,6 +334,14 @@
     });
     ui.notificationToggle.addEventListener("click", toggleNotifications);
     ui.markNotificationsRead.addEventListener("click", markNotificationsRead);
+    ui.closeNotificationModal.addEventListener("click", closeNotificationModal);
+    ui.notificationModal.addEventListener("click", (event) => {
+      if (event.target === ui.notificationModal) closeNotificationModal();
+    });
+    ui.cancelMoveOut.addEventListener("click", closeMoveOutModal);
+    ui.moveOutModal.addEventListener("click", (event) => {
+      if (event.target === ui.moveOutModal) closeMoveOutModal();
+    });
 
     ui.propertyFilter.addEventListener("change", () => {
       state.selectedPropertyId = ui.propertyFilter.value;
@@ -317,12 +369,17 @@
     ui.tenantUnit.addEventListener("change", syncRentFromUnit);
     ui.cancelTenantEdit.addEventListener("click", resetTenantForm);
     ui.tenantForm.addEventListener("submit", saveTenant);
+    ui.moveOutForm.addEventListener("submit", completeTenantMoveOut);
     ui.staffInviteForm.addEventListener("submit", inviteStaff);
     ui.paymentForm.addEventListener("submit", savePayment);
     ui.paymentTenant.addEventListener("change", updatePaymentPreview);
     ui.paymentAmount.addEventListener("input", updatePaymentPreview);
+    ui.downloadRentReport.addEventListener("click", downloadMonthlyRentReport);
     ui.expenseForm.addEventListener("submit", saveExpense);
+    ui.downloadExpenseReport.addEventListener("click", downloadExpenseReport);
     ui.createDemoAccountButton.addEventListener("click", createDemoLandlordAccount);
+    ui.ownerPaymentLandlord.addEventListener("change", () => syncOwnerPaymentDefaults(true));
+    ui.ownerPaymentDate.addEventListener("change", () => syncOwnerPaymentDefaults(false));
     ui.ownerPaymentForm.addEventListener("submit", saveOwnerPayment);
     ui.supportTicketForm.addEventListener("submit", saveSupportTicket);
     ui.adminPasswordResetForm.addEventListener("submit", sendAdminPasswordReset);
@@ -330,6 +387,45 @@
     ui.printReceipt.addEventListener("click", printReceipt);
     ui.downloadReceipt.addEventListener("click", downloadReceipt);
     ui.resetDemo.addEventListener("click", resetDemoData);
+  }
+
+  function handleActionClick(event) {
+    const button = event.target.closest("button");
+    if (!button || button.disabled) return;
+    const actions = [
+      ["openActivity", openActivity],
+      ["toggleAccountStatus", toggleLandlordAccountStatus],
+      ["cyclePlan", cycleSubscriptionPackage],
+      ["adminResetUser", createAdminPasswordReset],
+      ["focusLandlord", focusLandlordAccount],
+      ["toggleTicket", toggleSupportTicket],
+      ["editProperty", startPropertyEdit],
+      ["removeProperty", removeProperty],
+      ["removeUnit", removeUnit],
+      ["toggleListing", togglePublicListing],
+      ["editTenant", startTenantEdit],
+      ["moveOutTenant", startTenantMoveOut],
+      ["removeTenant", removeTenant],
+      ["copyStaffLogin", copyStaffLogin],
+      ["removeStaff", removeStaff],
+      ["receiptPayment", openReceipt],
+      ["removeExpense", removeExpense],
+      ["openNotification", openNotification],
+      ["closeMoveOut", closeMoveOutModal],
+    ];
+
+    for (const [key, handler] of actions) {
+      const value = button.dataset[key];
+      if (value === undefined) continue;
+      event.preventDefault();
+      handler(value);
+      return;
+    }
+
+    if (button.dataset.copyMessage !== undefined) {
+      event.preventDefault();
+      copyText(decodeURIComponent(button.dataset.copyMessage));
+    }
   }
 
   function navigateFromEvent(event) {
@@ -388,6 +484,18 @@
   function returnToSignIn() {
     clearPasswordResetForms();
     setAuthTab("signin");
+  }
+
+  function togglePasswordVisibility(button) {
+    const input = document.getElementById(button.dataset.passwordToggle);
+    if (!input) return;
+    const nextVisible = input.type === "password";
+    input.type = nextVisible ? "text" : "password";
+    button.classList.toggle("is-visible", nextVisible);
+    button.setAttribute("aria-pressed", String(nextVisible));
+    button.setAttribute("aria-label", nextVisible ? "Hide password" : "Show password");
+    button.setAttribute("title", nextVisible ? "Hide password" : "Show password");
+    input.focus();
   }
 
   function requestPasswordReset(event) {
@@ -482,10 +590,21 @@
     showToast("Password reset. Sign in with the new password.");
   }
 
-  function signInDemoAccount() {
-    const demoUser = state.users.find((user) => user.id === "user-1") || state.users[0];
-    if (!demoUser) return;
+  function signInDemoAccount(accountId) {
+    const resolvedAccountId = typeof accountId === "string" && accountId ? accountId : "user-1";
+    const demoUser =
+      state.users.find((user) => user.id === resolvedAccountId) ||
+      DEMO_ACCOUNT_IDS.map((id) => state.users.find((user) => user.id === id)).find(Boolean);
+    if (!demoUser) {
+      showToast("Reset demo data to restore test accounts.");
+      return;
+    }
+    if (isAccountSuspended(demoUser)) {
+      showToast("This demo account is suspended.");
+      return;
+    }
     openUserSession(demoUser.id);
+    ui.signInForm.reset();
     showToast(`Demo account opened for ${demoUser.name}.`);
   }
 
@@ -518,11 +637,13 @@
       phone,
       email,
       creator_email: email,
+      platform_owner_id: SUPER_ADMIN_USER_ID,
       password: ui.accountPassword.value,
       role: "landlord",
       account_status: "Active",
       created_at: new Date().toISOString(),
     };
+    const adminOtpDelivery = createAdminSignupOtp(user);
 
     state.users.push(user);
     state.currentUserId = user.id;
@@ -532,7 +653,27 @@
     ui.createAccountForm.reset();
     renderSession();
     setView("properties");
-    showToast("Landlord account opened.");
+    showToast(`Landlord account opened. Admin OTP sent to ${adminOtpDelivery}.`);
+  }
+
+  function createAdminSignupOtp(user) {
+    const otp = makeOtp();
+    const admin = superAdminUser();
+    const adminEmail = admin?.email || SUPER_ADMIN_EMAIL;
+    const adminPhone = admin?.phone || "";
+    addNotification({
+      user_id: SUPER_ADMIN_USER_ID,
+      type: "support",
+      title: "New account OTP",
+      message: [
+        `${user.name} created a landlord account.`,
+        `OTP: ${otp}`,
+        `Email: ${user.email}`,
+        `Phone: ${user.phone}`,
+        `Demo delivery: ${adminEmail}${adminPhone ? ` or SMS ${adminPhone}` : ""}.`,
+      ].join("\n"),
+    });
+    return adminPhone ? `${maskEmailAddress(adminEmail)} / SMS ${maskPhoneNumber(adminPhone)}` : maskEmailAddress(adminEmail);
   }
 
   function openUserSession(userId) {
@@ -641,16 +782,21 @@
 
   function populateOwnerControls() {
     if (!isSaasOwner()) return;
+    const selectedPaymentOwnerId = ui.ownerPaymentLandlord.value;
     const landlordOptions =
       landlordUsers()
         .map((user) => `<option value="${user.id}">${escapeHtml(user.name)} - ${escapeHtml(userContactLabel(user))}</option>`)
         .join("") || '<option value="">No landlords yet</option>';
     ui.ownerPaymentLandlord.innerHTML = landlordOptions;
+    if (selectedPaymentOwnerId && landlordUsers().some((user) => user.id === selectedPaymentOwnerId)) {
+      ui.ownerPaymentLandlord.value = selectedPaymentOwnerId;
+    }
     ui.supportOwner.innerHTML = landlordOptions;
     ui.adminPasswordResetUser.innerHTML =
       resettableUsers()
         .map((user) => `<option value="${user.id}">${escapeHtml(adminResetOptionLabel(user))}</option>`)
         .join("") || '<option value="">No resettable accounts</option>';
+    syncOwnerPaymentDefaults(false);
   }
 
   function populateRoleOptions() {
@@ -690,6 +836,7 @@
     renderReminders();
     renderPlatformViews();
     renderNotifications();
+    renderPublicListings();
     clearAppLoading();
   }
 
@@ -704,6 +851,7 @@
       button.classList.toggle("active", button.dataset.view === resolvedViewName);
     });
     updateViewHeader(resolvedViewName);
+    if (resolvedViewName === "platformBilling") syncOwnerPaymentDefaults(false);
     clearAppLoading();
   }
 
@@ -713,94 +861,208 @@
     ui.viewSubtitle.textContent = subtitle;
   }
 
+  function renderPublicListings() {
+    if (!ui.publicListingGrid) return;
+    const locationFilter = String(ui.listingLocationFilter?.value || "").trim().toLowerCase();
+    const maxRent = Number(ui.listingPriceFilter?.value || 0);
+    const typeFilter = ui.listingTypeFilter?.value || "all";
+    const furnishedFilter = ui.listingFurnishedFilter?.value || "all";
+    const listings = publicListingItems().filter((item) => {
+      const typeText = `${item.property.property_type} ${item.unit.unit_number}`.toLowerCase();
+      const matchesLocation =
+        !locationFilter ||
+        item.property.location.toLowerCase().includes(locationFilter) ||
+        item.property.property_name.toLowerCase().includes(locationFilter);
+      const matchesPrice = !maxRent || Number(item.unit.rent_amount) <= maxRent;
+      const matchesType = typeFilter === "all" || typeText.includes(typeFilter);
+      const furnished = Boolean(item.unit.listing_furnished);
+      const matchesFurnished =
+        furnishedFilter === "all" ||
+        (furnishedFilter === "furnished" && furnished) ||
+        (furnishedFilter === "unfurnished" && !furnished);
+      return matchesLocation && matchesPrice && matchesType && matchesFurnished;
+    });
+
+    ui.publicListingGrid.innerHTML =
+      listings.map((item) => publicListingCard(item)).join("") ||
+      emptyBlock("No public vacancies match these filters.");
+  }
+
+  function publicListingItems() {
+    return state.units
+      .filter((unit) => unit.status === "vacant" && unit.listing_published)
+      .map((unit) => {
+        const property = propertyById(unit.property_id);
+        const owner = property ? userById(property.owner_id) : null;
+        return property && owner ? { unit, property, owner } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => Number(a.unit.rent_amount) - Number(b.unit.rent_amount));
+  }
+
+  function publicListingCard({ unit, property, owner }) {
+    const phone = normalizePhone(owner.phone || "");
+    const message = `Hello ${owner.name}, I saw ${unit.unit_number} at ${property.property_name} on RentLedger. Is it still available?`;
+    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
+    return `
+      <article class="public-listing-card">
+        <img src="${escapeHtml(unit.listing_photo || listingPhotoForProperty(property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
+        <div class="public-listing-body">
+          <div>
+            <span class="listing-status">Available now</span>
+            <h3>${escapeHtml(listingTitle(unit, property))}</h3>
+            <p>${escapeHtml(property.property_name)} - ${escapeHtml(property.location)}</p>
+          </div>
+          <strong>${formatMoney(unit.rent_amount)}<small>/month</small></strong>
+          <div class="listing-specs">
+            <span>${Number(unit.listing_bedrooms || 1)} bed</span>
+            <span>${Number(unit.listing_bathrooms || 1)} bath</span>
+            <span>${unit.listing_furnished ? "Furnished" : "Unfurnished"}</span>
+          </div>
+          <p>${escapeHtml(unit.listing_note || "Vacant rental published directly from the landlord dashboard.")}</p>
+          <div class="button-row">
+            <a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">Chat Landlord</a>
+            <a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call</a>
+            <a class="ghost-button link-button" href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Map</a>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function listingTitle(unit, property) {
+    const type = property.property_type || "Room";
+    return `${type} - ${property.location}`;
+  }
+
+  function listingPhotoForProperty(property) {
+    const type = String(property.property_type || "").toLowerCase();
+    if (type.includes("shop")) return "assets/property-keys.jpg";
+    if (type.includes("room") || type.includes("boys")) return "assets/apartment-exterior.jpg";
+    return "assets/apartment-exterior.jpg";
+  }
+
   function renderDashboard() {
     if (isSaasOwner()) return;
 
     const scope = getScopedData();
     const rentRows = getRentRows(scope.tenants);
+    const todayPayments = scope.payments.filter((payment) => isToday(payment.created_at || payment.payment_date));
     const currentMonthPayments = getCurrentMonthPayments(scope.payments);
     const currentMonthExpenses = getCurrentMonthExpenses(scope.expenses);
     const occupied = scope.units.filter((unit) => unit.status === "occupied").length;
     const vacant = scope.units.filter((unit) => unit.status === "vacant").length;
+    const vacantUnits = scope.units.filter((unit) => unit.status === "vacant");
     const expectedRent = scope.tenants.reduce((sum, tenant) => sum + Number(tenant.rent_amount), 0);
     const collected = currentMonthPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const collectedToday = todayPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
     const expenses = currentMonthExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-    const overdueCount = rentRows.filter((row) => row.status === "Overdue").length;
+    const todayExpenses = scope.expenses.filter((expense) => isToday(expense.created_at || expense.date));
+    const recentExpenses = scope.expenses
+      .slice()
+      .sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date))
+      .slice(0, 6);
+    const overdueRows = rentRows
+      .filter((row) => row.status === "Overdue")
+      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+    const overdueCount = overdueRows.length;
     const dueSoonCount = rentRows.filter((row) => row.daysUntilDue >= 0 && row.daysUntilDue <= 3).length;
 
-    ui.dashboardPrimaryTitle.textContent = "Occupancy";
-    ui.dashboardSecondaryTitle.textContent = "Upcoming Dues";
+    ui.dashboardPrimaryTitle.textContent = "Vacant Rooms";
+    ui.dashboardSecondaryTitle.textContent = "Late Tenants";
     ui.dashboardRecentTitle.textContent = "Recent Payments";
     ui.dashboardActivityTitle.textContent = "Recent Activity";
     ui.upcomingDuesHead.innerHTML = `
       <th>Tenant</th>
-      <th>Unit</th>
-      <th>Due</th>
-      <th>Status</th>
+      <th>Room</th>
+      <th>Days</th>
+      <th>Balance</th>
+      <th>Phone</th>
     `;
     ui.recentPaymentsHead.innerHTML = `
       <th>Tenant</th>
+      <th>Room</th>
       <th>Amount</th>
+      <th>Time</th>
       <th>Method</th>
-      <th>Date</th>
-      <th>Balance</th>
     `;
 
     ui.metricGrid.innerHTML = [
-      metricCard("Properties", scope.properties.length, `${scope.units.length} houses / units`),
-      metricCard("Monthly Revenue", formatMoney(collected), `${formatMoney(expectedRent)} expected`),
-      metricCard("Late Payments", overdueCount, `${formatMoney(totalBalance(rentRows))} outstanding`),
-      metricCard("Net This Month", formatMoney(collected - expenses), `${occupied} occupied, ${vacant} vacant`),
+      metricCard("Rent Collected", formatMoney(collected), `${formatMoney(expectedRent)} expected this month`),
+      metricCard("Late Tenants", overdueCount, `${formatMoney(totalBalance(overdueRows))} still unpaid`),
+      metricCard("Vacant Rooms", vacant, vacantUnitSummary(vacantUnits)),
+      metricCard("Expenses", formatMoney(expenses), `${todayExpenses.length} added today`),
     ].join("");
 
-    ui.occupancyLabel.textContent = `${scope.units.length} units`;
-    ui.dueSoonLabel.textContent = `${dueSoonCount} due`;
+    ui.dailyOpsGrid.innerHTML = [
+      dailyOpsCard("Came in today", formatMoney(collectedToday), `${todayPayments.length} rent payments recorded`, "success"),
+      dailyOpsCard("Rent due soon", dueSoonCount, "Tenants due in the next 3 days", "warning"),
+      dailyOpsCard("Vacant rentals", vacant, vacantUnitSummary(vacantUnits), "info"),
+      dailyOpsCard("Expenses added", formatMoney(todayExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0)), `${todayExpenses.length} records today`, "danger"),
+    ].join("");
+
+    ui.occupancyLabel.textContent = `${vacant} vacant`;
+    ui.dueSoonLabel.textContent = `${overdueCount} late`;
     ui.monthLabel.textContent = monthName(new Date());
 
     ui.unitStatusGrid.innerHTML =
-      scope.units
+      vacantUnits
         .map((unit) => {
           const property = propertyById(unit.property_id);
           return `
-            <article class="unit-tile ${unit.status}">
+            <article class="unit-tile vacant">
               <div class="unit-number">${escapeHtml(unit.unit_number)}</div>
-              <div class="unit-status">${capitalize(unit.status)} - ${escapeHtml(property ? property.location : "No property")}</div>
+              <div class="unit-status">${escapeHtml(property ? property.property_name : "No property")}</div>
+              <strong>${formatMoney(unit.rent_amount)}</strong>
             </article>
           `;
         })
-        .join("") || emptyBlock("No units available.");
+        .join("") || emptyBlock("All rooms, shops, and houses are occupied.");
 
-    const upcomingRows = rentRows
-      .slice()
-      .sort((a, b) => a.dueDate - b.dueDate)
-      .slice(0, 8);
     ui.upcomingDuesTable.innerHTML =
-      upcomingRows.map((row) => rentDueRow(row)).join("") ||
-      emptyTableRow(4, "No active tenants.");
+      overdueRows.slice(0, 8).map((row) => lateTenantRow(row)).join("") ||
+      emptyTableRow(5, "No late tenants today.");
 
     const recent = scope.payments
       .slice()
-      .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
+      .sort((a, b) => new Date(b.created_at || b.payment_date) - new Date(a.created_at || a.payment_date))
       .slice(0, 8);
     ui.recentPaymentsTable.innerHTML =
       recent
         .map((payment) => {
           const tenant = tenantById(payment.tenant_id);
+          const unit = tenant ? unitById(tenant.unit_id) : null;
           return `
             <tr>
-              <td>${personCell(tenant ? tenant.name : "Removed tenant", timeAgo(payment.payment_date))}</td>
-              <td>${formatMoney(payment.amount)}</td>
+              <td>${personCell(tenant ? tenant.name : "Removed tenant", payment.reference || payment.payment_method)}</td>
+              <td>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</td>
+              <td><strong>${formatMoney(payment.amount)}</strong></td>
+              <td>${escapeHtml(paymentTimeLabel(payment))}</td>
               <td>${escapeHtml(payment.payment_method)}</td>
-              <td>${formatDate(payment.payment_date)}</td>
-              <td>${formatMoney(payment.balance)}</td>
             </tr>
           `;
         })
-        .join("") || emptyTableRow(5, "No payments recorded.");
+        .join("") || emptyTableRow(5, "No payments recorded yet.");
 
-    ui.dashboardChartTitle.textContent = "Income Trend";
+    ui.dashboardChartTitle.textContent = "Monthly Revenue Graph";
     ui.dashboardChartLabel.textContent = monthName(new Date());
     ui.dashboardChart.innerHTML = renderIncomeChart(scope.payments);
+    ui.expenseTodayLabel.textContent = `${todayExpenses.length} today`;
+    ui.dashboardExpenseList.innerHTML =
+      recentExpenses
+        .map((expense) => {
+          const property = propertyById(expense.property_id);
+          return `
+            <article class="compact-list-item">
+              <span>
+                <strong>${escapeHtml(expense.type)}</strong>
+                <small>${escapeHtml(property ? property.property_name : "Unknown property")} - ${formatDate(expense.date)}</small>
+              </span>
+              <b>${formatMoney(expense.amount)}</b>
+            </article>
+          `;
+        })
+        .join("") || emptyBlock("No expenses recorded yet.");
     renderActivityFeed(buildActivityItems(scope).slice(0, 8));
   }
 
@@ -905,14 +1167,14 @@
   function activityFeedMarkup(items) {
     return items
       .map((item) => `
-        <article class="activity-item">
+        <button class="activity-item" data-open-activity="${escapeHtml(item.id)}" aria-label="Open ${escapeHtml(item.title)}" type="button">
           ${avatar(item.name || item.title)}
-          <div class="activity-copy">
+          <span class="activity-copy">
             <strong>${escapeHtml(item.title)}</strong>
             <span>${escapeHtml(item.detail)}</span>
-          </div>
+          </span>
           <time>${escapeHtml(timeAgo(item.date))}</time>
-        </article>
+        </button>
       `)
       .join("") || emptyBlock("No recent activity yet.");
   }
@@ -921,8 +1183,16 @@
     const paymentItems = scope.payments.map((payment) => {
       const tenant = tenantById(payment.tenant_id);
       return {
+        id: `payment:${payment.id}`,
+        category: "Payment",
         title: "Payment recorded",
         detail: `${tenant ? tenant.name : "Removed tenant"} paid ${formatMoney(payment.amount)} by ${payment.payment_method}.`,
+        message: [
+          `${tenant ? tenant.name : "Removed tenant"} paid ${formatMoney(payment.amount)} by ${payment.payment_method}.`,
+          `Reference: ${payment.reference || "Not recorded"}`,
+          `Balance after payment: ${formatMoney(payment.balance)}`,
+          `Payment date: ${formatDate(payment.payment_date)}`,
+        ].join("\n"),
         date: payment.payment_date,
         name: tenant ? tenant.name : "Payment",
       };
@@ -930,15 +1200,30 @@
     const expenseItems = scope.expenses.map((expense) => {
       const property = propertyById(expense.property_id);
       return {
+        id: `expense:${expense.id}`,
+        category: "Expense",
         title: "Expense added",
         detail: `${expense.type} at ${property ? property.property_name : "Unknown property"} for ${formatMoney(expense.amount)}.`,
+        message: [
+          `${expense.type} was recorded at ${property ? property.property_name : "Unknown property"}.`,
+          `Amount: ${formatMoney(expense.amount)}`,
+          `Date: ${formatDate(expense.date)}`,
+        ].join("\n"),
         date: expense.date,
         name: expense.type,
       };
     });
     const tenantItems = scope.tenants.map((tenant) => ({
+      id: `tenant:${tenant.id}`,
+      category: "Tenant",
       title: "Tenant active",
-      detail: `${tenant.name} is assigned to ${unitById(tenant.unit_id)?.unit_number || "a unit"}.`,
+      detail: `${tenant.name} is assigned to ${unitById(tenant.unit_id)?.unit_number || "a room"}.`,
+      message: [
+        `${tenant.name} is assigned to ${unitById(tenant.unit_id)?.unit_number || "a room"}.`,
+        `Phone: ${tenant.phone || "Not recorded"}`,
+        `Rent: ${formatMoney(tenant.rent_amount)}`,
+        `Move-in date: ${formatDate(tenant.move_in_date)}`,
+      ].join("\n"),
       date: tenant.move_in_date,
       name: tenant.name,
     }));
@@ -947,16 +1232,33 @@
 
   function buildPlatformActivityItems() {
     const signupItems = landlordUsers().map((user) => ({
+      id: `landlord:${user.id}`,
+      category: "Account",
       title: "Landlord signup",
       detail: `${user.name} joined RentLedger UG as ${accountStatus(user).toLowerCase()}.`,
+      message: [
+        `${user.name} joined RentLedger UG as ${accountStatus(user).toLowerCase()}.`,
+        `Phone: ${user.phone || "Not recorded"}`,
+        `Email: ${user.email || "Not recorded"}`,
+        `Joined: ${formatDate(user.created_at || isoDate(new Date()))}`,
+      ].join("\n"),
       date: user.created_at || new Date().toISOString(),
       name: user.name,
     }));
     const ticketItems = (state.supportTickets || []).map((ticket) => {
       const user = userById(ticket.owner_id);
       return {
+        id: `ticket:${ticket.id}`,
+        category: "Support",
         title: ticket.subject,
         detail: `${user ? user.name : "Landlord"} support is ${ticket.status.toLowerCase()}.`,
+        message: [
+          ticket.note || "No support note added.",
+          `Landlord: ${user ? user.name : "Unknown landlord"}`,
+          `Priority: ${ticket.priority}`,
+          `Status: ${ticket.status}`,
+          `Updated: ${formatDate(ticket.updated_at)}`,
+        ].join("\n"),
         date: ticket.updated_at,
         name: user ? user.name : ticket.subject,
       };
@@ -964,13 +1266,37 @@
     const billingItems = (state.subscriptions || []).map((subscription) => {
       const user = userById(subscription.owner_id);
       return {
+        id: `subscription:${subscription.id}`,
+        category: "Billing",
         title: `${subscription.plan} subscription`,
         detail: `${user ? user.name : "Landlord"} is ${subscription.status.toLowerCase()} at ${formatMoney(subscription.monthly_fee)}/month.`,
+        message: [
+          `${user ? user.name : "Landlord"} is ${subscription.status.toLowerCase()} on the ${subscription.plan} plan.`,
+          `Monthly fee: ${formatMoney(subscription.monthly_fee)}`,
+          `Last paid: ${formatDate(subscription.last_payment_date || subscription.next_billing_date)}`,
+          `Next billing: ${formatDate(subscription.next_billing_date)}`,
+        ].join("\n"),
         date: subscription.last_payment_date || subscription.next_billing_date,
         name: user ? user.name : subscription.plan,
       };
     });
     return [...signupItems, ...ticketItems, ...billingItems].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
+  function openActivity(activityId) {
+    const activityItem = findActivityItem(activityId);
+    if (!activityItem) return;
+    ui.notificationModalTitle.textContent = activityItem.title;
+    ui.notificationModalMeta.textContent = `${activityItem.category || "Recent activity"} - ${timeAgo(activityItem.date)}`;
+    ui.notificationModalMessage.textContent = activityItem.message || activityItem.detail;
+    ui.notificationModal.classList.remove("hidden");
+    ui.notificationPanel.classList.add("hidden");
+  }
+
+  function findActivityItem(activityId) {
+    const scopedItems = buildActivityItems(getScopedData());
+    const platformItems = isSaasOwner() ? buildPlatformActivityItems() : [];
+    return [...platformItems, ...scopedItems].find((item) => item.id === activityId);
   }
 
   function buildSystemMonitorRows() {
@@ -1089,7 +1415,7 @@
         .reduce((sum, payment) => sum + Number(payment.amount), 0);
       return { label: `${day}`, total };
     });
-    return chartMarkup(buckets, "UGX");
+    return chartMarkup(buckets, "USh");
   }
 
   function renderOwnerChart(subscriptions) {
@@ -1190,6 +1516,7 @@
             user.phone,
             user.email,
             accountStatus(user),
+            platformOwnerText(user),
             subscription ? subscription.plan : "",
             subscription ? subscription.status : "",
             portfolio.properties.map((property) => property.property_name).join(" "),
@@ -1206,13 +1533,14 @@
               <td>
                 <strong>${escapeHtml(user.name)}</strong>
                 <small class="table-subtext">${escapeHtml(userContactLabel(user))}</small>
+                <small class="table-subtext">${escapeHtml(platformOwnerText(user))}</small>
               </td>
               <td>
                 ${escapeHtml(subscription ? subscription.plan : "No plan")}
                 <small class="table-subtext">${subscription ? statusPill(subscription.status) : ""}</small>
               </td>
               <td>${statusPill(status)}</td>
-              <td>${portfolio.properties.length} properties / ${portfolio.units.length} units</td>
+              <td>${portfolio.properties.length} properties / ${portfolio.units.length} rooms</td>
               <td>
                 ${escapeHtml(openTicketCount ? `${openTicketCount} support open` : "No open support")}
                 <small class="table-subtext">${subscription ? `Next: ${formatDate(subscription.next_billing_date)}` : "No subscription"}</small>
@@ -1229,15 +1557,6 @@
         })
         .join("") || emptyTableRow(6, "No landlord accounts yet.");
 
-    ui.ownerLandlordTable.querySelectorAll("[data-toggle-account-status]").forEach((button) => {
-      button.addEventListener("click", () => toggleLandlordAccountStatus(button.dataset.toggleAccountStatus));
-    });
-    ui.ownerLandlordTable.querySelectorAll("[data-cycle-plan]").forEach((button) => {
-      button.addEventListener("click", () => cycleSubscriptionPackage(button.dataset.cyclePlan));
-    });
-    ui.ownerLandlordTable.querySelectorAll("[data-admin-reset-user]").forEach((button) => {
-      button.addEventListener("click", () => createAdminPasswordReset(button.dataset.adminResetUser));
-    });
   }
 
   function renderPlatformBilling() {
@@ -1358,12 +1677,6 @@
         })
         .join("") || emptyBlock("No support tickets yet.");
 
-    ui.supportTicketList.querySelectorAll("[data-toggle-ticket]").forEach((button) => {
-      button.addEventListener("click", () => toggleSupportTicket(button.dataset.toggleTicket));
-    });
-    ui.supportTicketList.querySelectorAll("[data-focus-landlord]").forEach((button) => {
-      button.addEventListener("click", () => focusLandlordAccount(button.dataset.focusLandlord));
-    });
   }
 
   function renderProperties() {
@@ -1379,7 +1692,7 @@
     });
 
     ui.propertyCountLabel.textContent = `${allOwnerProperties.length} properties`;
-    ui.unitCountLabel.textContent = `${scope.units.length} units`;
+    ui.unitCountLabel.textContent = `${scope.units.length} rooms`;
 
     ui.propertyTable.innerHTML =
       properties
@@ -1414,6 +1727,8 @@
         .map((unit) => {
           const property = propertyById(unit.property_id);
           const hasTenant = Boolean(state.tenants.find((tenant) => tenant.unit_id === unit.id));
+          const canPublish = unit.status === "vacant" && !removeDisabled;
+          const listingAction = unit.listing_published ? "Unpublish" : "Publish Vacancy";
           return `
             <tr>
               <td>${escapeHtml(unit.unit_number)}</td>
@@ -1421,24 +1736,22 @@
               <td>${formatMoney(unit.rent_amount)}</td>
               <td>${statusPill(capitalize(unit.status))}</td>
               <td>
-                <button class="danger-button" data-remove-unit="${unit.id}" ${removeDisabled || hasTenant ? "disabled" : ""} type="button">
-                  ${hasTenant ? "Tenant assigned" : "Remove"}
-                </button>
+                ${statusPill(unit.listing_published ? "Published" : "Private")}
+                <small class="table-subtext">${unit.status === "vacant" ? "Can appear on public listings" : "Occupied rooms are hidden"}</small>
+              </td>
+              <td>
+                <div class="button-row">
+                  <button class="text-button" data-toggle-listing="${unit.id}" ${canPublish ? "" : "disabled"} type="button">${listingAction}</button>
+                  <button class="danger-button" data-remove-unit="${unit.id}" ${removeDisabled || hasTenant ? "disabled" : ""} type="button">
+                    ${hasTenant ? "Tenant assigned" : "Remove"}
+                  </button>
+                </div>
               </td>
             </tr>
           `;
         })
-        .join("") || emptyTableRow(5, "No houses or units yet.");
+        .join("") || emptyTableRow(6, "No rooms, shops, or houses yet.");
 
-    document.querySelectorAll("[data-edit-property]").forEach((button) => {
-      button.addEventListener("click", () => startPropertyEdit(button.dataset.editProperty));
-    });
-    document.querySelectorAll("[data-remove-property]").forEach((button) => {
-      button.addEventListener("click", () => removeProperty(button.dataset.removeProperty));
-    });
-    document.querySelectorAll("[data-remove-unit]").forEach((button) => {
-      button.addEventListener("click", () => removeUnit(button.dataset.removeUnit));
-    });
   }
 
   function renderTenants() {
@@ -1469,7 +1782,7 @@
               <td>
                 <div class="button-row">
                   <button class="text-button" data-edit-tenant="${tenant.id}" type="button">Edit</button>
-                  <button class="danger-button" data-remove-tenant="${tenant.id}" ${removeDisabled} type="button">Remove</button>
+                  <button class="danger-button" data-move-out-tenant="${tenant.id}" ${removeDisabled} type="button">Move Out</button>
                 </div>
               </td>
             </tr>
@@ -1477,12 +1790,6 @@
         })
         .join("") || emptyTableRow(6, "No tenants match this view.");
 
-    document.querySelectorAll("[data-edit-tenant]").forEach((button) => {
-      button.addEventListener("click", () => startTenantEdit(button.dataset.editTenant));
-    });
-    document.querySelectorAll("[data-remove-tenant]").forEach((button) => {
-      button.addEventListener("click", () => removeTenant(button.dataset.removeTenant));
-    });
   }
 
   function renderStaff() {
@@ -1518,12 +1825,6 @@
         `)
         .join("") || emptyTableRow(4, "No staff invited yet.");
 
-    ui.staffTable.querySelectorAll("[data-copy-staff-login]").forEach((button) => {
-      button.addEventListener("click", () => copyStaffLogin(button.dataset.copyStaffLogin));
-    });
-    ui.staffTable.querySelectorAll("[data-remove-staff]").forEach((button) => {
-      button.addEventListener("click", () => removeStaff(button.dataset.removeStaff));
-    });
   }
 
   function renderRent() {
@@ -1571,10 +1872,6 @@
           `;
         })
         .join("") || emptyTableRow(7, "No payment history yet.");
-
-    ui.paymentHistoryTable.querySelectorAll("[data-receipt-payment]").forEach((button) => {
-      button.addEventListener("click", () => openReceipt(button.dataset.receiptPayment));
-    });
 
     updatePaymentPreview();
   }
@@ -1627,9 +1924,6 @@
         })
         .join("") || emptyTableRow(5, "No expenses recorded.");
 
-    document.querySelectorAll("[data-remove-expense]").forEach((button) => {
-      button.addEventListener("click", () => removeExpense(button.dataset.removeExpense));
-    });
   }
 
   function renderReminders() {
@@ -1648,7 +1942,7 @@
           return `
             <article class="reminder-item">
               <div class="reminder-main">
-                <div class="reminder-title">${escapeHtml(row.tenant.name)} - ${escapeHtml(row.unit ? row.unit.unit_number : "Unit")}</div>
+                <div class="reminder-title">${escapeHtml(row.tenant.name)} - ${escapeHtml(row.unit ? row.unit.unit_number : "Room")}</div>
                 <div class="reminder-copy">${escapeHtml(message)}</div>
               </div>
               <div class="button-row">
@@ -1659,10 +1953,6 @@
           `;
         })
         .join("") || emptyBlock("No reminders in queue.");
-
-    document.querySelectorAll("[data-copy-message]").forEach((button) => {
-      button.addEventListener("click", () => copyText(decodeURIComponent(button.dataset.copyMessage)));
-    });
 
     const sampleTenant = scope.tenants[0];
     ui.dueTomorrowTemplate.textContent = sampleTenant
@@ -1688,7 +1978,7 @@
       })
       .join("");
     const previousUnit = ui.tenantUnit.value;
-    ui.tenantUnit.innerHTML = unitOptions || '<option value="">Add a vacant unit first</option>';
+    ui.tenantUnit.innerHTML = unitOptions || '<option value="">Add a vacant room first</option>';
     if (previousUnit && [...ui.tenantUnit.options].some((option) => option.value === previousUnit)) {
       ui.tenantUnit.value = previousUnit;
     }
@@ -1700,7 +1990,7 @@
       scope.tenants
         .map((tenant) => {
           const unit = unitById(tenant.unit_id);
-          return `<option value="${tenant.id}">${escapeHtml(tenant.name)} - ${escapeHtml(unit ? unit.unit_number : "Unit")}</option>`;
+          return `<option value="${tenant.id}">${escapeHtml(tenant.name)} - ${escapeHtml(unit ? unit.unit_number : "Room")}</option>`;
         })
         .join("") || '<option value="">No tenants</option>';
     ui.paymentTenant.innerHTML = tenantOptions;
@@ -1787,11 +2077,11 @@
   function saveUnit(event) {
     event.preventDefault();
     if (currentUser()?.role === "staff") {
-      showToast("Staff cannot create units.");
+      showToast("Staff cannot create rooms.");
       return;
     }
     if (!ui.unitProperty.value) {
-      showToast("Add a property before adding units.");
+      showToast("Add a property before adding rooms.");
       return;
     }
 
@@ -1813,23 +2103,60 @@
     ui.unitForm.reset();
     populateStaticControls();
     renderAll();
-    showToast("House / unit added.");
+    showToast("Room / shop added.");
   }
 
   function removeUnit(id) {
     if (state.role === "caretaker" || currentUser()?.role === "staff") {
-      showToast("Your role cannot remove units.");
+      showToast("Your role cannot remove rooms.");
       return;
     }
     const hasTenant = state.tenants.some((tenant) => tenant.unit_id === id);
     if (hasTenant) {
-      showToast("Remove the tenant before removing this unit.");
+      showToast("Remove the tenant before removing this room.");
       return;
     }
     state.units = state.units.filter((unit) => unit.id !== id);
     saveState();
     renderAll();
-    showToast("Unit removed.");
+    showToast("Room removed.");
+  }
+
+  function togglePublicListing(unitId) {
+    if (state.role === "caretaker" || currentUser()?.role === "staff") {
+      showToast("Only the owner can publish public vacancies.");
+      return;
+    }
+    const unit = ownerProperties()
+      .flatMap((property) => state.units.filter((item) => item.property_id === property.id))
+      .find((item) => item.id === unitId);
+    if (!unit) return;
+    if (unit.status !== "vacant") {
+      showToast("Only vacant rooms can be published publicly.");
+      return;
+    }
+    const nextPublished = !unit.listing_published;
+    state.units = state.units.map((item) =>
+      item.id === unitId
+        ? {
+            ...item,
+            listing_published: nextPublished,
+            listing_bedrooms: item.listing_bedrooms || 1,
+            listing_bathrooms: item.listing_bathrooms || 1,
+            listing_furnished: Boolean(item.listing_furnished),
+            listing_photo: item.listing_photo || listingPhotoForProperty(propertyById(item.property_id)),
+            listing_note: item.listing_note || "Vacant and ready for viewing. Contact the landlord on WhatsApp.",
+          }
+        : item
+    );
+    addNotification({
+      type: "property",
+      title: nextPublished ? "Vacancy published" : "Vacancy unpublished",
+      message: `${unit.unit_number} ${nextPublished ? "is now visible on public listings." : "has been removed from public listings."}`,
+    });
+    saveState();
+    renderAll();
+    showToast(nextPublished ? "Vacancy published publicly." : "Vacancy unpublished.");
   }
 
   function saveTenant(event) {
@@ -1848,13 +2175,13 @@
     };
 
     if (!tenant.unit_id) {
-      showToast("Choose an available unit first.");
+      showToast("Choose an available room first.");
       return;
     }
 
     const ownedUnit = getScopedData().units.find((unit) => unit.id === tenant.unit_id);
     if (!ownedUnit) {
-      showToast("Choose a unit from your own properties.");
+      showToast("Choose a room from your own properties.");
       return;
     }
 
@@ -1980,6 +2307,63 @@
     showToast("Staff access removed.");
   }
 
+  function startTenantMoveOut(id) {
+    if (state.role === "caretaker" || currentUser()?.role === "staff") {
+      showToast("Your role cannot move out tenants.");
+      return;
+    }
+    const tenant = getScopedData().tenants.find((item) => item.id === id);
+    if (!tenant) return;
+    const unit = unitById(tenant.unit_id);
+    const rentRow = getRentRows([tenant])[0];
+    ui.moveOutTenantId.value = tenant.id;
+    ui.moveOutTenantMeta.textContent = `${tenant.name} - ${unit ? unit.unit_number : "Unassigned room"}`;
+    ui.moveOutBalance.value = formatMoney(rentRow ? rentRow.balance : 0);
+    ui.moveOutBalance.dataset.amount = String(rentRow ? rentRow.balance : 0);
+    ui.moveOutDamages.value = "0";
+    ui.moveOutRefund.value = "0";
+    ui.moveOutNote.value = "";
+    ui.moveOutModal.classList.remove("hidden");
+  }
+
+  function closeMoveOutModal() {
+    ui.moveOutModal.classList.add("hidden");
+    ui.moveOutForm.reset();
+    ui.moveOutBalance.dataset.amount = "0";
+  }
+
+  function completeTenantMoveOut(event) {
+    event.preventDefault();
+    const tenant = getScopedData().tenants.find((item) => item.id === ui.moveOutTenantId.value);
+    if (!tenant) {
+      closeMoveOutModal();
+      return;
+    }
+    const unit = unitById(tenant.unit_id);
+    const balance = Number(ui.moveOutBalance.dataset.amount || 0);
+    const damages = Number(ui.moveOutDamages.value || 0);
+    const refund = Number(ui.moveOutRefund.value || 0);
+    const note = ui.moveOutNote.value.trim();
+
+    setUnitStatus(tenant.unit_id, "vacant");
+    state.tenants = state.tenants.filter((item) => item.id !== tenant.id);
+    addNotification({
+      type: "tenant",
+      title: "Tenant moved out",
+      message: [
+        `${tenant.name} moved out of ${unit ? unit.unit_number : "a room"}.`,
+        `Balance: ${formatMoney(balance)}`,
+        `Damages: ${formatMoney(damages)}`,
+        `Refund: ${formatMoney(refund)}`,
+        note ? `Note: ${note}` : "No move-out note added.",
+      ].join("\n"),
+    });
+    saveState();
+    closeMoveOutModal();
+    renderAll();
+    showToast(`${tenant.name} moved out. Room marked vacant.`);
+  }
+
   function removeTenant(id) {
     if (state.role === "caretaker" || currentUser()?.role === "staff") {
       showToast("Your role cannot remove tenants.");
@@ -2016,6 +2400,7 @@
       payment_date: ui.paymentDate.value,
       balance,
       reference,
+      created_at: new Date().toISOString(),
     });
     addNotification({
       type: "payment",
@@ -2050,6 +2435,7 @@
       type: ui.expenseType.value,
       amount: Number(ui.expenseAmount.value),
       date: ui.expenseDate.value,
+      created_at: new Date().toISOString(),
     });
     addNotification({
       type: "expense",
@@ -2085,17 +2471,21 @@
       return;
     }
 
-    const amount = Number(ui.ownerPaymentAmount.value);
+    syncOwnerPaymentDefaults(false);
+    const owner = userById(ownerId);
+    const paymentDate = ui.ownerPaymentDate.value || isoDate(new Date());
+    const amount = Number(ui.ownerPaymentAmount.value || subscription.monthly_fee || 0);
+    const note = ui.ownerPaymentNote.value.trim() || defaultOwnerPaymentNote(owner, subscription, paymentDate);
     state.subscriptions = state.subscriptions.map((item) =>
       item.id === subscription.id
         ? {
             ...item,
-            monthly_fee: amount || item.monthly_fee,
+            monthly_fee: Number.isFinite(amount) ? amount : item.monthly_fee,
             status: "Active",
-            last_payment_date: ui.ownerPaymentDate.value,
+            last_payment_date: paymentDate,
             last_payment_method: ui.ownerPaymentMethod.value,
-            last_payment_note: ui.ownerPaymentNote.value.trim(),
-            next_billing_date: addMonths(ui.ownerPaymentDate.value, 1),
+            last_payment_note: note,
+            next_billing_date: addMonths(paymentDate, 1),
           }
         : item
     );
@@ -2105,6 +2495,50 @@
     setTodayDefaults();
     renderAll();
     showToast("Subscription payment saved.");
+  }
+
+  function syncOwnerPaymentDefaults(force) {
+    if (!ui.ownerPaymentLandlord || !isSaasOwner()) return;
+    const ownerId = ui.ownerPaymentLandlord.value;
+    const subscription = subscriptionByOwner(ownerId);
+    const owner = userById(ownerId);
+    const today = isoDate(new Date());
+
+    if (!subscription || !owner) {
+      if (force) {
+        ui.ownerPaymentAmount.value = "";
+        ui.ownerPaymentNote.value = "";
+        ui.ownerPaymentNote.dataset.generatedNote = "";
+      }
+      ui.ownerPaymentDate.value = ui.ownerPaymentDate.value || today;
+      return;
+    }
+
+    const packageAmount = Number(subscription.monthly_fee || packageFee(subscription.plan) || 0);
+    const paymentDate = ui.ownerPaymentDate.value || today;
+    const generatedNote = defaultOwnerPaymentNote(owner, subscription, paymentDate);
+    const noteWasGenerated = !ui.ownerPaymentNote.value.trim() || ui.ownerPaymentNote.value === ui.ownerPaymentNote.dataset.generatedNote;
+
+    ui.ownerPaymentDate.value = paymentDate;
+    if (force || !ui.ownerPaymentAmount.value) {
+      ui.ownerPaymentAmount.value = packageAmount;
+    }
+    if (force || noteWasGenerated) {
+      ui.ownerPaymentNote.value = generatedNote;
+      ui.ownerPaymentNote.dataset.generatedNote = generatedNote;
+    }
+    if (!ui.ownerPaymentMethod.value) {
+      ui.ownerPaymentMethod.value = "MTN MoMo";
+    }
+  }
+
+  function defaultOwnerPaymentNote(owner, subscription, paymentDate) {
+    const date = new Date(`${paymentDate || isoDate(new Date())}T00:00:00`);
+    return `${monthName(date)} ${subscription.plan} subscription for ${owner ? owner.name : "landlord"}`;
+  }
+
+  function packageFee(plan) {
+    return PACKAGE_OPTIONS.find((option) => option.plan === plan)?.fee || 0;
   }
 
   function saveSupportTicket(event) {
@@ -2153,7 +2587,8 @@
       name: `Demo Landlord ${demoNumber}`,
       phone: `0799${String(100000 + demoNumber).slice(-6)}`,
       email,
-      creator_email: currentUser()?.email || currentUser()?.creator_email || "",
+      creator_email: currentUser()?.email || currentUser()?.creator_email || SUPER_ADMIN_EMAIL,
+      platform_owner_id: currentUser()?.id || SUPER_ADMIN_USER_ID,
       password: "demo123",
       role: "landlord",
       account_status: "Trial",
@@ -2163,12 +2598,24 @@
       id: propertyId,
       property_name: `Demo Estate ${demoNumber}`,
       location: "Kampala",
-      property_type: "Apartment",
+      property_type: "Rooms",
       owner_id: userId,
     };
     const units = [
       { id: occupiedUnitId, property_id: propertyId, unit_number: "A1", rent_amount: 650000, status: "occupied" },
-      { id: vacantUnitId, property_id: propertyId, unit_number: "A2", rent_amount: 650000, status: "vacant" },
+      {
+        id: vacantUnitId,
+        property_id: propertyId,
+        unit_number: "A2",
+        rent_amount: 650000,
+        status: "vacant",
+        listing_published: true,
+        listing_bedrooms: 1,
+        listing_bathrooms: 1,
+        listing_furnished: false,
+        listing_photo: "assets/apartment-exterior.jpg",
+        listing_note: "Demo vacancy published from the owner dashboard.",
+      },
     ];
     const tenant = {
       id: tenantId,
@@ -2188,6 +2635,7 @@
       payment_date: today,
       balance: 0,
       reference: autoReference("MTN MoMo"),
+      created_at: new Date().toISOString(),
     };
     const subscription = {
       id: makeId("subscription"),
@@ -2381,7 +2829,7 @@
         <span>Landlord</span><strong>${escapeHtml(owner ? owner.name : "Landlord")}</strong>
         <span>Tenant</span><strong>${escapeHtml(tenant ? tenant.name : "Removed tenant")}</strong>
         <span>Property</span><strong>${escapeHtml(property ? property.property_name : "Unknown")}</strong>
-        <span>Unit</span><strong>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</strong>
+        <span>Room</span><strong>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</strong>
         <span>Amount Paid</span><strong>${formatMoney(payment.amount)}</strong>
         <span>Balance</span><strong>${formatMoney(payment.balance)}</strong>
         <span>Method</span><strong>${escapeHtml(payment.payment_method)}</strong>
@@ -2404,11 +2852,72 @@
   function downloadReceipt() {
     const text = ui.receiptContent.innerText.trim();
     if (!text) return;
+    downloadTextFile(`rentledger-receipt-${ui.receiptModal.dataset.paymentId || "payment"}.txt`, text);
+  }
+
+  function downloadMonthlyRentReport() {
+    const scope = getScopedData();
+    const payments = getCurrentMonthPayments(scope.payments);
+    const total = payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const lines = [
+      "RentLedger UG Monthly Rent Report",
+      monthName(new Date()),
+      "",
+      `Total collected: ${formatMoney(total)}`,
+      `Payments recorded: ${payments.length}`,
+      "",
+      "Tenant | Room | Amount | Method | Date | Balance",
+      ...payments.map((payment) => {
+        const tenant = tenantById(payment.tenant_id);
+        const unit = tenant ? unitById(tenant.unit_id) : null;
+        return [
+          tenant ? tenant.name : "Removed tenant",
+          unit ? unit.unit_number : "Unassigned",
+          formatMoney(payment.amount),
+          payment.payment_method,
+          formatDate(payment.payment_date),
+          formatMoney(payment.balance),
+        ].join(" | ");
+      }),
+      payments.length ? "" : "No payments recorded this month.",
+    ];
+    downloadTextFile(`rentledger-rent-report-${isoDate(new Date())}.txt`, lines.join("\n"));
+    showToast("Monthly rent report downloaded.");
+  }
+
+  function downloadExpenseReport() {
+    const scope = getScopedData();
+    const expenses = getCurrentMonthExpenses(scope.expenses);
+    const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+    const lines = [
+      "RentLedger UG Expense Report",
+      monthName(new Date()),
+      "",
+      `Total expenses: ${formatMoney(total)}`,
+      `Expenses recorded: ${expenses.length}`,
+      "",
+      "Type | Property | Amount | Date",
+      ...expenses.map((expense) => {
+        const property = propertyById(expense.property_id);
+        return [
+          expense.type,
+          property ? property.property_name : "Unknown property",
+          formatMoney(expense.amount),
+          formatDate(expense.date),
+        ].join(" | ");
+      }),
+      expenses.length ? "" : "No expenses recorded this month.",
+    ];
+    downloadTextFile(`rentledger-expense-report-${isoDate(new Date())}.txt`, lines.join("\n"));
+    showToast("Expense report downloaded.");
+  }
+
+  function downloadTextFile(filename, text) {
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `rentledger-receipt-${ui.receiptModal.dataset.paymentId || "payment"}.txt`;
+    anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -2419,6 +2928,10 @@
 
   function userById(id) {
     return state.users.find((user) => user.id === id) || null;
+  }
+
+  function superAdminUser() {
+    return userById(SUPER_ADMIN_USER_ID);
   }
 
   function accountStatus(user) {
@@ -2449,8 +2962,24 @@
 
   function adminResetOptionLabel(user) {
     const owner = user.company_owner_id ? userById(user.company_owner_id) : null;
+    const platformOwner = user.platform_owner_id ? userById(user.platform_owner_id) : null;
     const ownerLabel = owner ? ` - ${owner.name}` : "";
-    return `${user.name} (${roleLabel(user.role)}${ownerLabel})`;
+    const platformOwnerLabel = platformOwner && platformOwner.id !== owner?.id ? ` - linked to ${platformOwner.name}` : "";
+    return `${user.name} (${roleLabel(user.role)}${ownerLabel}${platformOwnerLabel})`;
+  }
+
+  function platformOwnerText(user) {
+    const owner = user?.platform_owner_id ? userById(user.platform_owner_id) : null;
+    return owner ? `Linked to ${owner.name}` : "No platform link";
+  }
+
+  function isSuperAdminLinkedDemoAccount(user) {
+    return Boolean(
+      user &&
+        (DEMO_ACCOUNT_IDS.includes(user.id) ||
+          user.id === "user-2" ||
+          /^Demo Landlord\b/.test(String(user.name || "")))
+    );
   }
 
   function ownerProperties() {
@@ -2559,20 +3088,83 @@
   }
 
   function platformNotifications() {
+    const user = currentUser();
+    const storedNotifications = (state.notifications || []).filter(
+      (notification) => !notification.user_id || notification.user_id === user?.id
+    );
     const rows = [];
-    getRentRows(getScopedData().tenants)
+    const scope = getScopedData();
+    const rentRows = getRentRows(scope.tenants);
+    const dismissed = state.dismissedNotificationIds || [];
+    const overdueRows = rentRows.filter((row) => row.status === "Overdue");
+    const dueTomorrowRows = rentRows.filter((row) => row.daysUntilDue === 1 && row.balance > 0);
+    const vacantUnits = scope.units.filter((unit) => unit.status === "vacant");
+    const electricityRecorded = getCurrentMonthExpenses(scope.expenses).some((expense) =>
+      String(expense.type || "").toLowerCase().includes("electric")
+    );
+
+    if (overdueRows.length) {
+      const id = "daily-late-tenants";
+      rows.push({
+        id,
+        title: `${overdueRows.length} tenants late this week`,
+        message: `${formatMoney(totalBalance(overdueRows))} is still outstanding. Open Late Tenants and call the tenants today.`,
+        type: "rent",
+        date: new Date().toISOString(),
+        read: dismissed.includes(id),
+      });
+    }
+
+    if (dueTomorrowRows.length) {
+      const id = "daily-rent-due-tomorrow";
+      rows.push({
+        id,
+        title: `${dueTomorrowRows.length} rent due tomorrow`,
+        message: "Send SMS or WhatsApp reminders before the due date.",
+        type: "rent",
+        date: new Date().toISOString(),
+        read: dismissed.includes(id),
+      });
+    }
+
+    if (vacantUnits.length) {
+      const id = "daily-vacant-rooms";
+      rows.push({
+        id,
+        title: `${vacantUnits.length} vacant rooms`,
+        message: `${vacantUnitSummary(vacantUnits)} available for follow-up or listing.`,
+        type: "property",
+        date: new Date().toISOString(),
+        read: dismissed.includes(id),
+      });
+    }
+
+    if (!electricityRecorded && scope.properties.length) {
+      const id = "daily-electricity-unpaid";
+      rows.push({
+        id,
+        title: "Electricity bill not recorded",
+        message: "No electricity expense has been added this month.",
+        type: "expense",
+        date: new Date().toISOString(),
+        read: dismissed.includes(id),
+      });
+    }
+
+    rentRows
       .filter((row) => row.balance > 0 && (row.status === "Overdue" || row.daysUntilDue <= 1))
       .forEach((row) => {
+        const id = `rent-${row.tenant.id}-${row.status}`;
         rows.push({
-          id: `rent-${row.tenant.id}-${row.status}`,
+          id,
           title: `${row.status} rent`,
           message: `${row.tenant.name} has ${formatMoney(row.balance)} outstanding.`,
           type: "rent",
           date: isoDate(row.dueDate),
-          read: Boolean((state.dismissedNotificationIds || []).includes(`rent-${row.tenant.id}-${row.status}`)),
+          read: dismissed.includes(id),
         });
       });
-    return [...(state.notifications || []), ...rows];
+    return [...storedNotifications, ...rows];
   }
 
   function renderNotifications() {
@@ -2583,21 +3175,54 @@
       notifications
         .slice(0, 8)
         .map((item) => `
-          <article class="notification-item ${item.read ? "read" : ""}">
+          <button class="notification-item ${item.read ? "read" : ""}" data-open-notification="${escapeHtml(item.id)}" type="button">
             <strong>${escapeHtml(item.title)}</strong>
             <span>${escapeHtml(item.message)}</span>
             <time>${escapeHtml(timeAgo(item.created_at || item.date))}</time>
-          </article>
+          </button>
         `)
         .join("") || emptyBlock("No notifications yet.");
   }
 
   function toggleNotifications() {
-    ui.notificationPanel.classList.toggle("hidden");
+    const shouldOpen = ui.notificationPanel.classList.contains("hidden");
+    ui.notificationPanel.classList.toggle("hidden", !shouldOpen);
+    ui.notificationToggle.setAttribute("aria-expanded", String(shouldOpen));
+  }
+
+  function openNotification(id) {
+    const item = platformNotifications().find((notification) => notification.id === id);
+    if (!item) return;
+    ui.notificationModalTitle.textContent = item.title;
+    ui.notificationModalMeta.textContent = `${notificationTypeLabel(item.type)} - ${timeAgo(item.created_at || item.date)}`;
+    ui.notificationModalMessage.textContent = item.message;
+    ui.notificationModal.classList.remove("hidden");
+    markNotificationRead(id);
+    ui.notificationPanel.classList.add("hidden");
+    ui.notificationToggle.setAttribute("aria-expanded", "false");
+  }
+
+  function closeNotificationModal() {
+    ui.notificationModal.classList.add("hidden");
+  }
+
+  function markNotificationRead(id) {
+    if (String(id).startsWith("notification")) {
+      state.notifications = (state.notifications || []).map((item) =>
+        item.id === id ? { ...item, read: true } : item
+      );
+    } else {
+      state.dismissedNotificationIds = [...new Set([...(state.dismissedNotificationIds || []), id])];
+    }
+    saveState();
+    renderNotifications();
   }
 
   function markNotificationsRead() {
-    state.notifications = (state.notifications || []).map((item) => ({ ...item, read: true }));
+    const user = currentUser();
+    state.notifications = (state.notifications || []).map((item) =>
+      !item.user_id || item.user_id === user?.id ? { ...item, read: true } : item
+    );
     const derivedIds = platformNotifications()
       .filter((item) => item.id && !String(item.id).startsWith("notification"))
       .map((item) => item.id);
@@ -2605,6 +3230,17 @@
     saveState();
     renderNotifications();
     showToast("Notifications marked read.");
+  }
+
+  function notificationTypeLabel(type) {
+    if (type === "rent") return "Rent alert";
+    if (type === "expense") return "Expense";
+    if (type === "property") return "Property";
+    if (type === "tenant") return "Tenant";
+    if (type === "support") return "Support";
+    if (type === "billing") return "Billing";
+    if (type === "staff") return "Staff";
+    return "Notification";
   }
 
   function getRentRows(tenants) {
@@ -2680,7 +3316,15 @@
   }
 
   function setUnitStatus(unitId, status) {
-    state.units = state.units.map((unit) => (unit.id === unitId ? { ...unit, status } : unit));
+    state.units = state.units.map((unit) =>
+      unit.id === unitId
+        ? {
+            ...unit,
+            status,
+            listing_published: status === "vacant" ? Boolean(unit.listing_published) : false,
+          }
+        : unit
+    );
   }
 
   function tenantById(id) {
@@ -2701,6 +3345,17 @@
     return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
   }
 
+  function isToday(value) {
+    if (!value) return false;
+    const date = typeof value === "string" && value.includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
+    const today = new Date();
+    return (
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    );
+  }
+
   function getMonthlyDueDate(moveInDate) {
     const moveIn = new Date(`${moveInDate}T00:00:00`);
     const now = new Date();
@@ -2714,12 +3369,12 @@
 
   function reminderMessage(row) {
     if (row.status === "Overdue") {
-      return `Hello ${row.tenant.name}, your rent balance of ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your unit"} is overdue. Please clear it as soon as possible.`;
+      return `Hello ${row.tenant.name}, your rent balance of ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"} is overdue. Please clear it as soon as possible.`;
     }
     if (row.daysUntilDue === 1) {
-      return `Hello ${row.tenant.name}, your rent of ${formatMoney(row.tenant.rent_amount)} is due tomorrow for ${row.unit ? row.unit.unit_number : "your unit"}. Thank you.`;
+      return `Hello ${row.tenant.name}, your rent of ${formatMoney(row.tenant.rent_amount)} is due tomorrow for ${row.unit ? row.unit.unit_number : "your room"}. Thank you.`;
     }
-    return `Hello ${row.tenant.name}, your rent balance is ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your unit"}. Thank you.`;
+    return `Hello ${row.tenant.name}, your rent balance is ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"}. Thank you.`;
   }
 
   function copyText(text) {
@@ -2777,6 +3432,12 @@
     if (!name || !domain) return email || "";
     const visibleName = name.length <= 2 ? name[0] : `${name.slice(0, 2)}***${name.slice(-1)}`;
     return `${visibleName}@${domain}`;
+  }
+
+  function maskPhoneNumber(phone) {
+    const value = String(phone || "").trim();
+    if (value.length <= 4) return value;
+    return `${value.slice(0, 4)}***${value.slice(-3)}`;
   }
 
   function clearPasswordResetForms() {
@@ -2923,6 +3584,7 @@
         phone: row.phone,
         email: row.email || "",
         creator_email: row.creator_email || "",
+        platform_owner_id: row.platform_owner_id || undefined,
         password: row.password || "demo123",
         role: row.role,
         account_status: row.account_status || "Active",
@@ -2930,6 +3592,17 @@
         company_owner_id: row.company_owner_id || undefined,
         assigned_property_ids: row.assigned_property_ids || [],
         invitation_status: row.invitation_status || undefined,
+      };
+    }
+    if (stateKey === "units") {
+      return {
+        ...row,
+        listing_published: Boolean(row.listing_published),
+        listing_bedrooms: Number(row.listing_bedrooms || 1),
+        listing_bathrooms: Number(row.listing_bathrooms || 1),
+        listing_furnished: Boolean(row.listing_furnished),
+        listing_photo: row.listing_photo || "",
+        listing_note: row.listing_note || "",
       };
     }
     return { ...row };
@@ -2998,6 +3671,7 @@
         phone: row.phone,
         email: row.email || null,
         creator_email: row.creator_email || row.email || null,
+        platform_owner_id: row.platform_owner_id || null,
         password: row.password || "demo123",
         role: row.role,
         account_status: row.account_status || "Active",
@@ -3021,7 +3695,21 @@
       ]);
     }
     if (stateKey === "properties") return pick(row, ["id", "owner_id", "property_name", "location", "property_type"]);
-    if (stateKey === "units") return pick(row, ["id", "property_id", "unit_number", "rent_amount", "status"]);
+    if (stateKey === "units") {
+      return pick(row, [
+        "id",
+        "property_id",
+        "unit_number",
+        "rent_amount",
+        "status",
+        "listing_published",
+        "listing_bedrooms",
+        "listing_bathrooms",
+        "listing_furnished",
+        "listing_photo",
+        "listing_note",
+      ]);
+    }
     if (stateKey === "tenants") {
       return pick(row, ["id", "unit_id", "name", "phone", "national_id", "rent_amount", "deposit_paid", "move_in_date"]);
     }
@@ -3103,8 +3791,9 @@
         return {
           ...user,
           name: user.name || "Super Admin",
-          email: "allanpyrex5@gmail.com",
-          creator_email: "allanpyrex5@gmail.com",
+          email: SUPER_ADMIN_EMAIL,
+          creator_email: SUPER_ADMIN_EMAIL,
+          platform_owner_id: SUPER_ADMIN_USER_ID,
           password: "Etochu@2727",
           role: "saas-owner",
           account_status: "Active",
@@ -3114,8 +3803,18 @@
         return {
           ...user,
           name: user.name === "Joseph Manager" ? "Staff Demo" : user.name,
+          creator_email: SUPER_ADMIN_EMAIL,
+          platform_owner_id: SUPER_ADMIN_USER_ID,
+          company_owner_id: "user-1",
           assigned_property_ids: ["property-1", "property-4"],
           invitation_status: user.invitation_status || "Invited",
+        };
+      }
+      if (isSuperAdminLinkedDemoAccount(user)) {
+        return {
+          ...user,
+          creator_email: SUPER_ADMIN_EMAIL,
+          platform_owner_id: SUPER_ADMIN_USER_ID,
         };
       }
       return user;
@@ -3125,14 +3824,41 @@
       owner_id: "user-1",
       ...property,
     }));
+    const localizedPropertyTypes = {
+      "property-1": "Double Room",
+      "property-2": "Single Room",
+      "property-3": "House",
+      "property-4": "Shops",
+      "property-5": "Rooms",
+      "property-6": "Boys Quarters",
+    };
+    migrated.properties = migrated.properties.map((property) =>
+      localizedPropertyTypes[property.id] && ["Apartment", "Mixed"].includes(property.property_type)
+        ? { ...property, property_type: localizedPropertyTypes[property.id] }
+        : property
+    );
     appendMissingSeedRows(migrated.properties, seeded.properties);
     appendMissingSeedRows(migrated.units, seeded.units);
+    const seedUnitsById = new Map(seeded.units.map((unit) => [unit.id, unit]));
+    migrated.units = migrated.units.map((unit) => {
+      const seedUnit = seedUnitsById.get(unit.id) || {};
+      const status = unit.status || seedUnit.status || "vacant";
+      return {
+        ...unit,
+        listing_published: status === "vacant" && Boolean(unit.listing_published ?? seedUnit.listing_published),
+        listing_bedrooms: Number(unit.listing_bedrooms ?? seedUnit.listing_bedrooms ?? 1),
+        listing_bathrooms: Number(unit.listing_bathrooms ?? seedUnit.listing_bathrooms ?? 1),
+        listing_furnished: Boolean(unit.listing_furnished ?? seedUnit.listing_furnished ?? false),
+        listing_photo: unit.listing_photo || seedUnit.listing_photo || "",
+        listing_note: unit.listing_note || seedUnit.listing_note || "",
+      };
+    });
     appendMissingSeedRows(migrated.tenants, seeded.tenants);
     appendMissingSeedRows(migrated.payments, seeded.payments);
     appendMissingSeedRows(migrated.expenses, seeded.expenses);
     const occupiedUnitIds = new Set(migrated.tenants.map((tenant) => tenant.unit_id));
     migrated.units = migrated.units.map((unit) =>
-      occupiedUnitIds.has(unit.id) ? { ...unit, status: "occupied" } : unit
+      occupiedUnitIds.has(unit.id) ? { ...unit, status: "occupied", listing_published: false } : unit
     );
     seeded.subscriptions.forEach((seedSubscription) => {
       const exists = migrated.subscriptions.some((subscription) => subscription.id === seedSubscription.id);
@@ -3182,8 +3908,9 @@
           id: "user-saas-owner",
           name: "Super Admin",
           phone: "0700000000",
-          email: "allanpyrex5@gmail.com",
-          creator_email: "allanpyrex5@gmail.com",
+          email: SUPER_ADMIN_EMAIL,
+          creator_email: SUPER_ADMIN_EMAIL,
+          platform_owner_id: SUPER_ADMIN_USER_ID,
           password: "Etochu@2727",
           role: "saas-owner",
           account_status: "Active",
@@ -3194,7 +3921,8 @@
           name: "Landlord Demo",
           phone: "0772123456",
           email: "landlord@rentledger.ug",
-          creator_email: "landlord@rentledger.ug",
+          creator_email: SUPER_ADMIN_EMAIL,
+          platform_owner_id: SUPER_ADMIN_USER_ID,
           password: "demo123",
           role: "landlord",
           account_status: "Active",
@@ -3205,7 +3933,8 @@
           name: "Daniel Kigozi",
           phone: "0788001100",
           email: "daniel@rentledger.ug",
-          creator_email: "daniel@rentledger.ug",
+          creator_email: SUPER_ADMIN_EMAIL,
+          platform_owner_id: SUPER_ADMIN_USER_ID,
           password: "demo123",
           role: "landlord",
           account_status: "Active",
@@ -3216,7 +3945,8 @@
           name: "Staff Demo",
           phone: "0700111222",
           email: "staff@rentledger.ug",
-          creator_email: "landlord@rentledger.ug",
+          creator_email: SUPER_ADMIN_EMAIL,
+          platform_owner_id: SUPER_ADMIN_USER_ID,
           password: "staff123",
           role: "staff",
           account_status: "Active",
@@ -3231,14 +3961,14 @@
           id: "property-1",
           property_name: "Kira Road Apartments",
           location: "Kira",
-          property_type: "Apartment",
+          property_type: "Double Room",
           owner_id: "user-1",
         },
         {
           id: "property-2",
           property_name: "Ntinda Court",
           location: "Ntinda",
-          property_type: "Apartment",
+          property_type: "Single Room",
           owner_id: "user-1",
         },
         {
@@ -3252,21 +3982,21 @@
           id: "property-4",
           property_name: "Kololo Heights Villas",
           location: "Kololo",
-          property_type: "Mixed",
+          property_type: "Shops",
           owner_id: "user-1",
         },
         {
           id: "property-5",
           property_name: "Entebbe Road Suites",
           location: "Entebbe Road",
-          property_type: "Apartment",
+          property_type: "Rooms",
           owner_id: "user-1",
         },
         {
           id: "property-6",
           property_name: "Najjera Garden Homes",
           location: "Najjera",
-          property_type: "House",
+          property_type: "Boys Quarters",
           owner_id: "user-1",
         },
       ],
@@ -3276,28 +4006,88 @@
         { id: "unit-3", property_id: "property-1", unit_number: "B1", rent_amount: 520000, status: "occupied" },
         { id: "unit-4", property_id: "property-1", unit_number: "B2", rent_amount: 520000, status: "occupied" },
         { id: "unit-5", property_id: "property-2", unit_number: "N1", rent_amount: 380000, status: "occupied" },
-        { id: "unit-6", property_id: "property-2", unit_number: "N2", rent_amount: 380000, status: "vacant" },
+        {
+          id: "unit-6",
+          property_id: "property-2",
+          unit_number: "N2",
+          rent_amount: 380000,
+          status: "vacant",
+          listing_published: true,
+          listing_bedrooms: 1,
+          listing_bathrooms: 1,
+          listing_furnished: false,
+          listing_photo: "assets/apartment-exterior.jpg",
+          listing_note: "Single room near Ntinda trading center. Water and power available.",
+        },
         { id: "unit-7", property_id: "property-2", unit_number: "N3", rent_amount: 420000, status: "occupied" },
         { id: "unit-8", property_id: "property-2", unit_number: "N4", rent_amount: 420000, status: "vacant" },
         { id: "unit-9", property_id: "property-3", unit_number: "House 1", rent_amount: 600000, status: "occupied" },
-        { id: "unit-10", property_id: "property-3", unit_number: "House 2", rent_amount: 600000, status: "vacant" },
+        {
+          id: "unit-10",
+          property_id: "property-3",
+          unit_number: "House 2",
+          rent_amount: 600000,
+          status: "vacant",
+          listing_published: true,
+          listing_bedrooms: 2,
+          listing_bathrooms: 1,
+          listing_furnished: false,
+          listing_photo: "assets/property-keys.jpg",
+          listing_note: "Standalone house with compound space in Mukono.",
+        },
         { id: "unit-11", property_id: "property-4", unit_number: "K1", rent_amount: 950000, status: "occupied" },
         { id: "unit-12", property_id: "property-4", unit_number: "K2", rent_amount: 950000, status: "occupied" },
         { id: "unit-13", property_id: "property-4", unit_number: "K3", rent_amount: 1200000, status: "occupied" },
         { id: "unit-14", property_id: "property-4", unit_number: "K4", rent_amount: 1200000, status: "occupied" },
-        { id: "unit-15", property_id: "property-4", unit_number: "K5", rent_amount: 850000, status: "vacant" },
+        {
+          id: "unit-15",
+          property_id: "property-4",
+          unit_number: "K5",
+          rent_amount: 850000,
+          status: "vacant",
+          listing_published: true,
+          listing_bedrooms: 1,
+          listing_bathrooms: 1,
+          listing_furnished: true,
+          listing_photo: "assets/property-keys.jpg",
+          listing_note: "Empty shop space on a busy Kololo access road.",
+        },
         { id: "unit-16", property_id: "property-5", unit_number: "E1", rent_amount: 520000, status: "occupied" },
         { id: "unit-17", property_id: "property-5", unit_number: "E2", rent_amount: 520000, status: "occupied" },
         { id: "unit-18", property_id: "property-5", unit_number: "E3", rent_amount: 560000, status: "occupied" },
         { id: "unit-19", property_id: "property-5", unit_number: "E4", rent_amount: 560000, status: "occupied" },
         { id: "unit-20", property_id: "property-5", unit_number: "E5", rent_amount: 600000, status: "occupied" },
-        { id: "unit-21", property_id: "property-5", unit_number: "E6", rent_amount: 600000, status: "vacant" },
+        {
+          id: "unit-21",
+          property_id: "property-5",
+          unit_number: "E6",
+          rent_amount: 600000,
+          status: "vacant",
+          listing_published: false,
+          listing_bedrooms: 1,
+          listing_bathrooms: 1,
+          listing_furnished: false,
+          listing_photo: "assets/apartment-exterior.jpg",
+          listing_note: "Double room close to Entebbe Road transport.",
+        },
         { id: "unit-22", property_id: "property-6", unit_number: "G1", rent_amount: 700000, status: "occupied" },
         { id: "unit-23", property_id: "property-6", unit_number: "G2", rent_amount: 700000, status: "occupied" },
         { id: "unit-24", property_id: "property-6", unit_number: "G3", rent_amount: 760000, status: "occupied" },
         { id: "unit-25", property_id: "property-6", unit_number: "G4", rent_amount: 760000, status: "occupied" },
         { id: "unit-26", property_id: "property-6", unit_number: "G5", rent_amount: 820000, status: "occupied" },
-        { id: "unit-27", property_id: "property-6", unit_number: "G6", rent_amount: 820000, status: "vacant" },
+        {
+          id: "unit-27",
+          property_id: "property-6",
+          unit_number: "G6",
+          rent_amount: 820000,
+          status: "vacant",
+          listing_published: true,
+          listing_bedrooms: 1,
+          listing_bathrooms: 1,
+          listing_furnished: true,
+          listing_photo: "assets/apartment-exterior.jpg",
+          listing_note: "Boys quarter with secure compound access in Najjera.",
+        },
       ],
       tenants: [
         {
@@ -3552,7 +4342,7 @@
           id: "payment-5",
           tenant_id: "tenant-7",
           amount: 950000,
-          payment_method: "Bank Transfer",
+          payment_method: "Bank transfer",
           payment_date: date(3),
           balance: 0,
           reference: "BANK-44210",
@@ -3579,7 +4369,7 @@
           id: "payment-8",
           tenant_id: "tenant-10",
           amount: 1200000,
-          payment_method: "Bank Transfer",
+          payment_method: "Bank transfer",
           payment_date: date(20),
           balance: 0,
           reference: "BANK-87421",
@@ -3633,7 +4423,7 @@
           id: "payment-14",
           tenant_id: "tenant-16",
           amount: 700000,
-          payment_method: "Bank Transfer",
+          payment_method: "Bank transfer",
           payment_date: date(4),
           balance: 0,
           reference: "BANK-44389",
@@ -3669,7 +4459,7 @@
           id: "payment-18",
           tenant_id: "tenant-20",
           amount: 820000,
-          payment_method: "Bank Transfer",
+          payment_method: "Bank transfer",
           payment_date: date(20),
           balance: 0,
           reference: "BANK-12980",
@@ -3773,6 +4563,54 @@
     `;
   }
 
+  function dailyOpsCard(label, value, note, tone) {
+    return `
+      <article class="daily-ops-card ${escapeHtml(tone || "info")}">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(String(value))}</strong>
+        <small>${escapeHtml(note)}</small>
+      </article>
+    `;
+  }
+
+  function lateTenantRow(row) {
+    const daysLate = Math.abs(Math.min(0, row.daysUntilDue));
+    const phone = normalizePhone(row.tenant.phone);
+    return `
+      <tr>
+        <td>${personCell(row.tenant.name, row.tenant.phone)}</td>
+        <td>${escapeHtml(row.unit ? row.unit.unit_number : "Unassigned")}</td>
+        <td>${statusPill(`${daysLate} day${daysLate === 1 ? "" : "s"} late`)}</td>
+        <td><strong>${formatMoney(row.balance)}</strong></td>
+        <td><a class="text-button link-button compact-link-button" href="tel:${escapeHtml(phone)}">Call</a></td>
+      </tr>
+    `;
+  }
+
+  function vacantUnitSummary(units) {
+    if (!units.length) return "No vacant rooms";
+    const counts = units.reduce((summary, unit) => {
+      const label = unitTypeLabel(unit);
+      summary[label] = (summary[label] || 0) + 1;
+      return summary;
+    }, {});
+    return Object.entries(counts)
+      .slice(0, 2)
+      .map(([label, total]) => `${total} ${label}${total === 1 ? "" : "s"}`)
+      .join(", ");
+  }
+
+  function unitTypeLabel(unit) {
+    const property = propertyById(unit.property_id);
+    const label = String(property?.property_type || unit.unit_number || "room").toLowerCase();
+    if (label.includes("shop")) return "empty shop";
+    if (label.includes("boys")) return "boys quarter";
+    if (label.includes("house")) return "empty house";
+    if (label.includes("double")) return "double room";
+    if (label.includes("single")) return "single room";
+    return "vacant room";
+  }
+
   function adminMetricCard(label, value, note, tone) {
     return `
       <article class="admin-metric-card ${escapeHtml(tone)}">
@@ -3827,15 +4665,16 @@
   }
 
   function statusPill(status) {
+    const normalizedStatus = String(status || "");
     const className =
-      status === "Paid" || status === "Occupied" || status === "Active" || status === "Resolved" || status === "Low" || status === "Read"
+      normalizedStatus === "Paid" || normalizedStatus === "Occupied" || normalizedStatus === "Active" || normalizedStatus === "Resolved" || normalizedStatus === "Low" || normalizedStatus === "Read"
         ? "success"
-        : status === "Overdue" || status === "Open" || status === "High" || status === "Suspended" || status === "Inactive" || status === "Expired"
+        : normalizedStatus === "Overdue" || normalizedStatus.includes("late") || normalizedStatus === "Open" || normalizedStatus === "High" || normalizedStatus === "Suspended" || normalizedStatus === "Inactive" || normalizedStatus === "Expired"
           ? "danger"
-          : status === "Partial" || status === "Vacant" || status === "Due" || status === "Medium" || status === "In Progress" || status === "Invited" || status === "Pending" || status === "Expiring" || status === "Attention" || status === "Local"
+          : normalizedStatus === "Partial" || normalizedStatus === "Vacant" || normalizedStatus === "Due" || normalizedStatus === "Medium" || normalizedStatus === "In Progress" || normalizedStatus === "Invited" || normalizedStatus === "Pending" || normalizedStatus === "Expiring" || normalizedStatus === "Attention" || normalizedStatus === "Local"
             ? "warning"
             : "info";
-    return `<span class="pill ${className}">${escapeHtml(status)}</span>`;
+    return `<span class="pill ${className}">${escapeHtml(normalizedStatus)}</span>`;
   }
 
   function emptyTableRow(colspan, message) {
@@ -3847,13 +4686,13 @@
   }
 
   function formatMoney(value) {
-    return `UGX ${Number(value || 0).toLocaleString("en-UG", { maximumFractionDigits: 0 })}`;
+    return `USh ${Number(value || 0).toLocaleString("en-UG", { maximumFractionDigits: 0 })}`;
   }
 
   function formatCompactMoney(value) {
     const amount = Number(value || 0);
-    if (amount >= 1000000) return `UGX ${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `UGX ${Math.round(amount / 1000)}K`;
+    if (amount >= 1000000) return `USh ${(amount / 1000000).toFixed(1)}M`;
+    if (amount >= 1000) return `USh ${Math.round(amount / 1000)}K`;
     return formatMoney(amount);
   }
 
@@ -3868,6 +4707,16 @@
 
   function monthName(value) {
     return value.toLocaleDateString("en-UG", { month: "long", year: "numeric" });
+  }
+
+  function paymentTimeLabel(payment) {
+    const value = payment.created_at || payment.payment_date;
+    const date = typeof value === "string" && value.includes("T") ? new Date(value) : new Date(`${value}T09:00:00`);
+    if (Number.isNaN(date.getTime())) return "Recorded";
+    if (isToday(value)) {
+      return date.toLocaleTimeString("en-UG", { hour: "numeric", minute: "2-digit" });
+    }
+    return timeAgo(value);
   }
 
   function timeAgo(value) {
