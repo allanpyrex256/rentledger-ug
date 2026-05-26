@@ -5,6 +5,7 @@
   let supabaseHydrating = false;
   let supabaseSaveTimer = null;
   let authVisible = false;
+  let highlightedUnitId = null;
 
   const SUPABASE_TABLES = [
     { stateKey: "users", table: "app_users" },
@@ -1730,7 +1731,7 @@
           const canPublish = unit.status === "vacant" && !removeDisabled;
           const listingAction = unit.listing_published ? "Unpublish" : "Publish Vacancy";
           return `
-            <tr>
+            <tr data-unit-row="${escapeHtml(unit.id)}" class="${unit.id === highlightedUnitId ? "row-highlight" : ""}">
               <td>${escapeHtml(unit.unit_number)}</td>
               <td>${escapeHtml(property ? property.property_name : "Unknown")}</td>
               <td>${formatMoney(unit.rent_amount)}</td>
@@ -2091,19 +2092,35 @@
       return;
     }
 
+    const unitId = makeId("unit");
     state.units.push({
-      id: makeId("unit"),
+      id: unitId,
       property_id: property.id,
       unit_number: ui.unitNumber.value.trim(),
       rent_amount: Number(ui.unitRent.value),
       status: "vacant",
     });
+    state.selectedPropertyId = property.id;
+    state.searchTerm = "";
+    ui.globalSearch.value = "";
+    highlightedUnitId = unitId;
 
     saveState();
     ui.unitForm.reset();
-    populateStaticControls();
     renderAll();
+    revealUnitRow(unitId);
     showToast("Room / shop added.");
+  }
+
+  function revealUnitRow(unitId) {
+    const row = document.querySelector(`[data-unit-row="${unitId}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.clearTimeout(revealUnitRow.timer);
+    revealUnitRow.timer = window.setTimeout(() => {
+      if (highlightedUnitId === unitId) highlightedUnitId = null;
+      row.classList.remove("row-highlight");
+    }, 3000);
   }
 
   function removeUnit(id) {
