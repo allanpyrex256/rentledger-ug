@@ -241,7 +241,7 @@
 
   const viewCopy = {
     superAdminDashboard: ["RentLedger UG Admin", "SaaS analytics for landlords, subscriptions, revenue, support, and account health."],
-    dashboard: ["Daily Control Center", "Who paid, who is late, vacant rooms, and expenses at a glance."],
+    dashboard: ["Daily Control Center", "Who paid, who is late, and which rooms are vacant."],
     properties: ["Properties", "Set up rooms, shops, boys quarters, houses, and monthly rent."],
     tenants: ["Tenants", "Tenant move-in records, deposits, balances, and contacts."],
     staff: ["Staff", "Invite managers and assign access to specific properties."],
@@ -255,12 +255,9 @@
 
   const landlordNav = [
     ["dashboard", "Dashboard"],
-    ["properties", "Properties"],
+    ["properties", "Setup"],
     ["tenants", "Tenants"],
-    ["staff", "Staff"],
     ["rent", "Rent"],
-    ["expenses", "Expenses"],
-    ["reminders", "Reminders"],
   ];
 
   const ownerNav = [
@@ -272,10 +269,8 @@
 
   const staffNav = [
     ["dashboard", "Dashboard"],
-    ["properties", "Properties"],
     ["tenants", "Tenants"],
     ["rent", "Rent"],
-    ["reminders", "Reminders"],
   ];
 
   initialize();
@@ -629,6 +624,10 @@
 
   function createAccount(event) {
     event.preventDefault();
+    if (!supabaseReady) {
+      showToast("Connect Supabase before creating real landlord accounts.");
+      return;
+    }
     const phone = ui.accountPhone.value.trim();
     const email = ui.accountEmail.value.trim();
     const normalizedPhone = normalizeLoginPhone(phone);
@@ -727,6 +726,7 @@
     ui.currentAccountPhone.textContent = `${userContactLabel(user)} - ${roleLabel(user.role)}`;
     ui.globalSearch.value = state.searchTerm || "";
     ui.propertyFilter.classList.toggle("hidden", isSaasOwner(user));
+    ui.resetDemo.classList.toggle("hidden", supabaseReady || !DEMO_ACCOUNT_IDS.includes(user.id));
     renderNavigation();
     ensureSelectedProperty();
     renderAll();
@@ -882,6 +882,10 @@
 
   function renderPublicListings() {
     if (!ui.publicListingGrid) return;
+    if (!currentUser() && !supabaseReady) {
+      ui.publicListingGrid.innerHTML = emptyBlock("Vacancy listings will appear here once the Supabase database is connected.");
+      return;
+    }
     const locationFilter = String(ui.listingLocationFilter?.value || "").trim().toLowerCase();
     const maxRent = Number(ui.listingPriceFilter?.value || 0);
     const typeFilter = ui.listingTypeFilter?.value || "all";
@@ -1011,14 +1015,12 @@
       metricCard("Rent Collected", formatMoney(collected), `${formatMoney(expectedRent)} expected this month`, "rentCollected"),
       metricCard("Late Tenants", overdueCount, `${formatMoney(totalBalance(overdueRows))} still unpaid`, "lateTenants"),
       metricCard("Vacant Rooms", vacant, vacantUnitSummary(vacantUnits), "vacantRooms"),
-      metricCard("Expenses", formatMoney(expenses), `${todayExpenses.length} added today`, "expenses"),
     ].join("");
 
     ui.dailyOpsGrid.innerHTML = [
       dailyOpsCard("Came in today", formatMoney(collectedToday), `${todayPayments.length} rent payments recorded`, "success", "todayPayments"),
       dailyOpsCard("Rent due soon", dueSoonCount, "Tenants due in the next 3 days", "warning", "dueSoon"),
       dailyOpsCard("Vacant rentals", vacant, vacantUnitSummary(vacantUnits), "info", "vacantRooms"),
-      dailyOpsCard("Expenses added", formatMoney(todayExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0)), `${todayExpenses.length} records today`, "danger", "todayExpenses"),
     ].join("");
 
     ui.occupancyLabel.textContent = `${vacant} vacant`;
@@ -1069,6 +1071,7 @@
     ui.dashboardChartLabel.textContent = monthName(new Date());
     ui.dashboardChart.innerHTML = renderIncomeChart(scope.payments);
     ui.expenseTodayLabel.textContent = `${todayExpenses.length} today`;
+    ui.dashboardExpenseList.closest(".panel")?.classList.add("hidden");
     ui.dashboardExpenseList.innerHTML =
       recentExpenses
         .map((expense) => {
@@ -1161,7 +1164,7 @@
             ["Total balance", formatMoney(totalBalance(data.overdueRows))],
           ]),
           tenantBalanceDetailList(data.overdueRows, "No late tenants for the selected property."),
-          detailActions([["rent", "Open Rent Collection"], ["reminders", "Open Reminders"]]),
+          detailActions([["rent", "Open Rent Collection"]]),
         ].join("")
       );
       return;
@@ -1172,7 +1175,7 @@
         `${data.dueSoonRows.length} tenants due in the next 3 days`,
         [
           tenantBalanceDetailList(data.dueSoonRows, "No tenants are due in the next 3 days."),
-          detailActions([["rent", "Open Rent Collection"], ["reminders", "Open Reminders"]]),
+          detailActions([["rent", "Open Rent Collection"]]),
         ].join("")
       );
       return;
@@ -1285,7 +1288,7 @@
           ["Balance", rentRow ? formatMoney(rentRow.balance) : "-"],
         ]),
         paymentDetailList(payments, "No payment history for this tenant yet."),
-        detailActions([["rent", "Open Rent Collection"], ["reminders", "Open Reminders"]], [
+        detailActions([["rent", "Open Rent Collection"]], [
           `<a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call Tenant</a>`,
         ]),
       ].join("")
@@ -3620,9 +3623,6 @@
     const overdueRows = rentRows.filter((row) => row.status === "Overdue");
     const dueTomorrowRows = rentRows.filter((row) => row.daysUntilDue === 1 && row.balance > 0);
     const vacantUnits = scope.units.filter((unit) => unit.status === "vacant");
-    const electricityRecorded = getCurrentMonthExpenses(scope.expenses).some((expense) =>
-      String(expense.type || "").toLowerCase().includes("electric")
-    );
 
     if (overdueRows.length) {
       const id = "daily-late-tenants";
@@ -3655,18 +3655,6 @@
         title: `${vacantUnits.length} vacant rooms`,
         message: `${vacantUnitSummary(vacantUnits)} available for follow-up or listing.`,
         type: "property",
-        date: new Date().toISOString(),
-        read: dismissed.includes(id),
-      });
-    }
-
-    if (!electricityRecorded && scope.properties.length) {
-      const id = "daily-electricity-unpaid";
-      rows.push({
-        id,
-        title: "Electricity bill not recorded",
-        message: "No electricity expense has been added this month.",
-        type: "expense",
         date: new Date().toISOString(),
         read: dismissed.includes(id),
       });
@@ -4002,6 +3990,10 @@
   }
 
   function resetDemoData() {
+    if (supabaseReady) {
+      showToast("Demo reset is disabled while the live database is connected.");
+      return;
+    }
     localStorage.removeItem(STORAGE_KEY);
     const fresh = seedState();
     Object.keys(state).forEach((key) => delete state[key]);
@@ -4056,7 +4048,7 @@
 
   async function createSupabaseClient() {
     if (supabaseClient) return supabaseClient;
-    const config = window.RENTLEDGER_SUPABASE;
+    const config = await resolveSupabaseConfig();
     if (!isSupabaseConfigReady(config)) return null;
 
     const loaded = await loadSupabaseLibrary();
@@ -4069,6 +4061,23 @@
       auth: { persistSession: true, autoRefreshToken: true },
     });
     return supabaseClient;
+  }
+
+  async function resolveSupabaseConfig() {
+    if (isSupabaseConfigReady(window.RENTLEDGER_SUPABASE)) return window.RENTLEDGER_SUPABASE;
+    if (resolveSupabaseConfig.promise) return resolveSupabaseConfig.promise;
+
+    resolveSupabaseConfig.promise = fetch("/api/supabase-config", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((config) => {
+        if (isSupabaseConfigReady(config)) {
+          window.RENTLEDGER_SUPABASE = config;
+          return config;
+        }
+        return window.RENTLEDGER_SUPABASE || null;
+      })
+      .catch(() => window.RENTLEDGER_SUPABASE || null);
+    return resolveSupabaseConfig.promise;
   }
 
   function isSupabaseConfigReady(config) {

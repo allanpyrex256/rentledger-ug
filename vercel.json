@@ -1,4 +1,8 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "."
+  "outputDirectory": ".",
+  "rewrites": [
+    { "source": "/vacancies", "destination": "/vacancies.html" },
+    { "source": "/available-units", "destination": "/vacancies.html" }
+  ]
 }

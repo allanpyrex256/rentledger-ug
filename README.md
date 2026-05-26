@@ -4,17 +4,16 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 
 ## What Is Included
 
-- Landlord daily dashboard with rent collected today, late tenants, vacant rooms, recent expenses, and monthly revenue.
+- V1 landlord workflow: create property, add unit, add tenant, record payment, and see balance.
+- Landlord daily dashboard with rent collected today, late tenants, and vacant rooms.
 - Landlord account signup/sign-in prototype with owner-specific data views.
 - Property setup for rooms, shops, boys quarters, houses, and rent amounts.
-- Public rental listings connected to vacant rooms, with publish/unpublish controls.
+- Public rental listings at `/vacancies` and `/available-units`, connected to vacant rooms with WhatsApp inquiry buttons.
 - Landing page with local photo assets for apartments, mobile payments, and property handover moments.
 - Tenant management with phone, National ID, unit, rent, deposit, and move-in date.
 - Rent tracking with partial payments, balances, payment history, and MTN/Airtel reference fields.
 - Receipt generation, monthly rent report downloads, and expense report downloads.
-- Staff invitations with assigned-property access for managers.
-- Expense tracking for repairs, utilities, caretaker salary, security, and other costs.
-- SMS and WhatsApp reminder templates for due, received, and overdue rent.
+- WhatsApp reminder and receipt links for due, partial, and overdue rent.
 - Notifications for payment, staff, expense, and overdue rent events.
 - Separate Super Admin SaaS dashboard for landlords, subscriptions, revenue, signups, support tickets, and expired accounts.
 - Super-admin console for account management, billing, monitoring, and backend support tickets.
@@ -23,6 +22,15 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 ## Open It
 
 Open `index.html` in a browser. If `supabase-config.js` has real project keys, records load from and save to Supabase.
+
+For Vercel production, set these environment variables instead of hard-coding keys:
+
+```text
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-public-anon-key
+```
+
+The app exposes `/api/supabase-config` so the browser can read those public Supabase settings at runtime.
 
 ## Demo Login Details
 
@@ -47,8 +55,9 @@ Open `index.html` in a browser. If `supabase-config.js` has real project keys, r
 
 1. Create a Supabase project.
 2. Run `supabase-schema.sql` in the Supabase SQL editor.
-3. Add your project URL and public anon key in `supabase-config.js`.
+3. Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` in Vercel project environment variables, or add them in `supabase-config.js` for local testing.
 4. Open the app. On first connection, the current demo data is uploaded to Supabase.
+5. Use the complete V1 workflow: property -> unit -> tenant -> payment -> balance.
 
 If you already ran an older version of the schema with UUID columns, use a fresh Supabase project or drop those prototype tables before running this schema.
 
@@ -67,7 +76,7 @@ notifications(id, user_id, type, title, message, read, created_at)
 app_settings(setting_key, value)
 ```
 
-For production, replace the prototype password field with Supabase Auth and tighten RLS policies so each landlord's records are securely isolated.
+For production, replace the prototype password field with Supabase Auth and tighten RLS policies so each landlord's records are securely isolated. The current schema is suitable for pilot validation, not final public security.
 
 ## Image Sources
 

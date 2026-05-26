@@ -21,7 +21,7 @@
         </div>
         <nav class="landing-links" aria-label="Landing navigation">
           <a href="#features">Features</a>
-          <a href="#publicListings">Vacant Units</a>
+          <a href="vacancies.html">Vacant Units</a>
           <a href="#howItWorks">How It Works</a>
           <a href="#dashboardPreview">Preview</a>
           <a href="#pricing">Pricing</a>
@@ -39,7 +39,7 @@
             </p>
             <div class="hero-actions">
               <button class="primary-button" data-open-auth="signup" type="button">Start Free</button>
-              <button class="ghost-button" data-scroll-target="publicListings" type="button">View Vacant Units</button>
+              <a class="ghost-button link-button" href="vacancies.html">View Vacant Units</a>
               <button class="ghost-button" data-start-demo type="button">Real Dashboard Preview</button>
             </div>
             <div class="hero-proof">
@@ -52,10 +52,10 @@
         </section>
 
         <section class="trust-bar" aria-label="Platform metrics">
-          <div><strong>500+</strong><span>Rooms, shops, and houses tracked</span></div>
-          <div><strong>USh 120M+</strong><span>Rent records organized</span></div>
+          <div><strong>Rent Book</strong><span>Replace notebooks and Excel</span></div>
+          <div><strong>Balances</strong><span>Paid, partial, overdue, advance</span></div>
           <div><strong>WhatsApp</strong><span>Reminders and receipts</span></div>
-          <div><strong>Backup</strong><span>Reports and printable receipts</span></div>
+          <div><strong>Vacancies</strong><span>Public listings for free units</span></div>
         </section>
 
         <section class="photo-story landing-section" aria-label="Rental management moments">
@@ -160,10 +160,10 @@
             </div>
             <div class="preview-main">
               <div class="preview-metrics">
-                <article><span>Total Rooms</span><strong>48</strong></article>
-                <article><span>Revenue</span><strong>USh 12.8M</strong></article>
-                <article><span>Late Payments</span><strong>8</strong></article>
-                <article><span>Net Income</span><strong>USh 9.7M</strong></article>
+                <article><span>Step 1</span><strong>Add Property</strong></article>
+                <article><span>Step 2</span><strong>Add Unit</strong></article>
+                <article><span>Step 3</span><strong>Add Tenant</strong></article>
+                <article><span>Step 4</span><strong>Record Payment</strong></article>
               </div>
               <div class="preview-panels">
                 <div class="preview-panel">
@@ -426,11 +426,9 @@
 
         <nav id="sideNav" class="side-nav" aria-label="Main navigation">
           <button class="nav-item active" data-view="dashboard" type="button">Dashboard</button>
-          <button class="nav-item" data-view="properties" type="button">Properties</button>
+          <button class="nav-item" data-view="properties" type="button">Setup</button>
           <button class="nav-item" data-view="tenants" type="button">Tenants</button>
           <button class="nav-item" data-view="rent" type="button">Rent</button>
-          <button class="nav-item" data-view="expenses" type="button">Expenses</button>
-          <button class="nav-item" data-view="reminders" type="button">Reminders</button>
         </nav>
 
         <div class="sidebar-footer">
@@ -452,7 +450,7 @@
         <header class="topbar">
           <div>
             <h1 id="viewTitle">Dashboard</h1>
-            <p id="viewSubtitle">Rent, occupancy, expenses, and balances at a glance.</p>
+            <p id="viewSubtitle">Rent, balances, tenants, and vacant rooms at a glance.</p>
           </div>
 
           <div class="topbar-actions">
@@ -477,12 +475,9 @@
 
         <nav id="mobileTabs" class="mobile-tabs" aria-label="Mobile navigation">
           <button class="mobile-tab active" data-view="dashboard" type="button">Dashboard</button>
-          <button class="mobile-tab" data-view="properties" type="button">Properties</button>
+          <button class="mobile-tab" data-view="properties" type="button">Setup</button>
           <button class="mobile-tab" data-view="tenants" type="button">Tenants</button>
-          <button class="mobile-tab" data-view="staff" type="button">Staff</button>
           <button class="mobile-tab" data-view="rent" type="button">Rent</button>
-          <button class="mobile-tab" data-view="expenses" type="button">Expenses</button>
-          <button class="mobile-tab" data-view="reminders" type="button">Reminders</button>
         </nav>
 
         <section id="superAdminDashboard" class="view super-admin-dashboard" aria-labelledby="viewTitle">

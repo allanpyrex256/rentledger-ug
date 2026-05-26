@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vacant Units | RentLedger UG</title>
+    <link rel="icon" type="image/png" href="assets/rentledger-logo-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="landing-page vacancy-page">
+      <header class="landing-nav">
+        <div class="brand-block landing-brand">
+          <div class="brand-mark">
+            <img src="assets/rentledger-logo-icon.png" alt="RentLedger UG logo" />
+          </div>
+          <div>
+            <div class="brand-name">RentLedger UG</div>
+            <div class="brand-meta">Vacant rooms, shops, and houses</div>
+          </div>
+        </div>
+        <nav class="landing-links" aria-label="Vacancy navigation">
+          <a href="index.html">Home</a>
+          <a href="index.html#features">For Landlords</a>
+          <button class="ghost-button" type="button" onclick="location.href='index.html#authScreen'">Landlord Sign In</button>
+        </nav>
+      </header>
+
+      <main>
+        <section class="vacancy-hero landing-section">
+          <div class="section-heading">
+            <span class="hero-kicker">Available units</span>
+            <h1>Find vacant rentals in Uganda.</h1>
+            <p>Search rooms, shops, houses, and boys quarters published directly by landlords using RentLedger UG.</p>
+          </div>
+          <div class="listing-examples" aria-label="Example vacancy searches">
+            <span>Single room in Kira</span>
+            <span>Shop in Ntinda</span>
+            <span>2 bedrooms in Mukono</span>
+          </div>
+        </section>
+
+        <section class="landing-section public-listings-section">
+          <div class="listing-filters" aria-label="Rental listing filters">
+            <label>
+              Location
+              <input id="listingLocationFilter" placeholder="Kira, Ntinda, Mukono" />
+            </label>
+            <label>
+              Max Rent
+              <input id="listingPriceFilter" type="number" min="0" step="50000" placeholder="500000" />
+            </label>
+            <label>
+              Type
+              <select id="listingTypeFilter">
+                <option value="all">All rentals</option>
+                <option value="room">Rooms</option>
+                <option value="shop">Shops</option>
+                <option value="house">Houses</option>
+                <option value="boys quarters">Boys Quarters</option>
+              </select>
+            </label>
+            <label>
+              Furnishing
+              <select id="listingFurnishedFilter">
+                <option value="all">Any</option>
+                <option value="furnished">Furnished</option>
+                <option value="unfurnished">Unfurnished</option>
+              </select>
+            </label>
+          </div>
+          <p id="vacancyStatus" class="vacancy-status">Loading vacant units...</p>
+          <div id="publicListingGrid" class="public-listing-grid"></div>
+        </section>
+      </main>
+    </section>
+
+    <script src="supabase-config.js"></script>
+    <script src="vacancies.js"></script>
+  </body>
+</html>
