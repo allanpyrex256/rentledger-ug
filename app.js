@@ -198,6 +198,7 @@
     monthLabel: document.getElementById("monthLabel"),
     rentStatusLabel: document.getElementById("rentStatusLabel"),
     resetDemo: document.getElementById("resetDemo"),
+    downloadBackup: document.getElementById("downloadBackup"),
     ownerLandlordCountLabel: document.getElementById("ownerLandlordCountLabel"),
     ownerLandlordSummary: document.getElementById("ownerLandlordSummary"),
     ownerLandlordTable: document.getElementById("ownerLandlordTable"),
@@ -231,6 +232,7 @@
     closeDashboardDetail: document.getElementById("closeDashboardDetail"),
     receiptModal: document.getElementById("receiptModal"),
     receiptContent: document.getElementById("receiptContent"),
+    shareReceiptWhatsApp: document.getElementById("shareReceiptWhatsApp"),
     closeReceipt: document.getElementById("closeReceipt"),
     printReceipt: document.getElementById("printReceipt"),
     downloadReceipt: document.getElementById("downloadReceipt"),
@@ -397,6 +399,7 @@
     ui.printReceipt.addEventListener("click", printReceipt);
     ui.downloadReceipt.addEventListener("click", downloadReceipt);
     ui.resetDemo.addEventListener("click", resetDemoData);
+    ui.downloadBackup.addEventListener("click", downloadBackup);
   }
 
   function handleActionClick(event) {
@@ -918,7 +921,7 @@
 
   function publicListingCard({ unit, property, owner }) {
     const phone = normalizePhone(owner.phone || "");
-    const message = `Hello ${owner.name}, I saw ${unit.unit_number} at ${property.property_name} on RentLedger. Is it still available?`;
+    const message = `Hello ${owner.name}, I saw ${unit.unit_number} at ${property.property_name} in ${property.location} on RentLedger UG. Is it still available for viewing?`;
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
     return `
       <article class="public-listing-card">
@@ -937,8 +940,8 @@
           </div>
           <p>${escapeHtml(unit.listing_note || "Vacant rental published directly from the landlord dashboard.")}</p>
           <div class="button-row">
-            <a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">Chat Landlord</a>
-            <a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call</a>
+            <a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">WhatsApp Inquiry</a>
+            <a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call Landlord</a>
             <a class="ghost-button link-button" href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Map</a>
           </div>
         </div>
@@ -1298,6 +1301,8 @@
     const tenant = tenantById(payment.tenant_id);
     const unit = tenant ? unitById(tenant.unit_id) : null;
     const property = unit ? propertyById(unit.property_id) : null;
+    const phone = tenant ? normalizePhone(tenant.phone) : "";
+    const receiptMessage = paymentReceiptMessage(payment);
     openDashboardDetailModal(
       "Payment Details",
       tenant ? tenant.name : "Removed tenant",
@@ -1314,6 +1319,9 @@
         ]),
         detailActions([["rent", "Open Rent Collection"]], [
           `<button class="primary-button" data-receipt-payment="${escapeHtml(payment.id)}" type="button">Open Receipt</button>`,
+          tenant && phone
+            ? `<a class="text-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(receiptMessage)}" target="_blank" rel="noreferrer">WhatsApp Receipt</a>`
+            : "",
         ]),
       ].join("")
     );
@@ -2254,16 +2262,34 @@
     ui.rentStatusLabel.textContent = monthName(new Date());
     ui.rentStatusTable.innerHTML =
       rentRows
-        .map((row) => `
-          <tr>
-            <td>${escapeHtml(row.tenant.name)}</td>
-            <td>${escapeHtml(row.unit ? row.unit.unit_number : "Unassigned")}</td>
-            <td>${formatMoney(row.paid)}</td>
-            <td>${formatMoney(row.balance)}</td>
-            <td>${statusPill(row.status)}</td>
-          </tr>
-        `)
-        .join("") || emptyTableRow(5, "No active rent records.");
+        .map((row) => {
+          const phone = normalizePhone(row.tenant.phone);
+          const message = reminderMessage(row);
+          return `
+            <tr>
+              <td>${escapeHtml(row.tenant.name)}</td>
+              <td>${escapeHtml(row.unit ? row.unit.unit_number : "Unassigned")}</td>
+              <td>${formatMoney(row.paid)}</td>
+              <td>
+                ${formatMoney(row.balance)}
+                ${row.carryForward ? `<small class="table-subtext">Carry forward: ${formatMoney(row.carryForward)}</small>` : ""}
+              </td>
+              <td>${row.advance ? formatMoney(row.advance) : "-"}</td>
+              <td>${statusPill(row.status)}</td>
+              <td>
+                <div class="button-row">
+                  <button class="text-button compact-link-button" data-tenant-detail="${escapeHtml(row.tenant.id)}" type="button">Details</button>
+                  ${
+                    row.balance > 0
+                      ? `<a class="primary-button link-button compact-link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">Remind</a>`
+                      : `<span class="pill success">Clear</span>`
+                  }
+                </div>
+              </td>
+            </tr>
+          `;
+        })
+        .join("") || emptyTableRow(7, "No active rent records.");
 
     const payments = scope.payments
       .slice()
@@ -2278,6 +2304,8 @@
       payments
         .map((payment) => {
           const tenant = tenantById(payment.tenant_id);
+          const phone = tenant ? normalizePhone(tenant.phone) : "";
+          const receiptMessage = paymentReceiptMessage(payment);
           return `
             <tr>
               <td>${escapeHtml(tenant ? tenant.name : "Removed tenant")}</td>
@@ -2286,7 +2314,16 @@
               <td>${escapeHtml(payment.reference || "-")}</td>
               <td>${formatDate(payment.payment_date)}</td>
               <td>${formatMoney(payment.balance)}</td>
-              <td><button class="text-button" data-receipt-payment="${payment.id}" type="button">Receipt</button></td>
+              <td>
+                <div class="button-row">
+                  <button class="text-button" data-receipt-payment="${escapeHtml(payment.id)}" type="button">Receipt</button>
+                  ${
+                    tenant && phone
+                      ? `<a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(receiptMessage)}" target="_blank" rel="noreferrer">WhatsApp</a>`
+                      : ""
+                  }
+                </div>
+              </td>
             </tr>
           `;
         })
@@ -2517,6 +2554,12 @@
       unit_number: ui.unitNumber.value.trim(),
       rent_amount: Number(ui.unitRent.value),
       status: "vacant",
+      listing_published: true,
+      listing_bedrooms: 1,
+      listing_bathrooms: 1,
+      listing_furnished: false,
+      listing_photo: listingPhotoForProperty(property),
+      listing_note: "Vacant and ready for viewing. Contact the landlord on WhatsApp.",
     });
     state.selectedPropertyId = property.id;
     state.searchTerm = "";
@@ -2527,7 +2570,7 @@
     ui.unitForm.reset();
     renderAll();
     revealUnitRow(unitId);
-    showToast("Room / shop added.");
+    showToast("Room / shop added and published as vacant.");
   }
 
   function revealUnitRow(unitId) {
@@ -3256,6 +3299,8 @@
     const property = unit ? propertyById(unit.property_id) : null;
     const owner = property ? userById(property.owner_id) : currentUser();
     const receiptNo = payment.reference || payment.id;
+    const phone = tenant ? normalizePhone(tenant.phone) : "";
+    const receiptMessage = paymentReceiptMessage(payment);
     ui.receiptContent.innerHTML = `
       <div class="receipt-brand">
         <strong>RentLedger UG</strong>
@@ -3274,6 +3319,13 @@
       <p class="receipt-note">This receipt confirms rent payment captured in RentLedger UG.</p>
     `;
     ui.receiptModal.dataset.paymentId = paymentId;
+    if (tenant && phone) {
+      ui.shareReceiptWhatsApp.href = `https://wa.me/${phone}?text=${encodeURIComponent(receiptMessage)}`;
+      ui.shareReceiptWhatsApp.classList.remove("hidden");
+    } else {
+      ui.shareReceiptWhatsApp.href = "#";
+      ui.shareReceiptWhatsApp.classList.add("hidden");
+    }
     ui.receiptModal.classList.remove("hidden");
   }
 
@@ -3346,6 +3398,39 @@
     ];
     downloadTextFile(`rentledger-expense-report-${isoDate(new Date())}.txt`, lines.join("\n"));
     showToast("Expense report downloaded.");
+  }
+
+  function downloadBackup() {
+    const user = currentUser();
+    const scoped = getScopedData();
+    const payload = {
+      app: "RentLedger UG",
+      exported_at: new Date().toISOString(),
+      exported_by: user ? { id: user.id, name: user.name, role: user.role, phone: user.phone, email: user.email } : null,
+      scope: isSaasOwner(user) ? "platform" : "current account",
+      data: isSaasOwner(user)
+        ? {
+            users: state.users,
+            subscriptions: state.subscriptions,
+            properties: state.properties,
+            units: state.units,
+            tenants: state.tenants,
+            payments: state.payments,
+            expenses: state.expenses,
+            supportTickets: state.supportTickets,
+            notifications: state.notifications,
+          }
+        : {
+            properties: scoped.properties,
+            units: scoped.units,
+            tenants: scoped.tenants,
+            payments: scoped.payments,
+            expenses: scoped.expenses,
+            notifications: platformNotifications(),
+          },
+    };
+    downloadTextFile(`rentledger-backup-${isoDate(new Date())}.json`, JSON.stringify(payload, null, 2));
+    showToast("Backup exported.");
   }
 
   function downloadTextFile(filename, text) {
@@ -3683,10 +3768,13 @@
     const today = stripTime(new Date());
     return tenants.map((tenant) => {
       const dueDate = getMonthlyDueDate(tenant.move_in_date);
+      const monthlyRent = Number(tenant.rent_amount);
       const paid = currentMonthPaid(tenant.id);
-      const balance = Math.max(0, Number(tenant.rent_amount) - paid);
+      const balance = Math.max(0, monthlyRent - paid);
+      const advance = Math.max(0, paid - monthlyRent);
       const daysUntilDue = Math.round((dueDate - today) / 86400000);
       let status = "Paid";
+      if (advance > 0) status = "Advance";
       if (balance > 0 && daysUntilDue < 0) status = "Overdue";
       if (balance > 0 && daysUntilDue >= 0) status = paid > 0 ? "Partial" : "Due";
       return {
@@ -3694,6 +3782,8 @@
         unit: unitById(tenant.unit_id),
         paid,
         balance,
+        advance,
+        carryForward: daysUntilDue < 0 ? balance : 0,
         dueDate,
         daysUntilDue,
         status,
@@ -3720,10 +3810,15 @@
     }
     const paid = currentMonthPaid(tenant.id);
     const amount = Number(ui.paymentAmount.value || 0);
-    const afterBalance = Math.max(0, Number(tenant.rent_amount) - paid - amount);
+    const totalAfterPayment = paid + amount;
+    const afterBalance = Math.max(0, Number(tenant.rent_amount) - totalAfterPayment);
+    const afterAdvance = Math.max(0, totalAfterPayment - Number(tenant.rent_amount));
+    const dueDate = getMonthlyDueDate(tenant.move_in_date);
+    const carriedText = afterBalance > 0 && dueDate < stripTime(new Date()) ? ` - Carried forward ${formatMoney(afterBalance)}` : "";
+    const advanceText = afterAdvance > 0 ? ` - Advance ${formatMoney(afterAdvance)}` : "";
     ui.tenantBalancePreview.innerHTML = `
       <strong>${escapeHtml(tenant.name)}</strong><br>
-      Rent ${formatMoney(tenant.rent_amount)} - Paid ${formatMoney(paid)} - Balance after payment ${formatMoney(afterBalance)}
+      Rent ${formatMoney(tenant.rent_amount)} - Paid ${formatMoney(paid)} - Balance after payment ${formatMoney(afterBalance)}${carriedText}${advanceText}
     `;
   }
 
@@ -3804,13 +3899,28 @@
   }
 
   function reminderMessage(row) {
+    const dueDate = formatDate(isoDate(row.dueDate));
     if (row.status === "Overdue") {
-      return `Hello ${row.tenant.name}, your rent balance of ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"} is overdue. Please clear it as soon as possible.`;
+      return `Hello ${row.tenant.name}, your rent balance is ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"}. It was due on ${dueDate}. Please clear it as soon as possible.`;
     }
     if (row.daysUntilDue === 1) {
       return `Hello ${row.tenant.name}, your rent of ${formatMoney(row.tenant.rent_amount)} is due tomorrow for ${row.unit ? row.unit.unit_number : "your room"}. Thank you.`;
     }
-    return `Hello ${row.tenant.name}, your rent balance is ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"}. Thank you.`;
+    return `Hello ${row.tenant.name}, your rent balance is ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"}, due on ${dueDate}. Thank you.`;
+  }
+
+  function paymentReceiptMessage(payment) {
+    const tenant = tenantById(payment.tenant_id);
+    const unit = tenant ? unitById(tenant.unit_id) : null;
+    return [
+      `Hello ${tenant ? tenant.name : "tenant"}, rent payment received.`,
+      `Amount: ${formatMoney(payment.amount)}.`,
+      `Room: ${unit ? unit.unit_number : "Unassigned"}.`,
+      `Date: ${formatDate(payment.payment_date)}.`,
+      `Balance: ${formatMoney(payment.balance)}.`,
+      `Reference: ${payment.reference || payment.id}.`,
+      "Thank you.",
+    ].join(" ");
   }
 
   function copyText(text) {
@@ -5108,7 +5218,7 @@
   function statusPill(status) {
     const normalizedStatus = String(status || "");
     const className =
-      normalizedStatus === "Paid" || normalizedStatus === "Occupied" || normalizedStatus === "Active" || normalizedStatus === "Resolved" || normalizedStatus === "Low" || normalizedStatus === "Read"
+      normalizedStatus === "Paid" || normalizedStatus === "Advance" || normalizedStatus === "Occupied" || normalizedStatus === "Active" || normalizedStatus === "Resolved" || normalizedStatus === "Low" || normalizedStatus === "Read"
         ? "success"
         : normalizedStatus === "Overdue" || normalizedStatus.includes("late") || normalizedStatus === "Open" || normalizedStatus === "High" || normalizedStatus === "Suspended" || normalizedStatus === "Inactive" || normalizedStatus === "Expired"
           ? "danger"

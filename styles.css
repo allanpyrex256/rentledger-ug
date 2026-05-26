@@ -476,6 +476,12 @@ button {
   margin-bottom: 24px;
 }
 
+.section-heading p {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
 .section-heading h2,
 .benefit-copy h2 {
   font-size: clamp(30px, 4vw, 48px);
@@ -609,6 +615,25 @@ button {
 .public-listings-section {
   display: grid;
   gap: 18px;
+}
+
+.listing-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.listing-examples span {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #f1d185;
+  border-radius: 999px;
+  background: #fff7df;
+  color: #6f4b0a;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .listing-filters {
