@@ -224,6 +224,11 @@
     systemSignalList: document.getElementById("systemSignalList"),
     adminPasswordResetForm: document.getElementById("adminPasswordResetForm"),
     adminPasswordResetUser: document.getElementById("adminPasswordResetUser"),
+    dashboardDetailModal: document.getElementById("dashboardDetailModal"),
+    dashboardDetailTitle: document.getElementById("dashboardDetailTitle"),
+    dashboardDetailMeta: document.getElementById("dashboardDetailMeta"),
+    dashboardDetailBody: document.getElementById("dashboardDetailBody"),
+    closeDashboardDetail: document.getElementById("closeDashboardDetail"),
     receiptModal: document.getElementById("receiptModal"),
     receiptContent: document.getElementById("receiptContent"),
     closeReceipt: document.getElementById("closeReceipt"),
@@ -384,6 +389,10 @@
     ui.ownerPaymentForm.addEventListener("submit", saveOwnerPayment);
     ui.supportTicketForm.addEventListener("submit", saveSupportTicket);
     ui.adminPasswordResetForm.addEventListener("submit", sendAdminPasswordReset);
+    ui.closeDashboardDetail.addEventListener("click", closeDashboardDetailModal);
+    ui.dashboardDetailModal.addEventListener("click", (event) => {
+      if (event.target === ui.dashboardDetailModal) closeDashboardDetailModal();
+    });
     ui.closeReceipt.addEventListener("click", closeReceipt);
     ui.printReceipt.addEventListener("click", printReceipt);
     ui.downloadReceipt.addEventListener("click", downloadReceipt);
@@ -412,6 +421,12 @@
       ["receiptPayment", openReceipt],
       ["removeExpense", removeExpense],
       ["openNotification", openNotification],
+      ["dashboardDetail", openDashboardDetail],
+      ["dashboardView", openDashboardView],
+      ["unitDetail", openUnitDetail],
+      ["tenantDetail", openTenantDetail],
+      ["paymentDetail", openPaymentDetail],
+      ["expenseDetail", openExpenseDetail],
       ["closeMoveOut", closeMoveOutModal],
     ];
 
@@ -978,7 +993,7 @@
       <th>Room</th>
       <th>Days</th>
       <th>Balance</th>
-      <th>Phone</th>
+      <th>Actions</th>
     `;
     ui.recentPaymentsHead.innerHTML = `
       <th>Tenant</th>
@@ -986,20 +1001,21 @@
       <th>Amount</th>
       <th>Time</th>
       <th>Method</th>
+      <th>Actions</th>
     `;
 
     ui.metricGrid.innerHTML = [
-      metricCard("Rent Collected", formatMoney(collected), `${formatMoney(expectedRent)} expected this month`),
-      metricCard("Late Tenants", overdueCount, `${formatMoney(totalBalance(overdueRows))} still unpaid`),
-      metricCard("Vacant Rooms", vacant, vacantUnitSummary(vacantUnits)),
-      metricCard("Expenses", formatMoney(expenses), `${todayExpenses.length} added today`),
+      metricCard("Rent Collected", formatMoney(collected), `${formatMoney(expectedRent)} expected this month`, "rentCollected"),
+      metricCard("Late Tenants", overdueCount, `${formatMoney(totalBalance(overdueRows))} still unpaid`, "lateTenants"),
+      metricCard("Vacant Rooms", vacant, vacantUnitSummary(vacantUnits), "vacantRooms"),
+      metricCard("Expenses", formatMoney(expenses), `${todayExpenses.length} added today`, "expenses"),
     ].join("");
 
     ui.dailyOpsGrid.innerHTML = [
-      dailyOpsCard("Came in today", formatMoney(collectedToday), `${todayPayments.length} rent payments recorded`, "success"),
-      dailyOpsCard("Rent due soon", dueSoonCount, "Tenants due in the next 3 days", "warning"),
-      dailyOpsCard("Vacant rentals", vacant, vacantUnitSummary(vacantUnits), "info"),
-      dailyOpsCard("Expenses added", formatMoney(todayExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0)), `${todayExpenses.length} records today`, "danger"),
+      dailyOpsCard("Came in today", formatMoney(collectedToday), `${todayPayments.length} rent payments recorded`, "success", "todayPayments"),
+      dailyOpsCard("Rent due soon", dueSoonCount, "Tenants due in the next 3 days", "warning", "dueSoon"),
+      dailyOpsCard("Vacant rentals", vacant, vacantUnitSummary(vacantUnits), "info", "vacantRooms"),
+      dailyOpsCard("Expenses added", formatMoney(todayExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0)), `${todayExpenses.length} records today`, "danger", "todayExpenses"),
     ].join("");
 
     ui.occupancyLabel.textContent = `${vacant} vacant`;
@@ -1011,11 +1027,11 @@
         .map((unit) => {
           const property = propertyById(unit.property_id);
           return `
-            <article class="unit-tile vacant">
+            <button class="unit-tile vacant dashboard-action-card" data-unit-detail="${escapeHtml(unit.id)}" type="button">
               <div class="unit-number">${escapeHtml(unit.unit_number)}</div>
               <div class="unit-status">${escapeHtml(property ? property.property_name : "No property")}</div>
               <strong>${formatMoney(unit.rent_amount)}</strong>
-            </article>
+            </button>
           `;
         })
         .join("") || emptyBlock("All rooms, shops, and houses are occupied.");
@@ -1040,10 +1056,11 @@
               <td><strong>${formatMoney(payment.amount)}</strong></td>
               <td>${escapeHtml(paymentTimeLabel(payment))}</td>
               <td>${escapeHtml(payment.payment_method)}</td>
+              <td><button class="text-button compact-link-button" data-payment-detail="${escapeHtml(payment.id)}" type="button">Details</button></td>
             </tr>
           `;
         })
-        .join("") || emptyTableRow(5, "No payments recorded yet.");
+        .join("") || emptyTableRow(6, "No payments recorded yet.");
 
     ui.dashboardChartTitle.textContent = "Monthly Revenue Graph";
     ui.dashboardChartLabel.textContent = monthName(new Date());
@@ -1054,17 +1071,418 @@
         .map((expense) => {
           const property = propertyById(expense.property_id);
           return `
-            <article class="compact-list-item">
+            <button class="compact-list-item dashboard-action-card" data-expense-detail="${escapeHtml(expense.id)}" type="button">
               <span>
                 <strong>${escapeHtml(expense.type)}</strong>
                 <small>${escapeHtml(property ? property.property_name : "Unknown property")} - ${formatDate(expense.date)}</small>
               </span>
               <b>${formatMoney(expense.amount)}</b>
-            </article>
+            </button>
           `;
         })
         .join("") || emptyBlock("No expenses recorded yet.");
     renderActivityFeed(buildActivityItems(scope).slice(0, 8));
+  }
+
+  function dashboardSnapshot() {
+    const scope = getScopedData();
+    const rentRows = getRentRows(scope.tenants);
+    const currentMonthPayments = getCurrentMonthPayments(scope.payments);
+    const currentMonthExpenses = getCurrentMonthExpenses(scope.expenses);
+    const todayPayments = scope.payments.filter((payment) => isToday(payment.created_at || payment.payment_date));
+    const todayExpenses = scope.expenses.filter((expense) => isToday(expense.created_at || expense.date));
+    const overdueRows = rentRows
+      .filter((row) => row.status === "Overdue")
+      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+    const dueSoonRows = rentRows
+      .filter((row) => row.daysUntilDue >= 0 && row.daysUntilDue <= 3)
+      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+    return {
+      scope,
+      rentRows,
+      currentMonthPayments,
+      currentMonthExpenses,
+      todayPayments,
+      todayExpenses,
+      overdueRows,
+      dueSoonRows,
+      vacantUnits: scope.units.filter((unit) => unit.status === "vacant"),
+      expectedRent: scope.tenants.reduce((sum, tenant) => sum + Number(tenant.rent_amount), 0),
+    };
+  }
+
+  function openDashboardDetail(type) {
+    const data = dashboardSnapshot();
+    const month = monthName(new Date());
+    if (type === "rentCollected") {
+      const collected = data.currentMonthPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+      openDashboardDetailModal(
+        "Rent Collected",
+        `${month} rent performance`,
+        [
+          detailGrid([
+            ["Collected", formatMoney(collected)],
+            ["Expected", formatMoney(data.expectedRent)],
+            ["Balance", formatMoney(Math.max(0, data.expectedRent - collected))],
+            ["Payments", data.currentMonthPayments.length],
+          ]),
+          paymentDetailList(data.currentMonthPayments, "No rent payments recorded this month."),
+          detailActions([["rent", "Open Rent Collection"]]),
+        ].join("")
+      );
+      return;
+    }
+    if (type === "todayPayments") {
+      const total = data.todayPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+      openDashboardDetailModal(
+        "Payments Today",
+        `${formatMoney(total)} received today`,
+        [
+          detailGrid([
+            ["Amount", formatMoney(total)],
+            ["Payments", data.todayPayments.length],
+          ]),
+          paymentDetailList(data.todayPayments, "No rent payments were recorded today."),
+          detailActions([["rent", "Open Rent Collection"]]),
+        ].join("")
+      );
+      return;
+    }
+    if (type === "lateTenants") {
+      openDashboardDetailModal(
+        "Late Tenants",
+        `${data.overdueRows.length} tenants still have overdue balances`,
+        [
+          detailGrid([
+            ["Late tenants", data.overdueRows.length],
+            ["Total balance", formatMoney(totalBalance(data.overdueRows))],
+          ]),
+          tenantBalanceDetailList(data.overdueRows, "No late tenants for the selected property."),
+          detailActions([["rent", "Open Rent Collection"], ["reminders", "Open Reminders"]]),
+        ].join("")
+      );
+      return;
+    }
+    if (type === "dueSoon") {
+      openDashboardDetailModal(
+        "Rent Due Soon",
+        `${data.dueSoonRows.length} tenants due in the next 3 days`,
+        [
+          tenantBalanceDetailList(data.dueSoonRows, "No tenants are due in the next 3 days."),
+          detailActions([["rent", "Open Rent Collection"], ["reminders", "Open Reminders"]]),
+        ].join("")
+      );
+      return;
+    }
+    if (type === "vacantRooms") {
+      openDashboardDetailModal(
+        "Vacant Rooms",
+        vacantUnitSummary(data.vacantUnits),
+        [
+          unitDetailList(data.vacantUnits, "No vacant rooms for the selected property."),
+          detailActions([["properties", "Open Properties"], ["tenants", "Add Tenant"]]),
+        ].join("")
+      );
+      return;
+    }
+    if (type === "expenses") {
+      const total = data.currentMonthExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+      openDashboardDetailModal(
+        "Expenses",
+        `${month} expenses`,
+        [
+          detailGrid([
+            ["Total", formatMoney(total)],
+            ["Records", data.currentMonthExpenses.length],
+            ["Today", formatMoney(data.todayExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0))],
+          ]),
+          expenseDetailList(data.currentMonthExpenses, "No expenses recorded this month."),
+          detailActions([["expenses", "Open Expenses"]]),
+        ].join("")
+      );
+      return;
+    }
+    if (type === "todayExpenses") {
+      const total = data.todayExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+      openDashboardDetailModal(
+        "Expenses Today",
+        `${data.todayExpenses.length} expense records today`,
+        [
+          detailGrid([
+            ["Total", formatMoney(total)],
+            ["Records", data.todayExpenses.length],
+          ]),
+          expenseDetailList(data.todayExpenses, "No expenses were added today."),
+          detailActions([["expenses", "Open Expenses"]]),
+        ].join("")
+      );
+      return;
+    }
+    showToast("No dashboard details available.");
+  }
+
+  function openUnitDetail(id) {
+    const unit = unitById(id);
+    if (!unit) {
+      showToast("Room not found.");
+      return;
+    }
+    const property = propertyById(unit.property_id);
+    const tenant = state.tenants.find((item) => item.unit_id === unit.id);
+    const rentRow = tenant ? getRentRows([tenant])[0] : null;
+    openDashboardDetailModal(
+      unit.unit_number,
+      property ? property.property_name : "Unknown property",
+      [
+        detailGrid([
+          ["Property", property ? property.property_name : "Unknown"],
+          ["Location", property ? property.location : "Unknown"],
+          ["Type", unitTypeLabel(unit)],
+          ["Monthly rent", formatMoney(unit.rent_amount)],
+          ["Status", capitalize(unit.status || "vacant")],
+          ["Listing", unit.listing_published ? "Published" : "Private"],
+          ["Tenant", tenant ? tenant.name : "No tenant assigned"],
+          ["Balance", rentRow ? formatMoney(rentRow.balance) : "-"],
+        ]),
+        tenant
+          ? detailActions([["tenants", "Open Tenants"], ["rent", "Record Payment"]], [
+              `<button class="text-button" data-tenant-detail="${escapeHtml(tenant.id)}" type="button">Tenant Details</button>`,
+            ])
+          : detailActions([["tenants", "Assign Tenant"], ["properties", "Manage Rooms"]]),
+      ].join("")
+    );
+  }
+
+  function openTenantDetail(id) {
+    const tenant = tenantById(id);
+    if (!tenant) {
+      showToast("Tenant not found.");
+      return;
+    }
+    const unit = unitById(tenant.unit_id);
+    const property = unit ? propertyById(unit.property_id) : null;
+    const rentRow = getRentRows([tenant])[0];
+    const payments = state.payments
+      .filter((payment) => payment.tenant_id === tenant.id)
+      .sort((a, b) => new Date(b.created_at || b.payment_date) - new Date(a.created_at || a.payment_date))
+      .slice(0, 6);
+    const phone = normalizePhone(tenant.phone);
+    openDashboardDetailModal(
+      tenant.name,
+      `${property ? property.property_name : "Unknown property"}${unit ? ` - ${unit.unit_number}` : ""}`,
+      [
+        detailGrid([
+          ["Phone", tenant.phone],
+          ["National ID", tenant.national_id || "-"],
+          ["Room", unit ? unit.unit_number : "Unassigned"],
+          ["Monthly rent", formatMoney(tenant.rent_amount)],
+          ["Deposit", formatMoney(tenant.deposit_paid)],
+          ["Move-in date", formatDate(tenant.move_in_date)],
+          ["Status", rentRow ? rentRow.status : "Unknown"],
+          ["Balance", rentRow ? formatMoney(rentRow.balance) : "-"],
+        ]),
+        paymentDetailList(payments, "No payment history for this tenant yet."),
+        detailActions([["rent", "Open Rent Collection"], ["reminders", "Open Reminders"]], [
+          `<a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call Tenant</a>`,
+        ]),
+      ].join("")
+    );
+  }
+
+  function openPaymentDetail(id) {
+    const payment = state.payments.find((item) => item.id === id);
+    if (!payment) {
+      showToast("Payment not found.");
+      return;
+    }
+    const tenant = tenantById(payment.tenant_id);
+    const unit = tenant ? unitById(tenant.unit_id) : null;
+    const property = unit ? propertyById(unit.property_id) : null;
+    openDashboardDetailModal(
+      "Payment Details",
+      tenant ? tenant.name : "Removed tenant",
+      [
+        detailGrid([
+          ["Tenant", tenant ? tenant.name : "Removed tenant"],
+          ["Property", property ? property.property_name : "Unknown"],
+          ["Room", unit ? unit.unit_number : "Unassigned"],
+          ["Amount", formatMoney(payment.amount)],
+          ["Balance after payment", formatMoney(payment.balance)],
+          ["Method", payment.payment_method],
+          ["Reference", payment.reference || "-"],
+          ["Date", formatDate(payment.payment_date)],
+        ]),
+        detailActions([["rent", "Open Rent Collection"]], [
+          `<button class="primary-button" data-receipt-payment="${escapeHtml(payment.id)}" type="button">Open Receipt</button>`,
+        ]),
+      ].join("")
+    );
+  }
+
+  function openExpenseDetail(id) {
+    const expense = state.expenses.find((item) => item.id === id);
+    if (!expense) {
+      showToast("Expense not found.");
+      return;
+    }
+    const property = propertyById(expense.property_id);
+    openDashboardDetailModal(
+      expense.type,
+      property ? property.property_name : "Unknown property",
+      [
+        detailGrid([
+          ["Property", property ? property.property_name : "Unknown"],
+          ["Location", property ? property.location : "Unknown"],
+          ["Type", expense.type],
+          ["Amount", formatMoney(expense.amount)],
+          ["Date", formatDate(expense.date)],
+        ]),
+        detailActions([["expenses", "Open Expenses"]]),
+      ].join("")
+    );
+  }
+
+  function openDashboardView(viewName) {
+    closeDashboardDetailModal();
+    setView(viewName);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openDashboardDetailModal(title, meta, bodyHtml) {
+    ui.dashboardDetailTitle.textContent = title;
+    ui.dashboardDetailMeta.textContent = meta || "";
+    ui.dashboardDetailBody.innerHTML = bodyHtml;
+    ui.dashboardDetailModal.classList.remove("hidden");
+  }
+
+  function closeDashboardDetailModal() {
+    ui.dashboardDetailModal.classList.add("hidden");
+  }
+
+  function detailGrid(items) {
+    return `
+      <dl class="detail-grid">
+        ${items
+          .map(
+            ([label, value]) => `
+              <div>
+                <dt>${escapeHtml(label)}</dt>
+                <dd>${escapeHtml(String(value))}</dd>
+              </div>
+            `
+          )
+          .join("")}
+      </dl>
+    `;
+  }
+
+  function paymentDetailList(payments, emptyMessage) {
+    if (!payments.length) return emptyBlock(emptyMessage);
+    return `
+      <div class="detail-list">
+        ${payments
+          .map((payment) => {
+            const tenant = tenantById(payment.tenant_id);
+            const unit = tenant ? unitById(tenant.unit_id) : null;
+            return `
+              <button class="detail-list-item" data-payment-detail="${escapeHtml(payment.id)}" type="button">
+                <span>
+                  <strong>${escapeHtml(tenant ? tenant.name : "Removed tenant")}</strong>
+                  <small>${escapeHtml(unit ? unit.unit_number : "Unassigned")} - ${escapeHtml(payment.payment_method)}${payment.reference ? ` - ${escapeHtml(payment.reference)}` : ""}</small>
+                </span>
+                <b>${formatMoney(payment.amount)}</b>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
+  function tenantBalanceDetailList(rows, emptyMessage) {
+    if (!rows.length) return emptyBlock(emptyMessage);
+    return `
+      <div class="detail-list">
+        ${rows
+          .map((row) => {
+            const property = row.unit ? propertyById(row.unit.property_id) : null;
+            const dueLabel =
+              row.daysUntilDue < 0
+                ? `${Math.abs(row.daysUntilDue)} day${Math.abs(row.daysUntilDue) === 1 ? "" : "s"} late`
+                : row.daysUntilDue === 0
+                  ? "Due today"
+                  : `Due in ${row.daysUntilDue} day${row.daysUntilDue === 1 ? "" : "s"}`;
+            return `
+              <button class="detail-list-item" data-tenant-detail="${escapeHtml(row.tenant.id)}" type="button">
+                <span>
+                  <strong>${escapeHtml(row.tenant.name)}</strong>
+                  <small>${escapeHtml(property ? property.property_name : "Unknown property")} - ${escapeHtml(row.unit ? row.unit.unit_number : "Unassigned")} - ${escapeHtml(dueLabel)}</small>
+                </span>
+                <b>${formatMoney(row.balance)}</b>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
+  function unitDetailList(units, emptyMessage) {
+    if (!units.length) return emptyBlock(emptyMessage);
+    return `
+      <div class="detail-list">
+        ${units
+          .map((unit) => {
+            const property = propertyById(unit.property_id);
+            return `
+              <button class="detail-list-item" data-unit-detail="${escapeHtml(unit.id)}" type="button">
+                <span>
+                  <strong>${escapeHtml(unit.unit_number)}</strong>
+                  <small>${escapeHtml(property ? property.property_name : "Unknown property")} - ${escapeHtml(unitTypeLabel(unit))}</small>
+                </span>
+                <b>${formatMoney(unit.rent_amount)}</b>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
+  function expenseDetailList(expenses, emptyMessage) {
+    if (!expenses.length) return emptyBlock(emptyMessage);
+    return `
+      <div class="detail-list">
+        ${expenses
+          .map((expense) => {
+            const property = propertyById(expense.property_id);
+            return `
+              <button class="detail-list-item" data-expense-detail="${escapeHtml(expense.id)}" type="button">
+                <span>
+                  <strong>${escapeHtml(expense.type)}</strong>
+                  <small>${escapeHtml(property ? property.property_name : "Unknown property")} - ${formatDate(expense.date)}</small>
+                </span>
+                <b>${formatMoney(expense.amount)}</b>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
+  function detailActions(viewActions, extraActions = []) {
+    return `
+      <div class="detail-actions">
+        ${viewActions
+          .map(
+            ([viewName, label]) =>
+              `<button class="text-button" data-dashboard-view="${escapeHtml(viewName)}" type="button">${escapeHtml(label)}</button>`
+          )
+          .join("")}
+        ${extraActions.join("")}
+      </div>
+    `;
   }
 
   function renderSuperAdminDashboard() {
@@ -2832,6 +3250,7 @@
   function openReceipt(paymentId) {
     const payment = state.payments.find((item) => item.id === paymentId);
     if (!payment) return;
+    closeDashboardDetailModal();
     const tenant = tenantById(payment.tenant_id);
     const unit = tenant ? unitById(tenant.unit_id) : null;
     const property = unit ? propertyById(unit.property_id) : null;
@@ -4570,23 +4989,23 @@
     };
   }
 
-  function metricCard(label, value, note) {
+  function metricCard(label, value, note, detailType) {
     return `
-      <article class="metric-card">
+      <button class="metric-card dashboard-action-card" data-dashboard-detail="${escapeHtml(detailType)}" type="button" aria-label="Open ${escapeHtml(label)} details">
         <div class="metric-label">${escapeHtml(label)}</div>
         <div class="metric-value">${escapeHtml(String(value))}</div>
         <div class="metric-note">${escapeHtml(note)}</div>
-      </article>
+      </button>
     `;
   }
 
-  function dailyOpsCard(label, value, note, tone) {
+  function dailyOpsCard(label, value, note, tone, detailType) {
     return `
-      <article class="daily-ops-card ${escapeHtml(tone || "info")}">
+      <button class="daily-ops-card dashboard-action-card ${escapeHtml(tone || "info")}" data-dashboard-detail="${escapeHtml(detailType)}" type="button" aria-label="Open ${escapeHtml(label)} details">
         <span>${escapeHtml(label)}</span>
         <strong>${escapeHtml(String(value))}</strong>
         <small>${escapeHtml(note)}</small>
-      </article>
+      </button>
     `;
   }
 
@@ -4599,7 +5018,12 @@
         <td>${escapeHtml(row.unit ? row.unit.unit_number : "Unassigned")}</td>
         <td>${statusPill(`${daysLate} day${daysLate === 1 ? "" : "s"} late`)}</td>
         <td><strong>${formatMoney(row.balance)}</strong></td>
-        <td><a class="text-button link-button compact-link-button" href="tel:${escapeHtml(phone)}">Call</a></td>
+        <td>
+          <div class="button-row">
+            <button class="text-button compact-link-button" data-tenant-detail="${escapeHtml(row.tenant.id)}" type="button">Details</button>
+            <a class="text-button link-button compact-link-button" href="tel:${escapeHtml(phone)}">Call</a>
+          </div>
+        </td>
       </tr>
     `;
   }
