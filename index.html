@@ -40,7 +40,7 @@
             <div class="hero-actions">
               <button class="primary-button" data-open-auth="signup" type="button">Start Free</button>
               <a class="ghost-button link-button" href="vacancies.html">View Vacant Units</a>
-              <button class="ghost-button" data-start-demo type="button">Real Dashboard Preview</button>
+              <button class="ghost-button hidden" data-start-demo type="button">Real Dashboard Preview</button>
             </div>
             <div class="hero-proof">
               <span>Know who paid and who has not</span>
@@ -332,13 +332,9 @@
           </label>
           <button class="primary-button" type="submit">Sign In</button>
           <button id="forgotPasswordButton" class="text-button auth-secondary-button" type="button">Forgot Password?</button>
-          <div class="demo-account-panel" aria-label="Demo accounts">
+          <div class="demo-account-panel hidden" aria-label="Demo accounts">
             <span class="demo-account-title">Demo Accounts</span>
             <div class="demo-account-grid">
-              <button class="demo-account-button" data-demo-account="user-saas-owner" type="button">
-                <strong>Super Admin</strong>
-                <small>0700000000</small>
-              </button>
               <button class="demo-account-button" data-demo-account="user-1" type="button">
                 <strong>Landlord</strong>
                 <small>0772123456</small>
@@ -366,7 +362,7 @@
           </label>
           <label>
             Password
-            <input id="accountPassword" type="password" autocomplete="new-password" minlength="4" required />
+            <input id="accountPassword" type="password" autocomplete="new-password" minlength="8" required />
           </label>
           <button class="primary-button" type="submit">Open Landlord Account</button>
         </form>
@@ -384,20 +380,20 @@
 
         <form id="resetPasswordForm" class="stacked-form auth-form hidden">
           <label>
-            Creator Email
+            Account Email
             <input id="resetOtpEmail" readonly />
           </label>
-          <label>
+          <label id="resetOtpLabel">
             Email OTP
             <input id="resetOtp" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required />
           </label>
           <label>
             New Password
-            <input id="resetNewPassword" type="password" autocomplete="new-password" minlength="4" required />
+            <input id="resetNewPassword" type="password" autocomplete="new-password" minlength="8" required />
           </label>
           <label>
             Confirm Password
-            <input id="resetConfirmPassword" type="password" autocomplete="new-password" minlength="4" required />
+            <input id="resetConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
           </label>
           <small id="resetOtpNotice" class="reset-otp-notice hidden"></small>
           <div class="form-actions auth-form-actions">
@@ -809,12 +805,12 @@
                   <input id="staffPhone" autocomplete="tel" required />
                 </label>
                 <label>
-                  Email Address (optional)
-                  <input id="staffEmail" type="email" autocomplete="email" />
+                  Email Address
+                  <input id="staffEmail" type="email" autocomplete="email" required />
                 </label>
                 <label>
                   Temporary Password
-                  <input id="staffPassword" type="password" minlength="4" required />
+                  <input id="staffPassword" type="password" minlength="8" required />
                 </label>
                 <label>
                   Assigned Properties

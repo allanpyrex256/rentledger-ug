@@ -21,29 +21,21 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 
 ## Open It
 
-Open `index.html` in a browser. If `supabase-config.js` has real project keys, records load from and save to Supabase.
+Open `index.html` in a browser for local demo mode. For real users, deploy on Vercel or another host that can run the `/api/*` server routes; those routes handle signup, sign-in, staff invites, password resets, and admin-only actions.
 
 For Vercel production, set these environment variables instead of hard-coding keys:
 
 ```text
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-public-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 ```
 
-The app exposes `/api/supabase-config` so the browser can read those public Supabase settings at runtime.
+The app exposes `/api/supabase-config` so the browser can read only the public Supabase settings at runtime. The service role key is used only inside Vercel API routes and must never be exposed in browser code.
 
-## Demo Login Details
+## Demo Mode
 
-- Super admin: `0700000000` or `allanpyrex5@gmail.com` / `Etochu@2727`
-- Landlord Demo: `0772123456` or `landlord@rentledger.ug` / `demo123`
-  Includes 5 properties, 20 tenants, expenses, rent balances, and payment history.
-- Staff Demo: `0700111222` or `staff@rentledger.ug` / `staff123`
-  Limited to assigned properties only.
-- The sign-in screen includes one-click demo buttons for Super Admin, Landlord, and Staff testing.
-- Seeded and admin-created demo accounts are linked back to the Super Admin account.
-- New landlord signup generates a Super Admin OTP notification for the admin email/SMS contact.
-- Forgot password sends a demo OTP to the account creator email shown in the reset form.
-- Super admin can send reset OTPs for landlord and staff accounts from the Support console.
+When Supabase is not configured, the app runs with local browser demo data for development. When Supabase is configured, public demo buttons are hidden, signup/sign-in uses Supabase Auth, and data is protected by RLS.
 
 ## Portal Structure
 
@@ -55,16 +47,18 @@ The app exposes `/api/supabase-config` so the browser can read those public Supa
 
 1. Create a Supabase project.
 2. Run `supabase-schema.sql` in the Supabase SQL editor.
-3. Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` in Vercel project environment variables, or add them in `supabase-config.js` for local testing.
-4. Open the app. On first connection, the current demo data is uploaded to Supabase.
-5. Use the complete V1 workflow: property -> unit -> tenant -> payment -> balance.
+3. Create your first Super Admin in Supabase Auth.
+4. Insert that Auth user into `app_users` as `role = 'saas-owner'` using the bootstrap SQL comment at the bottom of `supabase-schema.sql`.
+5. Add `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in Vercel project environment variables.
+6. Set the Supabase Auth site URL to your deployed domain so password reset links return to the app.
+7. Open the app and use the complete V1 workflow: signup -> property -> unit -> tenant -> payment -> balance.
 
 If you already ran an older version of the schema with UUID columns, use a fresh Supabase project or drop those prototype tables before running this schema.
 
 The app stores real rows in these tables:
 
 ```sql
-app_users(id, name, phone, email, creator_email, platform_owner_id, password, role, account_status, created_at)
+app_users(id, name, phone, email, creator_email, platform_owner_id, role, account_status, created_at)
 subscriptions(id, owner_id, plan, monthly_fee, status, last_payment_date, next_billing_date, created_at)
 properties(id, property_name, location, property_type, owner_id)
 units(id, property_id, unit_number, rent_amount, status)
@@ -76,7 +70,7 @@ notifications(id, user_id, type, title, message, read, created_at)
 app_settings(setting_key, value)
 ```
 
-For production, replace the prototype password field with Supabase Auth and tighten RLS policies so each landlord's records are securely isolated. The current schema is suitable for pilot validation, not final public security.
+Production auth is handled by Supabase Auth. The schema enables RLS so anonymous users can only read published vacant listings, landlords can access their own records, staff can access assigned properties, and Super Admin users can manage platform data.
 
 ## Image Sources
 

@@ -39,8 +39,18 @@
   ];
 
   const SUPER_ADMIN_USER_ID = "user-saas-owner";
-  const SUPER_ADMIN_EMAIL = "allanpyrex5@gmail.com";
+  const SUPER_ADMIN_EMAIL = "admin@example.com";
   const DEMO_ACCOUNT_IDS = [SUPER_ADMIN_USER_ID, "user-1", "staff-1"];
+  const PUBLIC_DEMO_ACCOUNT_IDS = ["user-1", "staff-1"];
+  const CLIENT_WRITABLE_STATE_KEYS = new Set([
+    "properties",
+    "units",
+    "tenants",
+    "payments",
+    "expenses",
+    "supportTickets",
+    "notifications",
+  ]);
   const state = loadState();
 
   const ui = {
@@ -57,6 +67,7 @@
     cancelPasswordReset: document.getElementById("cancelPasswordReset"),
     resetPasswordForm: document.getElementById("resetPasswordForm"),
     resetOtpEmail: document.getElementById("resetOtpEmail"),
+    resetOtpLabel: document.getElementById("resetOtpLabel"),
     resetOtp: document.getElementById("resetOtp"),
     resetNewPassword: document.getElementById("resetNewPassword"),
     resetConfirmPassword: document.getElementById("resetConfirmPassword"),
@@ -277,6 +288,8 @@
 
   async function initialize() {
     await hydrateStateFromSupabase();
+    toggleProductionDemoControls();
+    bindAuthRecovery();
     setTodayDefaults();
     bindEvents();
     renderPublicListings();
@@ -289,7 +302,7 @@
     });
 
     document.querySelectorAll("[data-start-demo]").forEach((button) => {
-      button.addEventListener("click", signInDemoAccount);
+      button.addEventListener("click", () => signInDemoAccount(button.dataset.startDemo || "user-1"));
     });
 
     document.querySelectorAll("[data-demo-account]").forEach((button) => {
@@ -465,10 +478,32 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function signIn(event) {
+  async function signIn(event) {
     event.preventDefault();
     const loginIdentifier = ui.signInIdentifier.value;
     const password = ui.signInPassword.value;
+
+    if (supabaseReady && supabaseClient) {
+      try {
+        setAppLoading("Signing in");
+        const { session } = await apiRequest("/api/signin", { identifier: loginIdentifier, password });
+        const { data, error } = await supabaseClient.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+        if (error) throw error;
+        await openUserSession(data.user.id);
+        ui.signInForm.reset();
+        showToast("Welcome back.");
+      } catch (error) {
+        console.error("Supabase sign-in failed", error);
+        showToast("Use a valid email or phone and password.");
+      } finally {
+        clearAppLoading();
+      }
+      return;
+    }
+
     const user = state.users.find(
       (item) => loginIdentifierMatches(item, loginIdentifier) && item.password === password
     );
@@ -500,6 +535,52 @@
     setAuthTab("signin");
   }
 
+  function bindAuthRecovery() {
+    if (!supabaseClient?.auth) return;
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (event !== "PASSWORD_RECOVERY") return;
+      startSupabasePasswordRecovery(session);
+    });
+    if (window.location.href.includes("type=recovery")) {
+      supabaseClient.auth.getSession().then(({ data }) => startSupabasePasswordRecovery(data.session));
+    }
+  }
+
+  function startSupabasePasswordRecovery(session) {
+    state.passwordReset = {
+      supabaseRecovery: true,
+      email: session?.user?.email || "",
+    };
+    ui.resetPasswordForm.reset();
+    ui.resetOtpEmail.value = session?.user?.email || "";
+    if (ui.resetOtpLabel) ui.resetOtpLabel.classList.add("hidden");
+    ui.resetOtp.required = false;
+    ui.resetOtpNotice.textContent = "Enter a new password for your account.";
+    ui.resetOtpNotice.classList.remove("hidden");
+    authVisible = true;
+    setAuthTab("reset");
+    renderSession();
+  }
+
+  async function apiRequest(path, body = {}, options = {}) {
+    const headers = { "Content-Type": "application/json" };
+    if (supabaseClient?.auth) {
+      const { data } = await supabaseClient.auth.getSession();
+      if (data.session?.access_token) headers.Authorization = `Bearer ${data.session.access_token}`;
+    }
+
+    const response = await fetch(path, {
+      method: options.method || "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || "Request failed");
+    }
+    return payload;
+  }
+
   function togglePasswordVisibility(button) {
     const input = document.getElementById(button.dataset.passwordToggle);
     if (!input) return;
@@ -512,9 +593,23 @@
     input.focus();
   }
 
-  function requestPasswordReset(event) {
+  async function requestPasswordReset(event) {
     event.preventDefault();
     const identifier = ui.resetIdentifier.value.trim();
+
+    if (supabaseReady && supabaseClient) {
+      try {
+        await apiRequest("/api/password-reset", { identifier });
+        clearPasswordResetForms();
+        setAuthTab("signin");
+        showToast("Password reset link sent. Check your email.");
+      } catch (error) {
+        console.error("Password reset failed", error);
+        showToast("Could not send reset link right now.");
+      }
+      return;
+    }
+
     const user = state.users.find((item) => loginIdentifierMatches(item, identifier));
 
     if (!user || !["landlord", "saas-owner", "staff"].includes(user.role)) {
@@ -546,8 +641,31 @@
     showToast(`OTP sent to ${maskEmailAddress(resetEmail)}.`);
   }
 
-  function resetPassword(event) {
+  async function resetPassword(event) {
     event.preventDefault();
+
+    if (supabaseReady && supabaseClient && state.passwordReset?.supabaseRecovery) {
+      if (ui.resetNewPassword.value.length < 8) {
+        showToast("Use a password with at least 8 characters.");
+        return;
+      }
+      if (ui.resetNewPassword.value !== ui.resetConfirmPassword.value) {
+        showToast("Passwords do not match.");
+        return;
+      }
+      const { error } = await supabaseClient.auth.updateUser({ password: ui.resetNewPassword.value });
+      if (error) {
+        showToast("Could not update password. Open the reset link again.");
+        return;
+      }
+      state.passwordReset = null;
+      clearPasswordResetForms();
+      await supabaseClient.auth.signOut();
+      setAuthTab("signin");
+      showToast("Password updated. Sign in with the new password.");
+      return;
+    }
+
     const resetRequest = state.passwordReset;
     if (!resetRequest) {
       showToast("Request a new OTP first.");
@@ -605,10 +723,14 @@
   }
 
   function signInDemoAccount(accountId) {
+    if (supabaseReady) {
+      showToast("Demo accounts are disabled on the live app.");
+      return;
+    }
     const resolvedAccountId = typeof accountId === "string" && accountId ? accountId : "user-1";
     const demoUser =
       state.users.find((user) => user.id === resolvedAccountId) ||
-      DEMO_ACCOUNT_IDS.map((id) => state.users.find((user) => user.id === id)).find(Boolean);
+      PUBLIC_DEMO_ACCOUNT_IDS.map((id) => state.users.find((user) => user.id === id)).find(Boolean);
     if (!demoUser) {
       showToast("Reset demo data to restore test accounts.");
       return;
@@ -622,7 +744,7 @@
     showToast(`Demo account opened for ${demoUser.name}.`);
   }
 
-  function createAccount(event) {
+  async function createAccount(event) {
     event.preventDefault();
     if (!supabaseReady) {
       showToast("Connect Supabase before creating real landlord accounts.");
@@ -649,29 +771,26 @@
       return;
     }
 
-    const user = {
-      id: makeId("user"),
-      name: ui.accountName.value.trim(),
-      phone,
-      email,
-      creator_email: email,
-      platform_owner_id: SUPER_ADMIN_USER_ID,
-      password: ui.accountPassword.value,
-      role: "landlord",
-      account_status: "Active",
-      created_at: new Date().toISOString(),
-    };
-    const adminOtpDelivery = createAdminSignupOtp(user);
-
-    state.users.push(user);
-    state.currentUserId = user.id;
-    state.selectedPropertyId = "all";
-    state.role = "landlord";
-    saveState();
-    ui.createAccountForm.reset();
-    renderSession();
-    setView("properties");
-    showToast(`Landlord account opened. Admin OTP sent to ${adminOtpDelivery}.`);
+    try {
+      setAppLoading("Creating account");
+      await apiRequest("/api/signup", {
+        name: ui.accountName.value.trim(),
+        phone,
+        email,
+        password: ui.accountPassword.value,
+      });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: ui.accountPassword.value });
+      if (error) throw error;
+      await openUserSession(data.user.id);
+      ui.createAccountForm.reset();
+      setView("properties");
+      showToast("Landlord account opened.");
+    } catch (error) {
+      console.error("Account creation failed", error);
+      showToast(error.message || "Could not create account.");
+    } finally {
+      clearAppLoading();
+    }
   }
 
   function createAdminSignupOtp(user) {
@@ -694,7 +813,18 @@
     return adminPhone ? `${maskEmailAddress(adminEmail)} / SMS ${maskPhoneNumber(adminPhone)}` : maskEmailAddress(adminEmail);
   }
 
-  function openUserSession(userId) {
+  async function openUserSession(userId) {
+    if (supabaseReady && supabaseClient) {
+      const remote = await fetchSupabaseState(supabaseClient);
+      const sessionState = {
+        currentUserId: userId,
+        selectedPropertyId: "all",
+        role: state.role,
+        searchTerm: state.searchTerm,
+      };
+      replaceState(migrateState({ ...emptyState(), ...remote, ...sessionState }));
+    }
+
     const user = state.users.find((item) => item.id === userId);
     state.currentUserId = userId;
     state.selectedPropertyId = "all";
@@ -704,7 +834,39 @@
     setView(defaultView());
   }
 
-  function signOut() {
+  async function refreshSupabaseState() {
+    if (!supabaseReady || !supabaseClient) return;
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const remote = await fetchSupabaseState(supabaseClient);
+    replaceState(
+      migrateState({
+        ...emptyState(),
+        ...remote,
+        currentUserId: sessionData.session?.user?.id || state.currentUserId,
+        selectedPropertyId: state.selectedPropertyId || "all",
+        role: state.role,
+        searchTerm: state.searchTerm,
+      })
+    );
+    saveLocalStateOnly();
+    renderSession();
+  }
+
+  async function signOut() {
+    if (supabaseReady && supabaseClient) {
+      await supabaseClient.auth.signOut();
+      const remote = await fetchSupabaseState(supabaseClient);
+      replaceState(
+        migrateState({
+          ...emptyState(),
+          ...remote,
+          currentUserId: null,
+          selectedPropertyId: "all",
+          role: "landlord",
+          searchTerm: state.searchTerm,
+        })
+      );
+    }
     state.currentUserId = null;
     saveState();
     authVisible = false;
@@ -2711,7 +2873,7 @@
     syncRentFromUnit();
   }
 
-  function inviteStaff(event) {
+  async function inviteStaff(event) {
     event.preventDefault();
     const user = currentUser();
     if (!user || user.role !== "landlord") {
@@ -2721,6 +2883,40 @@
 
     const phone = ui.staffPhone.value.trim();
     const email = ui.staffEmail.value.trim();
+    const assignedPropertyIds = [...ui.staffProperties.selectedOptions]
+      .map((option) => option.value)
+      .filter(Boolean);
+    if (!assignedPropertyIds.length) {
+      showToast("Assign at least one property.");
+      return;
+    }
+
+    if (supabaseReady) {
+      try {
+        const result = await apiRequest("/api/staff-user", {
+          name: ui.staffName.value.trim(),
+          phone,
+          email,
+          password: ui.staffPassword.value,
+          assigned_property_ids: assignedPropertyIds,
+        });
+        state.users.push(result.user);
+        addNotification({
+          type: "staff",
+          title: "Staff invitation created",
+          message: `${result.user.name} can now access ${assignedPropertyNames(result.user).join(", ")}.`,
+        });
+        saveState();
+        ui.staffInviteForm.reset();
+        renderAll();
+        showToast("Staff invitation saved.");
+      } catch (error) {
+        console.error("Staff invite failed", error);
+        showToast(error.message || "Could not invite staff.");
+      }
+      return;
+    }
+
     const normalizedPhone = normalizeLoginPhone(phone);
     const normalizedEmail = normalizeLoginEmail(email);
     const duplicatePhone = state.users.some((item) => normalizeLoginPhone(item.phone) === normalizedPhone);
@@ -2732,14 +2928,6 @@
     }
     if (duplicateEmail) {
       showToast("That email address already has an account.");
-      return;
-    }
-
-    const assignedPropertyIds = [...ui.staffProperties.selectedOptions]
-      .map((option) => option.value)
-      .filter(Boolean);
-    if (!assignedPropertyIds.length) {
-      showToast("Assign at least one property.");
       return;
     }
 
@@ -2775,13 +2963,23 @@
     if (!staffUser) return;
     const loginLines = ["RentLedger UG staff login", `Phone: ${staffUser.phone}`];
     if (staffUser.email) loginLines.push(`Email: ${staffUser.email}`);
-    loginLines.push(`Password: ${staffUser.password}`);
+    if (staffUser.password) loginLines.push(`Password: ${staffUser.password}`);
+    else loginLines.push("Use the temporary password shared during invitation.");
     copyText(loginLines.join("\n"));
   }
 
-  function removeStaff(id) {
+  async function removeStaff(id) {
     const staffUser = userById(id);
     if (!staffUser || staffUser.company_owner_id !== currentUser()?.id) return;
+    if (supabaseReady) {
+      try {
+        await apiRequest("/api/staff-user", { userId: id }, { method: "DELETE" });
+      } catch (error) {
+        console.error("Staff removal failed", error);
+        showToast(error.message || "Could not remove staff access.");
+        return;
+      }
+    }
     state.users = state.users.filter((user) => user.id !== id);
     saveState();
     renderAll();
@@ -3046,9 +3244,24 @@
     showToast("Support ticket saved.");
   }
 
-  function createDemoLandlordAccount() {
+  async function createDemoLandlordAccount() {
     if (!isSaasOwner()) {
       showToast("Only the super admin can create demo accounts.");
+      return;
+    }
+
+    if (supabaseReady) {
+      try {
+        setAppLoading("Creating demo account");
+        const result = await apiRequest("/api/admin-user", { action: "create-demo-landlord" });
+        await refreshSupabaseState();
+        showToast(`Demo account created: ${result.email}.`);
+      } catch (error) {
+        console.error("Demo account creation failed", error);
+        showToast(error.message || "Could not create demo account.");
+      } finally {
+        clearAppLoading();
+      }
       return;
     }
 
@@ -3146,7 +3359,7 @@
     showToast(`Demo account created: ${email} / demo123`);
   }
 
-  function toggleLandlordAccountStatus(userId) {
+  async function toggleLandlordAccountStatus(userId) {
     if (!isSaasOwner()) {
       showToast("Only the super admin can approve or suspend accounts.");
       return;
@@ -3154,6 +3367,19 @@
 
     const user = userById(userId);
     if (!user || user.role !== "landlord") return;
+
+    if (supabaseReady) {
+      try {
+        const result = await apiRequest("/api/admin-user", { action: "toggle-status", userId });
+        await refreshSupabaseState();
+        showToast(`${user.name} ${result.account_status === "Active" ? "approved" : "suspended"}.`);
+      } catch (error) {
+        console.error("Status update failed", error);
+        showToast(error.message || "Could not update account status.");
+      }
+      return;
+    }
+
     const nextStatus = accountStatus(user) === "Suspended" || accountStatus(user) === "Inactive" ? "Active" : "Suspended";
     state.users = state.users.map((item) =>
       item.id === userId
@@ -3168,9 +3394,21 @@
     showToast(`${user.name} ${nextStatus === "Active" ? "approved" : "suspended"}.`);
   }
 
-  function cycleSubscriptionPackage(ownerId) {
+  async function cycleSubscriptionPackage(ownerId) {
     if (!isSaasOwner()) {
       showToast("Only the super admin can manage packages.");
+      return;
+    }
+
+    if (supabaseReady) {
+      try {
+        const result = await apiRequest("/api/admin-user", { action: "cycle-package", ownerId });
+        await refreshSupabaseState();
+        showToast(`Package changed to ${result.plan}.`);
+      } catch (error) {
+        console.error("Package update failed", error);
+        showToast(error.message || "Could not change package.");
+      }
       return;
     }
 
@@ -3221,7 +3459,7 @@
     createAdminPasswordReset(ui.adminPasswordResetUser.value);
   }
 
-  function createAdminPasswordReset(userId) {
+  async function createAdminPasswordReset(userId) {
     if (!isSaasOwner()) {
       showToast("Only the super admin can send reset OTPs.");
       return;
@@ -3230,6 +3468,24 @@
     const targetUser = userById(userId);
     if (!targetUser || targetUser.id === currentUser()?.id) {
       showToast("Choose another account to reset.");
+      return;
+    }
+
+    if (supabaseReady) {
+      try {
+        await apiRequest("/api/admin-user", { action: "password-reset", userId });
+        addNotification({
+          type: "support",
+          title: "Password reset email sent",
+          message: `${targetUser.name} received a secure password reset email.`,
+        });
+        saveState();
+        renderNotifications();
+        showToast(`Reset email sent to ${maskEmailAddress(targetUser.email)}.`);
+      } catch (error) {
+        console.error("Admin password reset failed", error);
+        showToast(error.message || "Could not send reset email.");
+      }
       return;
     }
 
@@ -3607,6 +3863,7 @@
       id: makeId("notification"),
       created_at: new Date().toISOString(),
       read: false,
+      user_id: notification.user_id === undefined ? currentUser()?.id || null : notification.user_id,
       ...notification,
     });
   }
@@ -3979,6 +4236,8 @@
     ui.resetPasswordForm.reset();
     ui.resetOtpNotice.textContent = "";
     ui.resetOtpNotice.classList.add("hidden");
+    if (ui.resetOtpLabel) ui.resetOtpLabel.classList.remove("hidden");
+    ui.resetOtp.required = true;
   }
 
   function setTodayDefaults() {
@@ -4019,24 +4278,20 @@
 
     supabaseHydrating = true;
     try {
+      const { data: sessionData } = await client.auth.getSession();
       const remote = await fetchSupabaseState(client);
-      const hasRemoteRows = SUPABASE_TABLES.some(({ stateKey }) => remote[stateKey]?.length);
       supabaseReady = true;
+      toggleProductionDemoControls();
 
-      if (hasRemoteRows) {
-        const sessionState = {
-          currentUserId: state.currentUserId,
-          selectedPropertyId: state.selectedPropertyId,
-          role: state.role,
-          searchTerm: state.searchTerm,
-        };
-        replaceState(migrateState({ ...remote, ...sessionState }));
-        saveLocalStateOnly();
-        showToast("Supabase data loaded.");
-      } else {
-        await persistSupabaseState(state);
-        showToast("Supabase connected. Demo data uploaded.");
-      }
+      const sessionState = {
+        currentUserId: sessionData.session?.user?.id || null,
+        selectedPropertyId: state.selectedPropertyId,
+        role: state.role,
+        searchTerm: state.searchTerm,
+      };
+      replaceState(migrateState({ ...emptyState(), ...remote, ...sessionState }));
+      saveLocalStateOnly();
+      if (sessionState.currentUserId) showToast("Secure session loaded.");
     } catch (error) {
       supabaseReady = false;
       console.error("Supabase sync failed", error);
@@ -4044,6 +4299,12 @@
     } finally {
       supabaseHydrating = false;
     }
+  }
+
+  function toggleProductionDemoControls() {
+    document.querySelectorAll(".demo-account-panel, [data-start-demo]").forEach((element) => {
+      element.classList.toggle("hidden", supabaseReady);
+    });
   }
 
   async function createSupabaseClient() {
@@ -4119,10 +4380,8 @@
       remote[stateKey] = (data || []).map((row) => fromSupabaseRow(stateKey, row));
     }
 
-    const { data: settings, error: settingsError } = await client.from("app_settings").select("*");
-    if (settingsError) throw settingsError;
-    remote.dismissedNotificationIds = settingValue(settings, "dismissed_notification_ids", []);
-    remote.passwordReset = settingValue(settings, "password_reset", null);
+    remote.dismissedNotificationIds = state.dismissedNotificationIds || [];
+    remote.passwordReset = state.passwordReset || null;
     return remote;
   }
 
@@ -4140,7 +4399,6 @@
         email: row.email || "",
         creator_email: row.creator_email || "",
         platform_owner_id: row.platform_owner_id || undefined,
-        password: row.password || "demo123",
         role: row.role,
         account_status: row.account_status || "Active",
         created_at: row.created_at || new Date().toISOString(),
@@ -4169,11 +4427,26 @@
   }
 
   function saveLocalStateOnly() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (!supabaseReady) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return;
+    }
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        production: true,
+        currentUserId: state.currentUserId,
+        selectedPropertyId: state.selectedPropertyId,
+        role: state.role,
+        searchTerm: state.searchTerm,
+        dismissedNotificationIds: state.dismissedNotificationIds || [],
+      })
+    );
   }
 
   function scheduleSupabaseSave() {
     if (!supabaseReady || supabaseHydrating || !supabaseClient) return;
+    if (!currentUser()) return;
     const snapshot = JSON.parse(JSON.stringify(state));
     window.clearTimeout(supabaseSaveTimer);
     supabaseSaveTimer = window.setTimeout(() => {
@@ -4189,23 +4462,27 @@
     const tableByStateKey = new Map(SUPABASE_TABLES.map((item) => [item.stateKey, item]));
 
     for (const stateKey of SUPABASE_DELETE_ORDER) {
+      if (!isClientWritableStateKey(stateKey)) continue;
       const tableConfig = tableByStateKey.get(stateKey);
       await deleteRemovedSupabaseRows(tableConfig.table, snapshot[stateKey] || []);
     }
 
     for (const { stateKey, table } of SUPABASE_TABLES) {
+      if (!isClientWritableStateKey(stateKey)) continue;
       const rows = (snapshot[stateKey] || []).map((row) => toSupabaseRow(stateKey, row));
       if (!rows.length) continue;
       const { error } = await supabaseClient.from(table).upsert(rows, { onConflict: "id" });
       if (error) throw error;
     }
+  }
 
-    const settings = [
-      { setting_key: "dismissed_notification_ids", value: snapshot.dismissedNotificationIds || [] },
-      { setting_key: "password_reset", value: snapshot.passwordReset || null },
-    ];
-    const { error } = await supabaseClient.from("app_settings").upsert(settings, { onConflict: "setting_key" });
-    if (error) throw error;
+  function isClientWritableStateKey(stateKey) {
+    if (!CLIENT_WRITABLE_STATE_KEYS.has(stateKey)) return false;
+    const user = currentUser();
+    if (!user) return false;
+    if (user.role === "staff") return ["tenants", "payments", "notifications"].includes(stateKey);
+    if (user.role === "saas-owner") return ["supportTickets", "notifications"].includes(stateKey);
+    return true;
   }
 
   async function deleteRemovedSupabaseRows(table, rows) {
@@ -4227,7 +4504,6 @@
         email: row.email || null,
         creator_email: row.creator_email || row.email || null,
         platform_owner_id: row.platform_owner_id || null,
-        password: row.password || "demo123",
         role: row.role,
         account_status: row.account_status || "Active",
         created_at: row.created_at || new Date().toISOString(),
@@ -4299,6 +4575,7 @@
   function migrateState(saved) {
     const seeded = seedState();
     const migrated = { ...seeded, ...saved };
+    const includeSeedRows = !saved.production;
     migrated.users = Array.isArray(saved.users) ? saved.users : seeded.users;
     migrated.properties = Array.isArray(saved.properties) ? saved.properties : seeded.properties;
     migrated.units = Array.isArray(saved.units) ? saved.units : seeded.units;
@@ -4315,7 +4592,7 @@
     migrated.users = migrated.users.map((user) => {
       const seedUser = seedUsersById.get(user.id);
       return {
-        password: "demo123",
+        ...(includeSeedRows ? { password: "demo123" } : {}),
         role: "landlord",
         ...user,
         email: user.email || (seedUser ? seedUser.email : ""),
@@ -4324,15 +4601,17 @@
         created_at: user.created_at || (seedUser ? seedUser.created_at : "") || new Date().toISOString(),
       };
     });
-    seeded.users.forEach((seedUser) => {
-      const exists = migrated.users.some(
-        (user) =>
-          user.id === seedUser.id ||
-          normalizeLoginPhone(user.phone) === normalizeLoginPhone(seedUser.phone) ||
-          normalizeLoginEmail(user.email) === normalizeLoginEmail(seedUser.email)
-      );
-      if (!exists) migrated.users.push(seedUser);
-    });
+    if (includeSeedRows) {
+      seeded.users.forEach((seedUser) => {
+        const exists = migrated.users.some(
+          (user) =>
+            user.id === seedUser.id ||
+            normalizeLoginPhone(user.phone) === normalizeLoginPhone(seedUser.phone) ||
+            normalizeLoginEmail(user.email) === normalizeLoginEmail(seedUser.email)
+        );
+        if (!exists) migrated.users.push(seedUser);
+      });
+    }
     migrated.users = migrated.users.map((user) => ({
       invitation_status: user.role === "staff" ? "Invited" : undefined,
       assigned_property_ids: [],
@@ -4349,7 +4628,7 @@
           email: SUPER_ADMIN_EMAIL,
           creator_email: SUPER_ADMIN_EMAIL,
           platform_owner_id: SUPER_ADMIN_USER_ID,
-          password: "Etochu@2727",
+          password: "admin-demo-only",
           role: "saas-owner",
           account_status: "Active",
         };
@@ -4392,8 +4671,8 @@
         ? { ...property, property_type: localizedPropertyTypes[property.id] }
         : property
     );
-    appendMissingSeedRows(migrated.properties, seeded.properties);
-    appendMissingSeedRows(migrated.units, seeded.units);
+    if (includeSeedRows) appendMissingSeedRows(migrated.properties, seeded.properties);
+    if (includeSeedRows) appendMissingSeedRows(migrated.units, seeded.units);
     const seedUnitsById = new Map(seeded.units.map((unit) => [unit.id, unit]));
     migrated.units = migrated.units.map((unit) => {
       const seedUnit = seedUnitsById.get(unit.id) || {};
@@ -4408,21 +4687,23 @@
         listing_note: unit.listing_note || seedUnit.listing_note || "",
       };
     });
-    appendMissingSeedRows(migrated.tenants, seeded.tenants);
-    appendMissingSeedRows(migrated.payments, seeded.payments);
-    appendMissingSeedRows(migrated.expenses, seeded.expenses);
+    if (includeSeedRows) appendMissingSeedRows(migrated.tenants, seeded.tenants);
+    if (includeSeedRows) appendMissingSeedRows(migrated.payments, seeded.payments);
+    if (includeSeedRows) appendMissingSeedRows(migrated.expenses, seeded.expenses);
     const occupiedUnitIds = new Set(migrated.tenants.map((tenant) => tenant.unit_id));
     migrated.units = migrated.units.map((unit) =>
       occupiedUnitIds.has(unit.id) ? { ...unit, status: "occupied", listing_published: false } : unit
     );
-    seeded.subscriptions.forEach((seedSubscription) => {
-      const exists = migrated.subscriptions.some((subscription) => subscription.id === seedSubscription.id);
-      if (!exists) migrated.subscriptions.push(seedSubscription);
-    });
-    seeded.supportTickets.forEach((seedTicket) => {
-      const exists = migrated.supportTickets.some((ticket) => ticket.id === seedTicket.id);
-      if (!exists) migrated.supportTickets.push(seedTicket);
-    });
+    if (includeSeedRows) {
+      seeded.subscriptions.forEach((seedSubscription) => {
+        const exists = migrated.subscriptions.some((subscription) => subscription.id === seedSubscription.id);
+        if (!exists) migrated.subscriptions.push(seedSubscription);
+      });
+      seeded.supportTickets.forEach((seedTicket) => {
+        const exists = migrated.supportTickets.some((ticket) => ticket.id === seedTicket.id);
+        if (!exists) migrated.supportTickets.push(seedTicket);
+      });
+    }
     migrated.selectedPropertyId = migrated.selectedPropertyId || "all";
     migrated.role = migrated.role || "landlord";
     migrated.searchTerm = migrated.searchTerm || "";
@@ -4443,6 +4724,27 @@
   function saveState() {
     saveLocalStateOnly();
     scheduleSupabaseSave();
+  }
+
+  function emptyState() {
+    return {
+      production: true,
+      currentUserId: null,
+      selectedPropertyId: "all",
+      role: "landlord",
+      searchTerm: "",
+      passwordReset: null,
+      users: [],
+      properties: [],
+      units: [],
+      tenants: [],
+      payments: [],
+      expenses: [],
+      subscriptions: [],
+      supportTickets: [],
+      notifications: [],
+      dismissedNotificationIds: [],
+    };
   }
 
   function seedState() {
@@ -4466,7 +4768,7 @@
           email: SUPER_ADMIN_EMAIL,
           creator_email: SUPER_ADMIN_EMAIL,
           platform_owner_id: SUPER_ADMIN_USER_ID,
-          password: "Etochu@2727",
+          password: "admin-demo-only",
           role: "saas-owner",
           account_status: "Active",
           created_at: date(1),
