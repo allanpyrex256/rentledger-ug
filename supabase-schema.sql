@@ -357,7 +357,7 @@ as $$
   )
 $$;
 
-grant execute on all functions in schema private to anon, authenticated;
+grant execute on all functions in schema private to anon, authenticated, service_role;
 
 drop policy if exists rentledger_anon_all on app_users;
 drop policy if exists rentledger_anon_all on subscriptions;
