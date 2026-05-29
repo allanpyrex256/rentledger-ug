@@ -180,6 +180,8 @@
     staffEmail: document.getElementById("staffEmail"),
     staffPassword: document.getElementById("staffPassword"),
     staffProperties: document.getElementById("staffProperties"),
+    staffPlanNotice: document.getElementById("staffPlanNotice"),
+    staffInviteButton: document.getElementById("staffInviteButton"),
     staffTable: document.getElementById("staffTable"),
     staffCountLabel: document.getElementById("staffCountLabel"),
     paymentForm: document.getElementById("paymentForm"),
@@ -266,7 +268,7 @@
     dashboard: ["Daily Control Center", "Who paid, who is late, and which rooms are vacant."],
     properties: ["Properties", "Set up rooms, shops, boys quarters, houses, and monthly rent."],
     tenants: ["Tenants", "Tenant move-in records, deposits, balances, and contacts."],
-    staff: ["Staff", "Invite managers and assign access to specific properties."],
+    staff: ["Caretakers", "Invite caretakers and assign access to specific properties."],
     rent: ["Rent Collection", "Record paid, partial, overdue, balances, and Mobile Money references."],
     support: ["Support", "Send help requests to the super admin and track ticket status."],
     expenses: ["Expenses & Maintenance", "Broken taps, wiring, painting, plumbing, utilities, and caretaker costs."],
@@ -280,6 +282,7 @@
     ["dashboard", "Dashboard"],
     ["properties", "Setup"],
     ["tenants", "Tenants"],
+    ["staff", "Caretakers"],
     ["rent", "Rent"],
     ["support", "Support"],
   ];
@@ -1084,7 +1087,7 @@
       user && user.role === "saas-owner"
         ? [{ value: "saas-owner", label: "Super Admin" }]
         : user && user.role === "staff"
-          ? [{ value: "staff", label: "Staff / Manager" }]
+          ? [{ value: "staff", label: "Caretaker" }]
         : [
             { value: "landlord", label: "Landlord" },
             { value: "caretaker", label: "Caretaker" },
@@ -2521,15 +2524,28 @@
     if (!ui.staffTable) return;
     const user = currentUser();
     if (!user || user.role !== "landlord") {
-      ui.staffCountLabel.textContent = "0 staff";
-      ui.staffTable.innerHTML = emptyTableRow(4, "Staff invitations are available to landlord admins.");
+      if (ui.staffPlanNotice) {
+        ui.staffPlanNotice.textContent = "Caretaker invitations are available to landlord admins.";
+        ui.staffPlanNotice.className = "plan-limit-note";
+      }
+      if (ui.staffInviteButton) ui.staffInviteButton.disabled = true;
+      ui.staffCountLabel.textContent = "0 caretakers";
+      ui.staffTable.innerHTML = emptyTableRow(4, "Caretaker invitations are available to landlord admins.");
       return;
     }
 
     const staff = staffUsersForOwner(user.id).filter((member) =>
       matchesSearch([member.name, member.phone, member.email, roleLabel(member.role), assignedPropertyNames(member).join(" ")])
     );
-    ui.staffCountLabel.textContent = `${staff.length} staff`;
+    const allStaff = staffUsersForOwner(user.id);
+    const limit = caretakerLimitForOwner(user.id);
+    const atLimit = allStaff.length >= limit.max;
+    ui.staffCountLabel.textContent = `${allStaff.length}/${limit.label} caretakers`;
+    if (ui.staffPlanNotice) {
+      ui.staffPlanNotice.textContent = caretakerLimitMessage(limit, allStaff.length);
+      ui.staffPlanNotice.className = `plan-limit-note ${atLimit && Number.isFinite(limit.max) ? "warning" : ""}`;
+    }
+    if (ui.staffInviteButton) ui.staffInviteButton.disabled = atLimit && Number.isFinite(limit.max);
     ui.staffTable.innerHTML =
       staff
         .map((member) => `
@@ -2548,7 +2564,7 @@
             </td>
           </tr>
         `)
-        .join("") || emptyTableRow(4, "No staff invited yet.");
+        .join("") || emptyTableRow(4, "No caretakers invited yet.");
 
   }
 
@@ -3086,7 +3102,14 @@
     event.preventDefault();
     const user = currentUser();
     if (!user || user.role !== "landlord") {
-      showToast("Only landlord admins can invite staff.");
+      showToast("Only landlord admins can invite caretakers.");
+      return;
+    }
+
+    const existingCaretakers = staffUsersForOwner(user.id).length;
+    const limit = caretakerLimitForOwner(user.id);
+    if (existingCaretakers >= limit.max) {
+      showToast(limit.upgradeMessage);
       return;
     }
 
@@ -3112,16 +3135,16 @@
         state.users.push(result.user);
         addNotification({
           type: "staff",
-          title: "Staff invitation created",
+          title: "Caretaker invitation created",
           message: `${result.user.name} can now access ${assignedPropertyNames(result.user).join(", ")}.`,
         });
         saveState();
         ui.staffInviteForm.reset();
         renderAll();
-        showToast("Staff invitation saved.");
+        showToast("Caretaker invitation saved.");
       } catch (error) {
         console.error("Staff invite failed", error);
-        showToast(error.message || "Could not invite staff.");
+        showToast(error.message || "Could not invite caretaker.");
       }
       return;
     }
@@ -3158,19 +3181,19 @@
     state.users.push(staffUser);
     addNotification({
       type: "staff",
-      title: "Staff invitation created",
+      title: "Caretaker invitation created",
       message: `${staffUser.name} can now access ${assignedPropertyNames(staffUser).join(", ")}.`,
     });
     saveState();
     ui.staffInviteForm.reset();
     renderAll();
-    showToast("Staff invitation saved.");
+    showToast("Caretaker invitation saved.");
   }
 
   function copyStaffLogin(id) {
     const staffUser = userById(id);
     if (!staffUser) return;
-    const loginLines = ["RentLedger UG staff login", `Phone: ${staffUser.phone}`];
+    const loginLines = ["RentLedger UG caretaker login", `Phone: ${staffUser.phone}`];
     if (staffUser.email) loginLines.push(`Email: ${staffUser.email}`);
     if (staffUser.password) loginLines.push(`Password: ${staffUser.password}`);
     else loginLines.push("Use the temporary password shared during invitation.");
@@ -4023,13 +4046,50 @@
     return (state.subscriptions || []).find((subscription) => subscription.owner_id === ownerId) || null;
   }
 
+  function caretakerLimitForOwner(ownerId) {
+    const subscription = subscriptionByOwner(ownerId);
+    const plan = subscription?.plan || "Trial";
+    if (plan === "Starter") {
+      return {
+        plan,
+        max: 1,
+        label: "1",
+        upgradeMessage: "Starter plan includes 1 caretaker account. Upgrade to Professional to add more caretakers.",
+      };
+    }
+    if (plan === "Trial") {
+      return {
+        plan,
+        max: 0,
+        label: "0",
+        upgradeMessage: "Upgrade to Starter or Professional before inviting caretaker accounts.",
+      };
+    }
+    return {
+      plan,
+      max: Number.POSITIVE_INFINITY,
+      label: "unlimited",
+      upgradeMessage: "",
+    };
+  }
+
+  function caretakerLimitMessage(limit, count) {
+    if (limit.plan === "Starter") {
+      return count >= limit.max
+        ? "Starter includes 1 caretaker. Upgrade to Professional to add more."
+        : "Starter includes 1 caretaker account.";
+    }
+    if (limit.plan === "Trial") return "Trial accounts cannot invite caretakers. Upgrade to Starter or Professional.";
+    return `${limit.plan} allows multiple caretaker accounts.`;
+  }
+
   function isSaasOwner(user = currentUser()) {
     return Boolean(user && user.role === "saas-owner");
   }
 
   function roleLabel(role) {
     if (role === "saas-owner") return "Super Admin";
-    if (role === "staff") return "Staff / Manager";
+    if (role === "staff") return "Caretaker";
     if (role === "caretaker") return "Caretaker";
     return "Landlord";
   }

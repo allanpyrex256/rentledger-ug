@@ -45,6 +45,14 @@ async function createStaff(request, response) {
     return send(response, 403, { error: "Assigned properties must belong to your account." });
   }
 
+  const limit = await staffLimitForOwner(profile.id);
+  const existingStaff = await supabaseFetch(
+    `/rest/v1/app_users?company_owner_id=eq.${encodeURIComponent(profile.id)}&role=eq.staff&select=id`
+  );
+  if (existingStaff.length >= limit.max) {
+    return send(response, 403, { error: limit.message });
+  }
+
   const email = normalizeEmail(body.email);
   const existing = await findUserByEmailOrPhone({ email, phone: body.phone });
   if (existing) return send(response, 409, { error: "That phone or email already has an account." });
@@ -79,6 +87,24 @@ async function createStaff(request, response) {
     throw error;
   }
   return send(response, 200, { user });
+}
+
+async function staffLimitForOwner(ownerId) {
+  const rows = await supabaseFetch(`/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(ownerId)}&select=plan,status`);
+  const plan = String(rows[0]?.plan || "Trial");
+  if (plan === "Starter") {
+    return {
+      max: 1,
+      message: "Starter plan includes 1 caretaker account. Upgrade to Professional to add more caretakers.",
+    };
+  }
+  if (plan === "Trial") {
+    return {
+      max: 0,
+      message: "Upgrade to Starter or Professional before inviting caretaker accounts.",
+    };
+  }
+  return { max: Number.POSITIVE_INFINITY, message: "" };
 }
 
 async function removeStaff(request, response) {

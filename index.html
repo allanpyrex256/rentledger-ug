@@ -257,13 +257,13 @@
             <article class="price-card">
               <h3>Starter</h3>
               <strong>USh 50,000<span>/month</span></strong>
-              <p>For landlords starting with a few rooms.</p>
+              <p>For landlords starting with a few rooms and 1 caretaker account.</p>
               <button class="ghost-button" data-open-auth="signup" type="button">Create Account</button>
             </article>
             <article class="price-card featured-price">
               <h3>Professional</h3>
               <strong>USh 120,000<span>/month</span></strong>
-              <p>For landlords managing multiple properties.</p>
+              <p>For landlords managing multiple properties and more caretaker accounts.</p>
               <button class="primary-button" data-open-auth="signup" type="button">Start Free Trial</button>
             </article>
             <article class="price-card">
@@ -418,6 +418,7 @@
           <button class="nav-item active" data-view="dashboard" type="button">Dashboard</button>
           <button class="nav-item" data-view="properties" type="button">Setup</button>
           <button class="nav-item" data-view="tenants" type="button">Tenants</button>
+          <button class="nav-item" data-view="staff" type="button">Caretakers</button>
           <button class="nav-item" data-view="rent" type="button">Rent</button>
           <button class="nav-item" data-view="support" type="button">Support</button>
         </nav>
@@ -468,6 +469,7 @@
           <button class="mobile-tab active" data-view="dashboard" type="button">Dashboard</button>
           <button class="mobile-tab" data-view="properties" type="button">Setup</button>
           <button class="mobile-tab" data-view="tenants" type="button">Tenants</button>
+          <button class="mobile-tab" data-view="staff" type="button">Caretakers</button>
           <button class="mobile-tab" data-view="rent" type="button">Rent</button>
           <button class="mobile-tab" data-view="support" type="button">Support</button>
         </nav>
@@ -794,10 +796,11 @@
           <div class="content-grid form-layout">
             <section class="panel">
               <div class="panel-header">
-                <h2>Invite Staff / Manager</h2>
-                <span class="pill neutral">Role-based access</span>
+                <h2>Invite Caretaker</h2>
+                <span class="pill neutral">Plan limited</span>
               </div>
               <form id="staffInviteForm" class="stacked-form">
+                <div id="staffPlanNotice" class="plan-limit-note"></div>
                 <label>
                   Full Name
                   <input id="staffName" autocomplete="name" required />
@@ -818,20 +821,20 @@
                   Assigned Properties
                   <select id="staffProperties" multiple required></select>
                 </label>
-                <button class="primary-button" type="submit">Send Staff Invitation</button>
+                <button id="staffInviteButton" class="primary-button" type="submit">Send Caretaker Invitation</button>
               </form>
             </section>
 
             <section class="panel wide-panel">
               <div class="panel-header">
-                <h2>Staff Access</h2>
-                <span id="staffCountLabel" class="pill success">0 staff</span>
+                <h2>Caretaker Access</h2>
+                <span id="staffCountLabel" class="pill success">0 caretakers</span>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Staff</th>
+                      <th>Caretaker</th>
                       <th>Assigned Properties</th>
                       <th>Status</th>
                       <th>Actions</th>
@@ -1321,7 +1324,7 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script src="supabase-config.js?v=20260529-manual-publish"></script>
-    <script src="app.js?v=20260529-manual-publish"></script>
+    <script src="supabase-config.js?v=20260529-caretaker-limit"></script>
+    <script src="app.js?v=20260529-caretaker-limit"></script>
   </body>
 </html>

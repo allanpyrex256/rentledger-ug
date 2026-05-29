@@ -1288,6 +1288,23 @@ button {
   white-space: nowrap;
 }
 
+.plan-limit-note {
+  border: 1px solid #bae2de;
+  border-radius: 8px;
+  background: #eef8f7;
+  color: var(--brand-dark);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.4;
+  padding: 10px 12px;
+}
+
+.plan-limit-note.warning {
+  border-color: #f1d185;
+  background: #fff7df;
+  color: var(--warning);
+}
+
 .sidebar-footer select {
   border-color: #334155;
   background: #0f1720;
