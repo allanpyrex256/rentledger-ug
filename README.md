@@ -58,6 +58,36 @@ If you already ran an older version of the schema with UUID columns, use a fresh
 
 If sign-in shows `permission denied for table app_users`, rerun the latest `supabase-schema.sql` grant section in the Supabase SQL editor.
 
+## Flutter Payment API
+
+Flutter clients can sign in with `/api/signin`, then call `/api/payments` with the returned Supabase access token.
+
+```dart
+final login = await http.post(
+  Uri.parse('$baseUrl/api/signin'),
+  headers: {'Content-Type': 'application/json'},
+  body: jsonEncode({'identifier': phoneOrEmail, 'password': password}),
+);
+final accessToken = jsonDecode(login.body)['session']['access_token'];
+
+final payment = await http.post(
+  Uri.parse('$baseUrl/api/payments'),
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $accessToken',
+  },
+  body: jsonEncode({
+    'tenant_id': tenantId,
+    'amount': 450000,
+    'payment_method': 'MTN MoMo',
+    'payment_date': '2026-05-29',
+    'reference': 'MOMO-48391',
+  }),
+);
+```
+
+`POST /api/payments` records a rent payment, calculates that month's remaining balance, and returns `{ "payment": ... }`. Use `GET /api/payments?tenant_id=...` to fetch recent payments visible to the signed-in landlord or staff user.
+
 The app stores real rows in these tables:
 
 ```sql
