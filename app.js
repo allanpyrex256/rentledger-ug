@@ -854,8 +854,12 @@
 
   async function signOut() {
     if (supabaseReady && supabaseClient) {
-      await supabaseClient.auth.signOut();
-      const remote = await fetchSupabaseState(supabaseClient);
+      try {
+        await supabaseClient.auth.signOut();
+      } catch (error) {
+        console.error("Supabase sign-out failed", error);
+      }
+      const remote = await safeFetchPublicSupabaseState(supabaseClient);
       replaceState(
         migrateState({
           ...emptyState(),
@@ -4276,15 +4280,32 @@
     const client = await createSupabaseClient();
     if (!client) return;
 
+    supabaseReady = true;
     supabaseHydrating = true;
     try {
       const { data: sessionData } = await client.auth.getSession();
-      const remote = await fetchSupabaseState(client);
-      supabaseReady = true;
+      const session = sessionData.session;
       toggleProductionDemoControls();
 
+      if (!session?.user) {
+        const remote = await safeFetchPublicSupabaseState(client);
+        replaceState(
+          migrateState({
+            ...emptyState(),
+            ...remote,
+            currentUserId: null,
+            selectedPropertyId: "all",
+            role: "landlord",
+            searchTerm: state.searchTerm,
+          })
+        );
+        saveLocalStateOnly();
+        return;
+      }
+
+      const remote = await fetchSupabaseState(client);
       const sessionState = {
-        currentUserId: sessionData.session?.user?.id || null,
+        currentUserId: session.user.id,
         selectedPropertyId: state.selectedPropertyId,
         role: state.role,
         searchTerm: state.searchTerm,
@@ -4293,9 +4314,20 @@
       saveLocalStateOnly();
       if (sessionState.currentUserId) showToast("Secure session loaded.");
     } catch (error) {
-      supabaseReady = false;
       console.error("Supabase sync failed", error);
-      showToast("Supabase is not ready. Using browser storage.");
+      const remote = await safeFetchPublicSupabaseState(client);
+      replaceState(
+        migrateState({
+          ...emptyState(),
+          ...remote,
+          currentUserId: null,
+          selectedPropertyId: "all",
+          role: "landlord",
+          searchTerm: state.searchTerm,
+        })
+      );
+      saveLocalStateOnly();
+      showToast("Could not load Supabase data. Please sign in again.");
     } finally {
       supabaseHydrating = false;
     }
@@ -4383,6 +4415,39 @@
     remote.dismissedNotificationIds = state.dismissedNotificationIds || [];
     remote.passwordReset = state.passwordReset || null;
     return remote;
+  }
+
+  async function fetchPublicSupabaseState(client) {
+    const [{ data: units, error: unitsError }, { data: properties, error: propertiesError }, { data: users, error: usersError }] =
+      await Promise.all([
+        client.from("units").select("*").eq("status", "vacant").eq("listing_published", true),
+        client.from("properties").select("id,owner_id,property_name,location,property_type"),
+        client.from("app_users").select("id,name,phone,email"),
+      ]);
+
+    if (unitsError) throw unitsError;
+    if (propertiesError) throw propertiesError;
+    if (usersError) throw usersError;
+
+    return {
+      users: (users || []).map((row) => fromSupabaseRow("users", row)),
+      properties: (properties || []).map((row) => fromSupabaseRow("properties", row)),
+      units: (units || []).map((row) => fromSupabaseRow("units", row)),
+      dismissedNotificationIds: state.dismissedNotificationIds || [],
+      passwordReset: state.passwordReset || null,
+    };
+  }
+
+  async function safeFetchPublicSupabaseState(client) {
+    try {
+      return await fetchPublicSupabaseState(client);
+    } catch (error) {
+      console.error("Public Supabase listings failed", error);
+      return {
+        dismissedNotificationIds: state.dismissedNotificationIds || [],
+        passwordReset: state.passwordReset || null,
+      };
+    }
   }
 
   function settingValue(settings, key, fallback) {
