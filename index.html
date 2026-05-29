@@ -661,6 +661,12 @@
                   Monthly Rent
                   <input id="unitRent" type="number" min="0" step="1000" required />
                 </label>
+                <label>
+                  Public Photo
+                  <input id="unitPhoto" type="file" accept="image/*" />
+                </label>
+                <div id="unitPhotoPreview" class="image-upload-preview hidden"></div>
+                <input id="unitPhotoPicker" class="hidden" type="file" accept="image/*" />
                 <button class="primary-button" type="submit">Add Room</button>
               </form>
             </section>

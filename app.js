@@ -6,6 +6,7 @@
   let supabaseSaveTimer = null;
   let authVisible = false;
   let highlightedUnitId = null;
+  let unitPhotoPreviewUrl = null;
 
   const SUPABASE_TABLES = [
     { stateKey: "users", table: "app_users" },
@@ -154,6 +155,9 @@
     unitProperty: document.getElementById("unitProperty"),
     unitNumber: document.getElementById("unitNumber"),
     unitRent: document.getElementById("unitRent"),
+    unitPhoto: document.getElementById("unitPhoto"),
+    unitPhotoPreview: document.getElementById("unitPhotoPreview"),
+    unitPhotoPicker: document.getElementById("unitPhotoPicker"),
     unitTable: document.getElementById("unitTable"),
     unitCountLabel: document.getElementById("unitCountLabel"),
     tenantForm: document.getElementById("tenantForm"),
@@ -390,6 +394,8 @@
     ui.propertyForm.addEventListener("submit", saveProperty);
     ui.cancelPropertyEdit.addEventListener("click", resetPropertyForm);
     ui.unitForm.addEventListener("submit", saveUnit);
+    if (ui.unitPhoto) ui.unitPhoto.addEventListener("change", previewNewUnitPhoto);
+    if (ui.unitPhotoPicker) ui.unitPhotoPicker.addEventListener("change", saveExistingUnitPhoto);
     ui.tenantSearch.addEventListener("input", renderTenants);
     ui.tenantUnit.addEventListener("change", syncRentFromUnit);
     ui.cancelTenantEdit.addEventListener("click", resetTenantForm);
@@ -432,6 +438,7 @@
       ["editProperty", startPropertyEdit],
       ["removeProperty", removeProperty],
       ["removeUnit", removeUnit],
+      ["unitPhoto", startUnitPhotoUpdate],
       ["toggleListing", togglePublicListing],
       ["editTenant", startTenantEdit],
       ["moveOutTenant", startTenantMoveOut],
@@ -2415,6 +2422,7 @@
               <td>
                 <div class="button-row">
                   <button class="text-button" disabled type="button">${isVacant ? "Auto-listed" : "Occupied"}</button>
+                  <button class="text-button" data-unit-photo="${unit.id}" ${removeDisabled ? "disabled" : ""} type="button">Photo</button>
                   <button class="danger-button" data-remove-unit="${unit.id}" ${removeDisabled || hasTenant ? "disabled" : ""} type="button">
                     ${hasTenant ? "Tenant assigned" : "Remove"}
                   </button>
@@ -2776,7 +2784,7 @@
     showToast("Property removed.");
   }
 
-  function saveUnit(event) {
+  async function saveUnit(event) {
     event.preventDefault();
     if (currentUser()?.role === "staff") {
       showToast("Staff cannot create rooms.");
@@ -2794,6 +2802,14 @@
     }
 
     const unitId = makeId("unit");
+    let listingPhoto = listingPhotoForProperty(property);
+    try {
+      listingPhoto = await selectedUnitPhotoDataUrl(property);
+    } catch (error) {
+      showToast(error.message || "Could not read property photo.");
+      return;
+    }
+
     state.units.push({
       id: unitId,
       property_id: property.id,
@@ -2804,7 +2820,7 @@
       listing_bedrooms: 1,
       listing_bathrooms: 1,
       listing_furnished: false,
-      listing_photo: listingPhotoForProperty(property),
+      listing_photo: listingPhoto,
       listing_note: "Vacant and ready for viewing. Contact the landlord on WhatsApp.",
     });
     state.selectedPropertyId = property.id;
@@ -2814,9 +2830,77 @@
 
     saveState();
     ui.unitForm.reset();
+    clearUnitPhotoPreview();
     renderAll();
     revealUnitRow(unitId);
     showToast("Room / shop added and published as vacant.");
+  }
+
+  function previewNewUnitPhoto() {
+    const file = ui.unitPhoto?.files?.[0];
+    if (!file) {
+      clearUnitPhotoPreview();
+      return;
+    }
+    if (unitPhotoPreviewUrl) URL.revokeObjectURL(unitPhotoPreviewUrl);
+    unitPhotoPreviewUrl = URL.createObjectURL(file);
+    renderPhotoPreview(ui.unitPhotoPreview, unitPhotoPreviewUrl, file.name);
+  }
+
+  function clearUnitPhotoPreview() {
+    if (unitPhotoPreviewUrl) URL.revokeObjectURL(unitPhotoPreviewUrl);
+    unitPhotoPreviewUrl = null;
+    if (!ui.unitPhotoPreview) return;
+    ui.unitPhotoPreview.classList.add("hidden");
+    ui.unitPhotoPreview.innerHTML = "";
+  }
+
+  async function selectedUnitPhotoDataUrl(property) {
+    const file = ui.unitPhoto?.files?.[0];
+    if (!file) return listingPhotoForProperty(property);
+    return imageFileToDataUrl(file);
+  }
+
+  function startUnitPhotoUpdate(unitId) {
+    if (state.role === "caretaker" || currentUser()?.role === "staff") {
+      showToast("Only admins can update public photos.");
+      return;
+    }
+    const unit = ownerProperties()
+      .flatMap((property) => state.units.filter((item) => item.property_id === property.id))
+      .find((item) => item.id === unitId);
+    if (!unit || !ui.unitPhotoPicker) return;
+    ui.unitPhotoPicker.dataset.unitId = unit.id;
+    ui.unitPhotoPicker.value = "";
+    ui.unitPhotoPicker.click();
+  }
+
+  async function saveExistingUnitPhoto() {
+    const unitId = ui.unitPhotoPicker?.dataset.unitId || "";
+    const file = ui.unitPhotoPicker?.files?.[0];
+    if (!unitId || !file) return;
+    try {
+      const photo = await imageFileToDataUrl(file);
+      state.units = state.units.map((unit) =>
+        unit.id === unitId
+          ? {
+              ...unit,
+              listing_photo: photo,
+              listing_bedrooms: unit.listing_bedrooms || 1,
+              listing_bathrooms: unit.listing_bathrooms || 1,
+              listing_furnished: Boolean(unit.listing_furnished),
+            }
+          : unit
+      );
+      saveState();
+      renderAll();
+      showToast("Public property photo updated.");
+    } catch (error) {
+      showToast(error.message || "Could not update property photo.");
+    } finally {
+      ui.unitPhotoPicker.value = "";
+      ui.unitPhotoPicker.dataset.unitId = "";
+    }
   }
 
   function revealUnitRow(unitId) {
@@ -5837,6 +5921,59 @@
   function autoReference(method) {
     const prefix = method.includes("Airtel") ? "AIRTEL" : method.includes("MTN") || method.includes("MoMo") ? "MOMO" : "PAY";
     return `${prefix}-${Math.floor(10000 + Math.random() * 89999)}`;
+  }
+
+  async function imageFileToDataUrl(file) {
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Choose an image file.");
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      throw new Error("Choose a photo under 8 MB.");
+    }
+
+    const source = await readFileAsDataUrl(file);
+    const image = await loadImage(source);
+    const maxWidth = 1000;
+    const maxHeight = 750;
+    const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height);
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Could not prepare photo.");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", 0.78);
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Could not read photo."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Could not load photo."));
+      image.src = src;
+    });
+  }
+
+  function renderPhotoPreview(container, src, name) {
+    if (!container) return;
+    container.classList.remove("hidden");
+    container.innerHTML = `
+      <img src="${escapeHtml(src)}" alt="">
+      <span>${escapeHtml(name || "Selected photo")}</span>
+    `;
   }
 
   function capitalize(value) {
