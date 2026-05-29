@@ -7,7 +7,7 @@ module.exports = async function handler(request, response) {
 
   try {
     const units = await supabaseFetch(
-      "/rest/v1/units?status=eq.vacant&select=*&order=rent_amount.asc"
+      "/rest/v1/units?status=eq.vacant&listing_published=eq.true&select=*&order=rent_amount.asc"
     );
     if (!units.length) return send(response, 200, { listings: [] });
 

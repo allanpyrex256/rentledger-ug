@@ -207,6 +207,7 @@ as $$
     from units
     where property_id = target_property_id
       and status = 'vacant'
+      and listing_published = true
   )
 $$;
 
@@ -223,6 +224,7 @@ as $$
     join units u on u.property_id = p.id
     where p.owner_id = target_owner_id
       and u.status = 'vacant'
+      and u.listing_published = true
   )
 $$;
 
@@ -418,12 +420,12 @@ using (private.can_manage_property(id));
 drop policy if exists units_public_listing_select on units;
 create policy units_public_listing_select on units
 for select to anon
-using (status = 'vacant');
+using (status = 'vacant' and listing_published = true);
 
 drop policy if exists units_authenticated_select on units;
 create policy units_authenticated_select on units
 for select to authenticated
-using (private.can_access_property(property_id) or status = 'vacant');
+using (private.can_access_property(property_id) or (status = 'vacant' and listing_published = true));
 
 drop policy if exists units_authenticated_insert on units;
 create policy units_authenticated_insert on units
