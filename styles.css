@@ -1808,6 +1808,49 @@ h1 {
 .chart-panel {
   min-height: 260px;
   display: grid;
+  gap: 16px;
+}
+
+.chart-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  border-bottom: 1px solid #dbe3ec;
+  padding-bottom: 14px;
+}
+
+.chart-summary-grid span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.chart-summary-grid b {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.chart-summary-grid strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-empty-note {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #cbd9d8;
+  border-radius: 8px;
+  background: #f8fffc;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.45;
+  padding: 18px;
+  text-align: center;
 }
 
 .bar-chart {
@@ -1838,11 +1881,15 @@ h1 {
 
 .bar-track span {
   width: 100%;
-  min-height: 10px;
+  min-height: 0;
   display: block;
   border-radius: 8px 8px 0 0;
   background: linear-gradient(180deg, #f59e0b, #0f766e);
   transition: height 280ms ease;
+}
+
+.bar-item.is-zero .bar-track span {
+  display: none;
 }
 
 .analytics-chart-grid {
@@ -2853,6 +2900,7 @@ div.empty-row::before {
   .expense-summary,
   .template-grid,
   .owner-summary-grid,
+  .chart-summary-grid,
   .analytics-chart-grid {
     grid-template-columns: 1fr;
   }

@@ -1375,9 +1375,9 @@
         })
         .join("") || emptyTableRow(6, "No payments recorded yet.");
 
-    ui.dashboardChartTitle.textContent = "Monthly Revenue Graph";
+    ui.dashboardChartTitle.textContent = "Rent Collected This Month";
     ui.dashboardChartLabel.textContent = monthName(new Date());
-    ui.dashboardChart.innerHTML = renderIncomeChart(scope.payments);
+    ui.dashboardChart.innerHTML = renderIncomeChart(scope.payments, expectedRent);
     ui.expenseTodayLabel.textContent = `${todayExpenses.length} today`;
     ui.dashboardExpenseList.closest(".panel")?.classList.add("hidden");
     ui.dashboardExpenseList.innerHTML =
@@ -2177,15 +2177,46 @@
     return { bytes, label, records };
   }
 
-  function renderIncomeChart(payments) {
-    const days = [5, 10, 15, 20, 25, 30];
-    const buckets = days.map((day) => {
-      const total = payments
-        .filter((payment) => new Date(`${payment.payment_date}T00:00:00`).getDate() <= day)
+  function renderIncomeChart(payments, expectedRent = 0) {
+    const monthPayments = getCurrentMonthPayments(payments);
+    const collected = monthPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const remaining = Math.max(0, Number(expectedRent || 0) - collected);
+    const buckets = currentMonthDayRanges().map((range) => {
+      const total = monthPayments
+        .filter((payment) => {
+          const day = new Date(`${payment.payment_date}T00:00:00`).getDate();
+          return day >= range.start && day <= range.end;
+        })
         .reduce((sum, payment) => sum + Number(payment.amount), 0);
-      return { label: `${day}`, total };
+      return { label: `${range.start}-${range.end}`, total };
     });
-    return chartMarkup(buckets, "USh");
+
+    return `
+      <div class="chart-summary-grid">
+        <span><b>Collected</b><strong>${formatMoney(collected)}</strong></span>
+        <span><b>Expected</b><strong>${formatMoney(expectedRent)}</strong></span>
+        <span><b>Remaining</b><strong>${formatMoney(remaining)}</strong></span>
+        <span><b>Payments</b><strong>${monthPayments.length}</strong></span>
+      </div>
+      ${monthPayments.length ? chartMarkup(buckets, "Rent collected by day range") : `
+        <div class="chart-empty-note">
+          No rent payments recorded in ${escapeHtml(monthName(new Date()))} yet. Record tenant payments to fill this graph.
+        </div>
+      `}
+    `;
+  }
+
+  function currentMonthDayRanges() {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return [
+      { start: 1, end: 5 },
+      { start: 6, end: 10 },
+      { start: 11, end: 15 },
+      { start: 16, end: 20 },
+      { start: 21, end: 25 },
+      { start: 26, end: lastDay },
+    ].filter((range) => range.start <= lastDay);
   }
 
   function renderOwnerChart(subscriptions) {
@@ -2240,9 +2271,9 @@
       <div class="bar-chart" aria-label="${escapeHtml(caption)} chart">
         ${buckets
           .map((bucket) => {
-            const height = Math.max(10, Math.round((bucket.total / max) * 100));
+            const height = bucket.total > 0 ? Math.max(5, Math.round((bucket.total / max) * 100)) : 0;
             return `
-              <div class="bar-item">
+              <div class="bar-item ${bucket.total > 0 ? "" : "is-zero"}">
                 <div class="bar-track"><span style="height:${height}%"></span></div>
                 <strong>${escapeHtml(bucket.label)}</strong>
                 <small>${formatCompactMoney(bucket.total)}</small>
