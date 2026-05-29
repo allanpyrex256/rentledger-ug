@@ -18,6 +18,7 @@ const STATE_TABLES = [
 ];
 
 const DELETE_ORDER = ["notifications", "supportTickets", "expenses", "payments", "tenants", "units", "properties"];
+const SUPER_ADMIN_USER_ID = "user-saas-owner";
 
 module.exports = async function handler(request, response) {
   setCors(response);
@@ -114,7 +115,9 @@ function writableRowsForStateKey(stateKey, snapshot, profile, context) {
   if (stateKey === "payments") return snapshot.payments.filter((row) => context.tenantIds.has(row.tenant_id));
   if (stateKey === "expenses") return snapshot.expenses.filter((row) => context.propertyIds.has(row.property_id));
   if (stateKey === "supportTickets") return snapshot.supportTickets.filter((row) => row.owner_id === profile.id);
-  if (stateKey === "notifications") return snapshot.notifications.filter((row) => row.user_id === profile.id);
+  if (stateKey === "notifications") {
+    return snapshot.notifications.filter((row) => row.user_id === profile.id || isSuperAdminSupportNotification(row));
+  }
   return [];
 }
 
@@ -166,6 +169,10 @@ async function selectIds(table, filter) {
   const prefix = filter ? `${filter}&` : "";
   const rows = await supabaseFetch(`/rest/v1/${table}?${prefix}select=id`);
   return rows.map((row) => row.id).filter(Boolean);
+}
+
+function isSuperAdminSupportNotification(row) {
+  return row?.user_id === SUPER_ADMIN_USER_ID && row?.type === "support";
 }
 
 function toSupabaseRow(stateKey, row, profile) {

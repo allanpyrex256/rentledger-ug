@@ -3783,7 +3783,7 @@
       return;
     }
 
-    state.supportTickets.push({
+    const ticket = {
       id: makeId("ticket"),
       owner_id: user.id,
       subject: ui.landlordSupportSubject.value.trim(),
@@ -3791,6 +3791,14 @@
       status: "Open",
       note: ui.landlordSupportNote.value.trim(),
       updated_at: isoDate(new Date()),
+    };
+
+    state.supportTickets.push(ticket);
+    addNotification({
+      user_id: SUPER_ADMIN_USER_ID,
+      type: "support",
+      title: `Support request from ${user.name}`,
+      message: `${ticket.priority} priority: ${ticket.subject}${ticket.note ? `\n${ticket.note}` : ""}`,
     });
 
     saveState();
@@ -4459,6 +4467,10 @@
       user_id: notification.user_id === undefined ? currentUser()?.id || null : notification.user_id,
       ...notification,
     });
+  }
+
+  function isSuperAdminSupportNotification(row) {
+    return row?.user_id === SUPER_ADMIN_USER_ID && row?.type === "support";
   }
 
   function platformNotifications() {
@@ -5330,7 +5342,11 @@
     if (stateKey === "payments") return rows.filter((row) => tenantIds.has(row.tenant_id));
     if (stateKey === "expenses") return rows.filter((row) => propertyIds.has(row.property_id));
     if (stateKey === "supportTickets") return user.role === "saas-owner" ? rows : rows.filter((row) => row.owner_id === user.id);
-    if (stateKey === "notifications") return user.role === "saas-owner" ? rows : rows.filter((row) => row.user_id === user.id);
+    if (stateKey === "notifications") {
+      return user.role === "saas-owner"
+        ? rows
+        : rows.filter((row) => row.user_id === user.id || isSuperAdminSupportNotification(row));
+    }
     return [];
   }
 
