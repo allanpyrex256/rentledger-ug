@@ -4812,7 +4812,7 @@
     supabaseSaveTimer = window.setTimeout(() => {
       persistSupabaseState(snapshot).catch((error) => {
         console.error("Supabase save failed", error);
-        showToast("Could not save to Supabase. Browser copy kept.");
+        showToast(`Could not save to Supabase: ${error.message || "Browser copy kept."}`);
       });
     }, 450);
   }
@@ -4830,16 +4830,18 @@
   async function persistSupabaseState(snapshot) {
     if (!supabaseClient) return;
     const tableByStateKey = new Map(SUPABASE_TABLES.map((item) => [item.stateKey, item]));
+    const writableContext = buildWritableContext(snapshot, currentUser());
 
     for (const stateKey of SUPABASE_DELETE_ORDER) {
       if (!isClientWritableStateKey(stateKey)) continue;
       const tableConfig = tableByStateKey.get(stateKey);
-      await deleteRemovedSupabaseRows(tableConfig.table, snapshot[stateKey] || []);
+      const rows = writableRowsForStateKey(stateKey, snapshot, writableContext);
+      await deleteRemovedSupabaseRows(tableConfig.table, rows, stateKey, writableContext);
     }
 
     for (const { stateKey, table } of SUPABASE_TABLES) {
       if (!isClientWritableStateKey(stateKey)) continue;
-      const rows = (snapshot[stateKey] || []).map((row) => toSupabaseRow(stateKey, row));
+      const rows = writableRowsForStateKey(stateKey, snapshot, writableContext).map((row) => toSupabaseRow(stateKey, row));
       if (!rows.length) continue;
       const { error } = await supabaseClient.from(table).upsert(rows, { onConflict: "id" });
       if (error) throw error;
@@ -4855,14 +4857,57 @@
     return true;
   }
 
-  async function deleteRemovedSupabaseRows(table, rows) {
+  function buildWritableContext(snapshot, user) {
+    const properties = snapshot.properties || [];
+    const units = snapshot.units || [];
+    const tenants = snapshot.tenants || [];
+    const propertyIds =
+      user?.role === "staff"
+        ? new Set(user.assigned_property_ids || [])
+        : new Set(properties.filter((property) => property.owner_id === user?.id).map((property) => property.id));
+    const unitIds = new Set(units.filter((unit) => propertyIds.has(unit.property_id)).map((unit) => unit.id));
+    const tenantIds = new Set(tenants.filter((tenant) => unitIds.has(tenant.unit_id)).map((tenant) => tenant.id));
+    return { user, propertyIds, unitIds, tenantIds };
+  }
+
+  function writableRowsForStateKey(stateKey, snapshot, context) {
+    const rows = snapshot[stateKey] || [];
+    const { user, propertyIds, unitIds, tenantIds } = context;
+    if (!user) return [];
+    if (stateKey === "properties") return rows.filter((row) => user.role === "landlord" && row.owner_id === user.id);
+    if (stateKey === "units") return rows.filter((row) => propertyIds.has(row.property_id));
+    if (stateKey === "tenants") return rows.filter((row) => unitIds.has(row.unit_id));
+    if (stateKey === "payments") return rows.filter((row) => tenantIds.has(row.tenant_id));
+    if (stateKey === "expenses") return rows.filter((row) => propertyIds.has(row.property_id));
+    if (stateKey === "supportTickets") return user.role === "saas-owner" ? rows : rows.filter((row) => row.owner_id === user.id);
+    if (stateKey === "notifications") return user.role === "saas-owner" ? rows : rows.filter((row) => row.user_id === user.id);
+    return [];
+  }
+
+  async function deleteRemovedSupabaseRows(table, rows, stateKey, context) {
     const keepIds = new Set(rows.map((row) => row.id));
-    const { data, error } = await supabaseClient.from(table).select("id");
+    const query = scopedDeleteSelect(table, stateKey, context);
+    if (!query) return;
+    const { data, error } = await query;
     if (error) throw error;
     const staleIds = (data || []).map((row) => row.id).filter((id) => !keepIds.has(id));
     if (!staleIds.length) return;
     const deleteResult = await supabaseClient.from(table).delete().in("id", staleIds);
     if (deleteResult.error) throw deleteResult.error;
+  }
+
+  function scopedDeleteSelect(table, stateKey, context) {
+    const { user, propertyIds, unitIds, tenantIds } = context;
+    if (!user) return null;
+    let query = supabaseClient.from(table).select("id");
+    if (stateKey === "properties") return user.role === "landlord" ? query.eq("owner_id", user.id) : null;
+    if (stateKey === "units") return propertyIds.size ? query.in("property_id", [...propertyIds]) : null;
+    if (stateKey === "tenants") return query;
+    if (stateKey === "payments") return query;
+    if (stateKey === "expenses") return query;
+    if (stateKey === "supportTickets") return user.role === "saas-owner" ? query : query.eq("owner_id", user.id);
+    if (stateKey === "notifications") return user.role === "saas-owner" ? query : query.eq("user_id", user.id);
+    return null;
   }
 
   function toSupabaseRow(stateKey, row) {
