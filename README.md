@@ -14,6 +14,7 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 - Rent tracking with partial payments, balances, payment history, and MTN/Airtel reference fields.
 - Receipt generation, monthly rent report downloads, and expense report downloads.
 - WhatsApp reminder and receipt links for due, partial, and overdue rent.
+- Optional WhatsApp Cloud API route for sending tenant reminders and receipts directly from the app.
 - Notifications for payment, staff, expense, and overdue rent events.
 - Separate Super Admin SaaS dashboard for landlords, subscriptions, revenue, signups, support tickets, and expired accounts.
 - Super-admin console for account management, billing, monitoring, and backend support tickets.
@@ -29,9 +30,14 @@ For Vercel production, set these environment variables instead of hard-coding ke
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-public-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
+WHATSAPP_ACCESS_TOKEN=your-meta-whatsapp-token
+WHATSAPP_PHONE_NUMBER_ID=your-whatsapp-phone-number-id
+WHATSAPP_GRAPH_VERSION=v25.0
 ```
 
 The app exposes `/api/supabase-config` so the browser can read only the public Supabase settings at runtime. The service role key is used only inside Vercel API routes and must never be exposed in browser code.
+
+WhatsApp sending uses `/api/whatsapp`. If the WhatsApp environment variables are not configured, landlords can still use the Open WhatsApp and Call buttons. For production messages outside WhatsApp's customer-service window, configure approved message templates in Meta Business Manager.
 
 ## Demo Mode
 

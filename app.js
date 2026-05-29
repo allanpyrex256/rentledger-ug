@@ -470,6 +470,7 @@
       ["removeTenant", removeTenant],
       ["copyStaffLogin", copyStaffLogin],
       ["removeStaff", removeStaff],
+      ["sendWhatsapp", sendWhatsAppMessage],
       ["receiptPayment", openReceipt],
       ["removeExpense", removeExpense],
       ["openNotification", openNotification],
@@ -486,7 +487,7 @@
       const value = button.dataset[key];
       if (value === undefined) continue;
       event.preventDefault();
-      handler(value);
+      handler(value, button);
       return;
     }
 
@@ -1698,7 +1699,6 @@
       .filter((payment) => payment.tenant_id === tenant.id)
       .sort((a, b) => new Date(b.created_at || b.payment_date) - new Date(a.created_at || a.payment_date))
       .slice(0, 6);
-    const phone = normalizePhone(tenant.phone);
     openDashboardDetailModal(
       tenant.name,
       `${property ? property.property_name : "Unknown property"}${unit ? ` - ${unit.unit_number}` : ""}`,
@@ -1715,7 +1715,7 @@
         ]),
         paymentDetailList(payments, "No payment history for this tenant yet."),
         detailActions([["rent", "Open Rent Collection"]], [
-          `<a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call Tenant</a>`,
+          tenantContactActions(tenant, tenantWhatsAppMessage(tenant), { compact: false, sendLabel: "Send WhatsApp" }),
         ]),
       ].join("")
     );
@@ -1730,7 +1730,6 @@
     const tenant = tenantById(payment.tenant_id);
     const unit = tenant ? unitById(tenant.unit_id) : null;
     const property = unit ? propertyById(unit.property_id) : null;
-    const phone = tenant ? normalizePhone(tenant.phone) : "";
     const receiptMessage = paymentReceiptMessage(payment);
     openDashboardDetailModal(
       "Payment Details",
@@ -1748,9 +1747,7 @@
         ]),
         detailActions([["rent", "Open Rent Collection"]], [
           `<button class="primary-button" data-receipt-payment="${escapeHtml(payment.id)}" type="button">Open Receipt</button>`,
-          tenant && phone
-            ? `<a class="text-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(receiptMessage)}" target="_blank" rel="noreferrer">WhatsApp Receipt</a>`
-            : "",
+          tenant ? tenantContactActions(tenant, receiptMessage, { compact: false, sendLabel: "Send Receipt" }) : "",
         ]),
       ].join("")
     );
@@ -2772,6 +2769,7 @@
               <td>
                 <div class="button-row">
                   <button class="text-button" data-edit-tenant="${tenant.id}" type="button">Edit</button>
+                  ${tenantContactActions(tenant, tenantWhatsAppMessage(tenant), { compact: true, sendLabel: "Send" })}
                   <button class="danger-button" data-move-out-tenant="${tenant.id}" ${removeDisabled} type="button">Move Out</button>
                 </div>
               </td>
@@ -2839,7 +2837,6 @@
     ui.rentStatusTable.innerHTML =
       rentRows
         .map((row) => {
-          const phone = normalizePhone(row.tenant.phone);
           const message = reminderMessage(row);
           return `
             <tr>
@@ -2857,7 +2854,7 @@
                   <button class="text-button compact-link-button" data-tenant-detail="${escapeHtml(row.tenant.id)}" type="button">Details</button>
                   ${
                     row.balance > 0
-                      ? `<a class="primary-button link-button compact-link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">Remind</a>`
+                      ? tenantContactActions(row.tenant, message, { compact: true, sendLabel: "Send" })
                       : `<span class="pill success">Clear</span>`
                   }
                 </div>
@@ -2880,7 +2877,6 @@
       payments
         .map((payment) => {
           const tenant = tenantById(payment.tenant_id);
-          const phone = tenant ? normalizePhone(tenant.phone) : "";
           const receiptMessage = paymentReceiptMessage(payment);
           return `
             <tr>
@@ -2894,8 +2890,8 @@
                 <div class="button-row">
                   <button class="text-button" data-receipt-payment="${escapeHtml(payment.id)}" type="button">Receipt</button>
                   ${
-                    tenant && phone
-                      ? `<a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(receiptMessage)}" target="_blank" rel="noreferrer">WhatsApp</a>`
+                    tenant
+                      ? tenantContactActions(tenant, receiptMessage, { compact: false, sendLabel: "Send Receipt" })
                       : ""
                   }
                 </div>
@@ -2970,7 +2966,6 @@
       reminders
         .map((row) => {
           const message = reminderMessage(row);
-          const phone = normalizePhone(row.tenant.phone);
           return `
             <article class="reminder-item">
               <div class="reminder-main">
@@ -2979,7 +2974,7 @@
               </div>
               <div class="button-row">
                 <button class="text-button" data-copy-message="${encodeURIComponent(message)}" type="button">Copy SMS</button>
-                <a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">WhatsApp</a>
+                ${tenantContactActions(row.tenant, message, { compact: false, sendLabel: "Send WhatsApp" })}
               </div>
             </article>
           `;
@@ -4766,6 +4761,68 @@
     ].join(" ");
   }
 
+  function tenantWhatsAppMessage(tenant) {
+    const row = getRentRows([tenant])[0];
+    if (row) return reminderMessage(row);
+    return `Hello ${tenant.name}, this is a message from your landlord. Thank you.`;
+  }
+
+  function tenantContactActions(tenant, message, options = {}) {
+    if (!tenant) return "";
+    const compactClass = options.compact ? " compact-link-button" : "";
+    const sendLabel = options.sendLabel || "Send WhatsApp";
+    const phone = normalizePhone(tenant.phone);
+    const encodedMessage = encodeURIComponent(message);
+    return `
+      <button class="primary-button${compactClass}" data-send-whatsapp="${escapeHtml(tenant.id)}" data-whatsapp-message="${encodedMessage}" type="button">${escapeHtml(sendLabel)}</button>
+      <a class="text-button link-button${compactClass}" href="${escapeHtml(whatsappUrl(phone, message))}" target="_blank" rel="noreferrer">Open WhatsApp</a>
+      <a class="ghost-button link-button${compactClass}" href="tel:${escapeHtml(phone)}">Call</a>
+    `;
+  }
+
+  function whatsappUrl(phone, message) {
+    return `https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(message)}`;
+  }
+
+  async function sendWhatsAppMessage(tenantId, button) {
+    const tenant = getScopedData().tenants.find((item) => item.id === tenantId);
+    if (!tenant) {
+      showToast("Tenant is not available in your assigned properties.");
+      return;
+    }
+    const message = decodeURIComponent(button?.dataset.whatsappMessage || "");
+    if (!message) {
+      showToast("No WhatsApp message found.");
+      return;
+    }
+
+    if (!supabaseReady) {
+      window.open(whatsappUrl(tenant.phone, message), "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    try {
+      setAppLoading("Sending WhatsApp");
+      await apiRequest("/api/whatsapp", {
+        tenant_id: tenant.id,
+        message,
+      });
+      addNotification({
+        type: "reminder",
+        title: "WhatsApp sent",
+        message: `Message sent to ${tenant.name}.`,
+      });
+      saveState();
+      renderAll();
+      showToast("WhatsApp message sent.");
+    } catch (error) {
+      console.error("WhatsApp send failed", error);
+      showToast(error.message || "Could not send WhatsApp. Use Open WhatsApp instead.");
+    } finally {
+      clearAppLoading();
+    }
+  }
+
   function copyText(text) {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text).then(() => showToast("Message copied."));
@@ -6246,7 +6303,7 @@
 
   function lateTenantRow(row) {
     const daysLate = Math.abs(Math.min(0, row.daysUntilDue));
-    const phone = normalizePhone(row.tenant.phone);
+    const message = reminderMessage(row);
     return `
       <tr>
         <td>${personCell(row.tenant.name, row.tenant.phone)}</td>
@@ -6256,7 +6313,7 @@
         <td>
           <div class="button-row">
             <button class="text-button compact-link-button" data-tenant-detail="${escapeHtml(row.tenant.id)}" type="button">Details</button>
-            <a class="text-button link-button compact-link-button" href="tel:${escapeHtml(phone)}">Call</a>
+            ${tenantContactActions(row.tenant, message, { compact: true, sendLabel: "Send" })}
           </div>
         </td>
       </tr>
