@@ -48,7 +48,7 @@ When Supabase is not configured, the app runs with local browser demo data for d
 1. Create a Supabase project.
 2. Run `supabase-schema.sql` in the Supabase SQL editor.
 3. Create your first Super Admin in Supabase Auth with email `allanpyrex5@gmail.com`.
-4. Insert that Auth user into `app_users` as `role = 'saas-owner'` using the bootstrap SQL comment at the bottom of `supabase-schema.sql`.
+4. Sign in once with that Super Admin email so `/api/bootstrap-admin` can create the matching `app_users` row with `role = 'saas-owner'`, or insert it manually using the bootstrap SQL comment at the bottom of `supabase-schema.sql`.
 5. Add `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in Vercel project environment variables.
 6. Set the Supabase Auth site URL to your deployed domain so password reset links return to the app.
 7. Open the app and use the complete V1 workflow: signup -> property -> unit -> tenant -> payment -> balance.

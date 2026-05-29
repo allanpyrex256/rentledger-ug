@@ -192,6 +192,14 @@ async function insertRows(table, rows) {
   });
 }
 
+async function upsertRows(table, rows, conflictColumn = "id") {
+  return supabaseFetch(`/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictColumn)}`, {
+    method: "POST",
+    prefer: "resolution=merge-duplicates,return=representation",
+    body: rows,
+  });
+}
+
 async function patchRows(table, query, values) {
   return supabaseFetch(`/rest/v1/${table}?${query}`, {
     method: "PATCH",
@@ -237,6 +245,7 @@ module.exports = {
   PACKAGE_OPTIONS,
   addMonths,
   autoReference,
+  authUserFromRequest,
   createAuthUser,
   deleteAuthUser,
   deleteRows,
@@ -256,4 +265,5 @@ module.exports = {
   send,
   sendPasswordRecovery,
   supabaseFetch,
+  upsertRows,
 };

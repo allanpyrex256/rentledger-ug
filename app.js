@@ -487,10 +487,11 @@
       try {
         setAppLoading("Signing in");
         const authUserId = await authenticateSupabaseUser(loginIdentifier, password);
+        if (isSuperAdminIdentifier(loginIdentifier)) await ensureSuperAdminProfile();
         const user = await openUserSession(authUserId);
         if (!user) {
           await supabaseClient.auth.signOut().catch(() => null);
-          showToast("Account profile is not active. Contact support.");
+          showToast(profileMissingMessage(loginIdentifier));
           return;
         }
         if (isAccountSuspended(user)) {
@@ -549,6 +550,10 @@
     return data.user.id;
   }
 
+  async function ensureSuperAdminProfile() {
+    await apiRequest("/api/bootstrap-admin");
+  }
+
   function signInErrorMessage(error, identifier = "") {
     const message = String(error?.message || "").trim();
     if (!message || message === "Invalid login." || message === "Invalid login credentials") {
@@ -566,6 +571,13 @@
   function isSuperAdminIdentifier(identifier) {
     const value = String(identifier || "").trim();
     return normalizeLoginEmail(value) === SUPER_ADMIN_EMAIL || normalizeLoginPhone(value) === "256700000000";
+  }
+
+  function profileMissingMessage(identifier = "") {
+    if (isSuperAdminIdentifier(identifier)) {
+      return "Super admin profile is missing. Check Supabase service credentials.";
+    }
+    return "Account profile is not active. Contact support.";
   }
 
   function showForgotPassword() {
