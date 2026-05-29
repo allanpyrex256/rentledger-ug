@@ -5284,23 +5284,19 @@
 
   async function persistSupabaseState(snapshot) {
     if (!supabaseClient) return;
-    const tableByStateKey = new Map(SUPABASE_TABLES.map((item) => [item.stateKey, item]));
-    const writableContext = buildWritableContext(snapshot, currentUser());
+    await apiRequest("/api/sync-state", { state: syncStatePayload(snapshot) });
+  }
 
-    for (const stateKey of SUPABASE_DELETE_ORDER) {
-      if (!isClientWritableStateKey(stateKey)) continue;
-      const tableConfig = tableByStateKey.get(stateKey);
-      const rows = writableRowsForStateKey(stateKey, snapshot, writableContext);
-      await deleteRemovedSupabaseRows(tableConfig.table, rows, stateKey, writableContext);
-    }
-
-    for (const { stateKey, table } of SUPABASE_TABLES) {
-      if (!isClientWritableStateKey(stateKey)) continue;
-      const rows = writableRowsForStateKey(stateKey, snapshot, writableContext).map((row) => toSupabaseRow(stateKey, row));
-      if (!rows.length) continue;
-      const { error } = await supabaseClient.from(table).upsert(rows, { onConflict: "id" });
-      if (error) throw error;
-    }
+  function syncStatePayload(snapshot) {
+    return {
+      properties: snapshot.properties || [],
+      units: snapshot.units || [],
+      tenants: snapshot.tenants || [],
+      payments: snapshot.payments || [],
+      expenses: snapshot.expenses || [],
+      supportTickets: snapshot.supportTickets || [],
+      notifications: snapshot.notifications || [],
+    };
   }
 
   function isClientWritableStateKey(stateKey) {

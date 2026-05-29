@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node --check app.js && node --check vacancies.js && node --check server/supabase-admin.js && node --check api/admin-user.js && node --check api/bootstrap-admin.js && node --check api/password-reset.js && node --check api/payments.js && node --check api/signin.js && node --check api/signup.js && node --check api/staff-user.js && node --check api/supabase-config.js && node --check api/vacancies.js && node --check api/whatsapp.js && echo Static site ready"
+    "build": "node --check app.js && node --check vacancies.js && node --check server/supabase-admin.js && node --check api/admin-user.js && node --check api/bootstrap-admin.js && node --check api/password-reset.js && node --check api/payments.js && node --check api/signin.js && node --check api/signup.js && node --check api/staff-user.js && node --check api/supabase-config.js && node --check api/sync-state.js && node --check api/vacancies.js && node --check api/whatsapp.js && echo Static site ready"
   }
 }
