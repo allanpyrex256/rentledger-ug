@@ -55,6 +55,7 @@
   const state = loadState();
 
   const ui = {
+    bootScreen: document.getElementById("bootScreen"),
     landingScreen: document.getElementById("landingScreen"),
     authScreen: document.getElementById("authScreen"),
     appShell: document.getElementById("appShell"),
@@ -314,13 +315,25 @@
   initialize();
 
   async function initialize() {
-    await hydrateStateFromSupabase();
-    toggleProductionDemoControls();
-    bindAuthRecovery();
-    setTodayDefaults();
-    bindEvents();
-    renderPublicListings();
-    renderSession();
+    try {
+      await hydrateStateFromSupabase();
+      toggleProductionDemoControls();
+      bindAuthRecovery();
+      setTodayDefaults();
+      bindEvents();
+      renderPublicListings();
+      renderSession();
+    } catch (error) {
+      console.error("App startup failed", error);
+      renderSession();
+    } finally {
+      finishAppBoot();
+    }
+  }
+
+  function finishAppBoot() {
+    document.body.classList.remove("app-booting");
+    if (ui.bootScreen) ui.bootScreen.classList.add("hidden");
   }
 
   function bindEvents() {

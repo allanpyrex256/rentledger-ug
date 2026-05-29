@@ -7,7 +7,14 @@
     <link rel="icon" type="image/png" href="assets/rentledger-logo-icon.png" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="app-booting">
+    <div id="bootScreen" class="boot-screen" role="status" aria-live="polite">
+      <div class="brand-mark">
+        <img src="assets/rentledger-logo-icon.png" alt="RentLedger UG logo" />
+      </div>
+      <strong>Loading RentLedger UG</strong>
+    </div>
+
     <section id="landingScreen" class="landing-page">
       <header class="landing-nav">
         <div class="brand-block landing-brand">
@@ -1381,7 +1388,7 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script src="supabase-config.js?v=20260529-admin-landlord-messages"></script>
-    <script src="app.js?v=20260529-admin-landlord-messages"></script>
+    <script src="supabase-config.js?v=20260529-startup-gate"></script>
+    <script src="app.js?v=20260529-startup-gate"></script>
   </body>
 </html>

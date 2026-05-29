@@ -35,6 +35,34 @@ body {
   overflow-x: hidden;
 }
 
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--bg);
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.boot-screen .brand-mark {
+  width: 52px;
+  height: 52px;
+}
+
+body.app-booting .boot-screen {
+  display: flex;
+}
+
+body.app-booting .landing-page,
+body.app-booting .auth-screen,
+body.app-booting .app-shell {
+  display: none !important;
+}
+
 button,
 input,
 select {
