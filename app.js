@@ -79,6 +79,11 @@
     accountPhone: document.getElementById("accountPhone"),
     accountEmail: document.getElementById("accountEmail"),
     accountPassword: document.getElementById("accountPassword"),
+    accountPlan: document.getElementById("accountPlan"),
+    accountPaymentMethod: document.getElementById("accountPaymentMethod"),
+    accountBillingContact: document.getElementById("accountBillingContact"),
+    accountBillingConsent: document.getElementById("accountBillingConsent"),
+    accountTrialSummary: document.getElementById("accountTrialSummary"),
     demoLogin: document.getElementById("demoLogin"),
     listingLocationFilter: document.getElementById("listingLocationFilter"),
     listingPriceFilter: document.getElementById("listingPriceFilter"),
@@ -319,7 +324,9 @@
     });
 
     document.querySelectorAll("[data-open-auth]").forEach((button) => {
-      button.addEventListener("click", () => showAuth(button.dataset.openAuth || "signin"));
+      button.addEventListener("click", () =>
+        showAuth(button.dataset.openAuth || "signin", { plan: button.dataset.signupPlan || "" })
+      );
     });
 
     document.querySelectorAll("[data-start-demo]").forEach((button) => {
@@ -361,6 +368,10 @@
     ui.resetPasswordForm.addEventListener("submit", resetPassword);
     ui.resetPasswordBack.addEventListener("click", returnToSignIn);
     ui.createAccountForm.addEventListener("submit", createAccount);
+    [ui.accountPlan, ui.accountPaymentMethod].filter(Boolean).forEach((input) => {
+      input.addEventListener("change", updateSignupBillingSummary);
+    });
+    if (ui.accountBillingContact) ui.accountBillingContact.addEventListener("input", updateSignupBillingSummary);
     if (ui.demoLogin) ui.demoLogin.addEventListener("click", signInDemoAccount);
     ui.logoutButton.addEventListener("click", signOut);
     document.addEventListener("click", handleActionClick);
@@ -497,10 +508,14 @@
     ui.createAccountForm.classList.toggle("hidden", tabName !== "signup");
     ui.forgotPasswordForm.classList.toggle("hidden", tabName !== "forgot");
     ui.resetPasswordForm.classList.toggle("hidden", tabName !== "reset");
+    if (tabName === "signup") updateSignupBillingSummary();
   }
 
-  function showAuth(tabName) {
+  function showAuth(tabName, options = {}) {
     authVisible = true;
+    if (tabName === "signup" && options.plan && ui.accountPlan) {
+      ui.accountPlan.value = options.plan;
+    }
     setAuthTab(tabName);
     renderSession();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -841,6 +856,10 @@
     }
     const phone = ui.accountPhone.value.trim();
     const email = ui.accountEmail.value.trim();
+    const selectedPlan = ui.accountPlan.value;
+    const selectedPlanOption = signupPlanOption(selectedPlan);
+    const paymentMethod = ui.accountPaymentMethod.value;
+    const billingContact = ui.accountBillingContact.value.trim();
     const normalizedPhone = normalizeLoginPhone(phone);
     const normalizedEmail = normalizeLoginEmail(email);
     const duplicatePhone = state.users.some((user) => normalizeLoginPhone(user.phone) === normalizedPhone);
@@ -859,6 +878,26 @@
       showToast("That email address already has an account.");
       return;
     }
+    if (!selectedPlanOption) {
+      showToast("Choose Starter or Professional before starting the free trial.");
+      return;
+    }
+    if (!paymentMethod) {
+      showToast("Choose a payment method for automatic billing after the trial.");
+      return;
+    }
+    if (!billingContact) {
+      showToast("Add the billing phone or authorization reference.");
+      return;
+    }
+    if (paymentMethod === "Visa / Mastercard" && looksLikeFullCardNumber(billingContact)) {
+      showToast("Use a card authorization reference, not a full card number.");
+      return;
+    }
+    if (!ui.accountBillingConsent.checked) {
+      showToast("Confirm automatic collection after the trial.");
+      return;
+    }
 
     try {
       setAppLoading("Creating account");
@@ -867,13 +906,18 @@
         phone,
         email,
         password: ui.accountPassword.value,
+        plan: selectedPlan,
+        payment_method: paymentMethod,
+        billing_contact: billingContact,
+        auto_collect_authorized: true,
       });
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: ui.accountPassword.value });
       if (error) throw error;
       await openUserSession(data.user.id);
       ui.createAccountForm.reset();
+      updateSignupBillingSummary();
       setView("properties");
-      showToast("Landlord account opened.");
+      showToast(`${selectedPlanOption.plan} free trial opened.`);
     } catch (error) {
       console.error("Account creation failed", error);
       showToast(error.message || "Could not create account.");
@@ -3450,6 +3494,42 @@
 
   function packageFee(plan) {
     return PACKAGE_OPTIONS.find((option) => option.plan === plan)?.fee || 0;
+  }
+
+  function signupPlanOption(plan) {
+    return PACKAGE_OPTIONS.find((option) => option.plan === plan && option.fee > 0 && option.plan !== "Enterprise") || null;
+  }
+
+  function updateSignupBillingSummary() {
+    if (!ui.accountTrialSummary) return;
+    const planOption = signupPlanOption(ui.accountPlan?.value);
+    const paymentMethod = ui.accountPaymentMethod?.value || "";
+    const nextBillingDate = addMonths(isoDate(new Date()), 1);
+
+    if (!planOption) {
+      ui.accountTrialSummary.textContent = "Select a paid plan and payment method to start the free trial.";
+      return;
+    }
+    if (!paymentMethod) {
+      ui.accountTrialSummary.textContent = `${planOption.plan} trial selected. Choose how billing will be collected after the trial.`;
+      return;
+    }
+
+    const billingContact = ui.accountBillingContact?.value.trim();
+    const contactLabel = billingContact ? ` from ${maskBillingContact(billingContact)}` : "";
+    ui.accountTrialSummary.textContent =
+      `${planOption.plan} trial selected. ${formatMoney(planOption.fee)}/month will be collected by ${paymentMethod}${contactLabel} from ${formatDate(nextBillingDate)} unless cancelled.`;
+  }
+
+  function maskBillingContact(value) {
+    const raw = String(value || "").trim();
+    if (raw.includes("@")) return maskEmailAddress(raw);
+    return maskPhoneNumber(raw);
+  }
+
+  function looksLikeFullCardNumber(value) {
+    const digits = String(value || "").replace(/\D/g, "");
+    return digits.length >= 12;
   }
 
   function saveSupportTicket(event) {

@@ -982,6 +982,38 @@ button {
   margin-top: 8px;
 }
 
+.form-helper {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.checkbox-consent {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  line-height: 1.4;
+}
+
+.checkbox-consent input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--brand);
+}
+
+.billing-summary-note {
+  border: 1px solid #bae2de;
+  border-radius: 8px;
+  background: #eef8f7;
+  color: var(--brand-dark);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.45;
+  padding: 10px 12px;
+}
+
 .auth-secondary-button {
   width: 100%;
 }

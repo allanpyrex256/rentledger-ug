@@ -6,7 +6,7 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 
 - V1 landlord workflow: create property, add unit, add tenant, record payment, and see balance.
 - Landlord daily dashboard with rent collected today, late tenants, and vacant rooms.
-- Landlord account signup/sign-in prototype with owner-specific data views.
+- Landlord account signup/sign-in with required plan selection, billing method, and free-trial auto-collection authorization.
 - Property setup for rooms, shops, boys quarters, houses, and rent amounts.
 - Public rental listings at `/vacancies` and `/available-units`, connected to vacant rooms with WhatsApp inquiry buttons.
 - Landing page with local photo assets for apartments, mobile payments, and property handover moments.
@@ -40,8 +40,8 @@ When Supabase is not configured, the app runs with local browser demo data for d
 ## Portal Structure
 
 - Super Admin: platform overview, account management, billing, system monitoring, support tickets, subscriptions, and password resets.
-- Landlord: properties, units, tenants, rent, expenses, reminders, and staff access.
-- Staff: assigned properties, tenants, rent, and reminders only.
+- Landlord: properties, units, tenants, rent, support, and caretaker access.
+- Caretaker: assigned properties, tenants, and rent only.
 
 ## Supabase Backend Setup
 

@@ -258,13 +258,13 @@
               <h3>Starter</h3>
               <strong>USh 50,000<span>/month</span></strong>
               <p>For landlords starting with a few rooms and 1 caretaker account.</p>
-              <button class="ghost-button" data-open-auth="signup" type="button">Create Account</button>
+              <button class="ghost-button" data-open-auth="signup" data-signup-plan="Starter" type="button">Create Account</button>
             </article>
             <article class="price-card featured-price">
               <h3>Professional</h3>
               <strong>USh 120,000<span>/month</span></strong>
               <p>For landlords managing multiple properties and more caretaker accounts.</p>
-              <button class="primary-button" data-open-auth="signup" type="button">Start Free Trial</button>
+              <button class="primary-button" data-open-auth="signup" data-signup-plan="Professional" type="button">Start Free Trial</button>
             </article>
             <article class="price-card">
               <h3>Enterprise</h3>
@@ -358,7 +358,34 @@
             Password
             <input id="accountPassword" type="password" autocomplete="new-password" minlength="8" required />
           </label>
-          <button class="primary-button" type="submit">Open Landlord Account</button>
+          <label>
+            Trial Plan
+            <select id="accountPlan" required>
+              <option value="">Select a paid plan</option>
+              <option value="Starter">Starter - USh 50,000/month after trial</option>
+              <option value="Professional">Professional - USh 120,000/month after trial</option>
+            </select>
+          </label>
+          <label>
+            Payment Method
+            <select id="accountPaymentMethod" required>
+              <option value="">Select payment method</option>
+              <option value="MTN MoMo">MTN MoMo</option>
+              <option value="Airtel Money">Airtel Money</option>
+              <option value="Visa / Mastercard">Visa / Mastercard</option>
+            </select>
+          </label>
+          <label>
+            Billing Phone / Authorization Reference
+            <input id="accountBillingContact" autocomplete="tel" placeholder="e.g. 0772123456" required />
+            <small class="form-helper">Used after the trial. Do not enter a full card number.</small>
+          </label>
+          <label class="checkbox-consent">
+            <input id="accountBillingConsent" type="checkbox" required />
+            <span>I authorize automatic monthly collection after my free trial unless I cancel.</span>
+          </label>
+          <div id="accountTrialSummary" class="billing-summary-note">Select a paid plan and payment method to start the free trial.</div>
+          <button class="primary-button" type="submit">Start Free Trial</button>
         </form>
 
         <form id="forgotPasswordForm" class="stacked-form auth-form hidden">
@@ -1324,7 +1351,7 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script src="supabase-config.js?v=20260529-caretaker-limit"></script>
-    <script src="app.js?v=20260529-caretaker-limit"></script>
+    <script src="supabase-config.js?v=20260529-trial-billing"></script>
+    <script src="app.js?v=20260529-trial-billing"></script>
   </body>
 </html>
