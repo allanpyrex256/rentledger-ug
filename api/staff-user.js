@@ -25,7 +25,7 @@ module.exports = async function handler(request, response) {
 
 async function createStaff(request, response) {
   const { profile } = await requireProfile(request);
-  if (profile.role !== "landlord") return send(response, 403, { error: "Only landlord admins can invite staff." });
+  if (profile.role !== "landlord") return send(response, 403, { error: "Only landlord admins can create caretaker logins." });
 
   const body = await readBody(request);
   requireFields(body, ["name", "phone", "email", "password"]);
@@ -76,7 +76,7 @@ async function createStaff(request, response) {
     account_status: "Active",
     company_owner_id: profile.id,
     assigned_property_ids: assignedPropertyIds,
-    invitation_status: "Invited",
+    invitation_status: "Login Created",
     created_at: new Date().toISOString(),
   };
 
@@ -109,16 +109,16 @@ async function staffLimitForOwner(ownerId) {
 
 async function removeStaff(request, response) {
   const { profile } = await requireProfile(request);
-  if (profile.role !== "landlord") return send(response, 403, { error: "Only landlord admins can remove staff." });
+  if (profile.role !== "landlord") return send(response, 403, { error: "Only landlord admins can remove caretaker logins." });
 
   const body = await readBody(request);
   const userId = String(body.userId || "");
-  if (!userId) return send(response, 400, { error: "Staff user is required." });
+  if (!userId) return send(response, 400, { error: "Caretaker user is required." });
 
   const rows = await supabaseFetch(`/rest/v1/app_users?id=eq.${encodeURIComponent(userId)}&select=*`);
   const staff = rows[0];
   if (!staff || staff.role !== "staff" || staff.company_owner_id !== profile.id) {
-    return send(response, 404, { error: "Staff user not found." });
+    return send(response, 404, { error: "Caretaker user not found." });
   }
 
   await deleteRows("app_users", `id=eq.${encodeURIComponent(userId)}`);

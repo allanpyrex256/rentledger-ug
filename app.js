@@ -405,7 +405,9 @@
       saveState();
       renderAll();
       showToast(
-        state.role === "caretaker"
+        state.role === "staff"
+          ? "Caretaker dashboard active."
+          : state.role === "caretaker"
           ? "Caretaker mode limits removals."
           : state.role === "saas-owner"
             ? "Super admin platform mode active."
@@ -1132,10 +1134,7 @@
         ? [{ value: "saas-owner", label: "Super Admin" }]
         : user && user.role === "staff"
           ? [{ value: "staff", label: "Caretaker" }]
-        : [
-            { value: "landlord", label: "Landlord" },
-            { value: "caretaker", label: "Caretaker" },
-          ];
+          : [{ value: "landlord", label: "Landlord" }];
     const nextRole = options.some((option) => option.value === state.role) ? state.role : options[0].value;
     if (state.role !== nextRole) {
       state.role = nextRole;
@@ -1183,7 +1182,11 @@
   }
 
   function updateViewHeader(viewName) {
-    const [title, subtitle] = viewCopy[viewName] || viewCopy.dashboard;
+    const copy =
+      viewName === "dashboard" && currentUser()?.role === "staff"
+        ? ["Caretaker Dashboard", "Assigned tenants, follow-ups, and payments only."]
+        : viewCopy[viewName] || viewCopy.dashboard;
+    const [title, subtitle] = copy;
     ui.viewTitle.textContent = title;
     ui.viewSubtitle.textContent = subtitle;
   }
@@ -1275,6 +1278,10 @@
 
   function renderDashboard() {
     if (isSaasOwner()) return;
+    if (currentUser()?.role === "staff") {
+      renderCaretakerDashboard();
+      return;
+    }
 
     const scope = getScopedData();
     const rentRows = getRentRows(scope.tenants);
@@ -1398,6 +1405,102 @@
     renderActivityFeed(buildActivityItems(scope).slice(0, 8));
   }
 
+  function renderCaretakerDashboard() {
+    const scope = getScopedData();
+    const rentRows = getRentRows(scope.tenants);
+    const todayPayments = scope.payments.filter((payment) => isToday(payment.created_at || payment.payment_date));
+    const collectedToday = todayPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const overdueRows = rentRows
+      .filter((row) => row.status === "Overdue")
+      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+    const dueSoonRows = rentRows
+      .filter((row) => row.daysUntilDue >= 0 && row.daysUntilDue <= 3)
+      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+    const vacantUnits = scope.units.filter((unit) => unit.status === "vacant");
+
+    ui.dashboardPrimaryTitle.textContent = "Assigned Vacant Rooms";
+    ui.dashboardSecondaryTitle.textContent = "Tenants To Follow Up";
+    ui.dashboardRecentTitle.textContent = "Recent Assigned Payments";
+    ui.dashboardActivityTitle.textContent = "Caretaker Activity";
+    ui.upcomingDuesHead.innerHTML = `
+      <th>Tenant</th>
+      <th>Room</th>
+      <th>Days</th>
+      <th>Balance</th>
+      <th>Actions</th>
+    `;
+    ui.recentPaymentsHead.innerHTML = `
+      <th>Tenant</th>
+      <th>Room</th>
+      <th>Amount</th>
+      <th>Time</th>
+      <th>Method</th>
+      <th>Actions</th>
+    `;
+
+    ui.metricGrid.innerHTML = [
+      metricCard("Assigned Properties", scope.properties.length, `${scope.units.length} rooms and shops assigned`, "assignedProperties"),
+      metricCard("Active Tenants", scope.tenants.length, `${dueSoonRows.length} due soon`, "dueSoon"),
+      metricCard("Late Tenants", overdueRows.length, `${formatMoney(totalBalance(overdueRows))} still unpaid`, "lateTenants"),
+    ].join("");
+
+    ui.dailyOpsGrid.innerHTML = [
+      dailyOpsCard("Collected today", formatMoney(collectedToday), `${todayPayments.length} payments in assigned rooms`, "success", "todayPayments"),
+      dailyOpsCard("Due soon", dueSoonRows.length, "Tenants due in the next 3 days", "warning", "dueSoon"),
+      dailyOpsCard("Vacant assigned", vacantUnits.length, vacantUnitSummary(vacantUnits), "info", "vacantRooms"),
+    ].join("");
+
+    ui.occupancyLabel.textContent = `${vacantUnits.length} vacant`;
+    ui.dueSoonLabel.textContent = `${overdueRows.length} late`;
+    ui.monthLabel.textContent = monthName(new Date());
+
+    ui.unitStatusGrid.innerHTML =
+      vacantUnits
+        .map((unit) => {
+          const property = propertyById(unit.property_id);
+          return `
+            <button class="unit-tile vacant dashboard-action-card" data-unit-detail="${escapeHtml(unit.id)}" type="button">
+              <div class="unit-number">${escapeHtml(unit.unit_number)}</div>
+              <div class="unit-status">${escapeHtml(property ? property.property_name : "No property")}</div>
+              <strong>${formatMoney(unit.rent_amount)}</strong>
+            </button>
+          `;
+        })
+        .join("") || emptyBlock("No vacant rooms in your assigned properties.");
+
+    ui.upcomingDuesTable.innerHTML =
+      overdueRows.slice(0, 8).map((row) => lateTenantRow(row)).join("") ||
+      emptyTableRow(5, "No late tenants in your assigned properties.");
+
+    const recent = scope.payments
+      .slice()
+      .sort((a, b) => new Date(b.created_at || b.payment_date) - new Date(a.created_at || a.payment_date))
+      .slice(0, 8);
+    ui.recentPaymentsTable.innerHTML =
+      recent
+        .map((payment) => {
+          const tenant = tenantById(payment.tenant_id);
+          const unit = tenant ? unitById(tenant.unit_id) : null;
+          return `
+            <tr>
+              <td>${personCell(tenant ? tenant.name : "Removed tenant", payment.reference || payment.payment_method)}</td>
+              <td>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</td>
+              <td><strong>${formatMoney(payment.amount)}</strong></td>
+              <td>${escapeHtml(paymentTimeLabel(payment))}</td>
+              <td>${escapeHtml(payment.payment_method)}</td>
+              <td><button class="text-button compact-link-button" data-payment-detail="${escapeHtml(payment.id)}" type="button">Details</button></td>
+            </tr>
+          `;
+        })
+        .join("") || emptyTableRow(6, "No payments recorded for assigned tenants yet.");
+
+    ui.dashboardChartTitle.textContent = "Caretaker Tasks";
+    ui.dashboardChartLabel.textContent = `${scope.properties.length} assigned`;
+    ui.dashboardChart.innerHTML = renderCaretakerTaskList({ overdueRows, dueSoonRows, vacantUnits });
+    ui.dashboardExpenseList.closest(".panel")?.classList.add("hidden");
+    renderActivityFeed(buildActivityItems(scope).slice(0, 8));
+  }
+
   function dashboardSnapshot() {
     const scope = getScopedData();
     const rentRows = getRentRows(scope.tenants);
@@ -1428,6 +1531,17 @@
   function openDashboardDetail(type) {
     const data = dashboardSnapshot();
     const month = monthName(new Date());
+    if (type === "assignedProperties") {
+      openDashboardDetailModal(
+        "Assigned Properties",
+        `${data.scope.properties.length} properties assigned to you`,
+        [
+          propertyDetailList(data.scope.properties, "No properties assigned yet."),
+          detailActions([["tenants", "Open Tenants"], ["rent", "Open Rent Collection"]]),
+        ].join("")
+      );
+      return;
+    }
     if (type === "rentCollected") {
       const collected = data.currentMonthPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
       openDashboardDetailModal(
@@ -1489,12 +1603,16 @@
       return;
     }
     if (type === "vacantRooms") {
+      const vacancyActions =
+        currentUser()?.role === "staff"
+          ? [["tenants", "Open Tenants"], ["rent", "Open Rent Collection"]]
+          : [["properties", "Open Properties"], ["tenants", "Add Tenant"]];
       openDashboardDetailModal(
         "Vacant Rooms",
         vacantUnitSummary(data.vacantUnits),
         [
           unitDetailList(data.vacantUnits, "No vacant rooms for the selected property."),
-          detailActions([["properties", "Open Properties"], ["tenants", "Add Tenant"]]),
+          detailActions(vacancyActions),
         ].join("")
       );
       return;
@@ -1760,6 +1878,29 @@
                   <small>${escapeHtml(property ? property.property_name : "Unknown property")} - ${escapeHtml(unitTypeLabel(unit))}</small>
                 </span>
                 <b>${formatMoney(unit.rent_amount)}</b>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
+  function propertyDetailList(properties, emptyMessage) {
+    if (!properties.length) return emptyBlock(emptyMessage);
+    return `
+      <div class="detail-list">
+        ${properties
+          .map((property) => {
+            const units = state.units.filter((unit) => unit.property_id === property.id);
+            const occupied = units.filter((unit) => unit.status === "occupied").length;
+            return `
+              <button class="detail-list-item" data-dashboard-view="tenants" type="button">
+                <span>
+                  <strong>${escapeHtml(property.property_name)}</strong>
+                  <small>${escapeHtml(property.location)} - ${escapeHtml(property.property_type || "Property")}</small>
+                </span>
+                <b>${occupied}/${units.length}</b>
               </button>
             `;
           })
@@ -2219,6 +2360,52 @@
     ].filter((range) => range.start <= lastDay);
   }
 
+  function renderCaretakerTaskList({ overdueRows, dueSoonRows, vacantUnits }) {
+    const taskRows = [
+      ...overdueRows.slice(0, 4).map((row) => ({
+        id: row.tenant.id,
+        type: "tenant",
+        title: row.tenant.name,
+        meta: `${row.unit ? row.unit.unit_number : "Unassigned"} - ${Math.abs(row.daysUntilDue)} day${Math.abs(row.daysUntilDue) === 1 ? "" : "s"} late`,
+        value: formatMoney(row.balance),
+      })),
+      ...dueSoonRows.slice(0, 4).map((row) => ({
+        id: row.tenant.id,
+        type: "tenant",
+        title: row.tenant.name,
+        meta: `${row.unit ? row.unit.unit_number : "Unassigned"} - ${row.daysUntilDue === 0 ? "Due today" : `Due in ${row.daysUntilDue} day${row.daysUntilDue === 1 ? "" : "s"}`}`,
+        value: formatMoney(row.balance),
+      })),
+      ...vacantUnits.slice(0, 3).map((unit) => {
+        const property = propertyById(unit.property_id);
+        return {
+          id: unit.id,
+          type: "unit",
+          title: unit.unit_number,
+          meta: property ? property.property_name : "Assigned property",
+          value: "Vacant",
+        };
+      }),
+    ].slice(0, 8);
+
+    if (!taskRows.length) return emptyBlock("No urgent caretaker tasks for your assigned properties.");
+    return `
+      <div class="compact-list">
+        ${taskRows
+          .map((task) => `
+            <button class="compact-list-item dashboard-action-card" data-${task.type}-detail="${escapeHtml(task.id)}" type="button">
+              <span>
+                <strong>${escapeHtml(task.title)}</strong>
+                <small>${escapeHtml(task.meta)}</small>
+              </span>
+              <b>${escapeHtml(task.value)}</b>
+            </button>
+          `)
+          .join("")}
+      </div>
+    `;
+  }
+
   function renderOwnerChart(subscriptions) {
     const buckets = subscriptions.map((subscription) => ({
       label: subscription.plan.slice(0, 4),
@@ -2600,12 +2787,12 @@
     const user = currentUser();
     if (!user || user.role !== "landlord") {
       if (ui.staffPlanNotice) {
-        ui.staffPlanNotice.textContent = "Caretaker invitations are available to landlord admins.";
+        ui.staffPlanNotice.textContent = "Caretaker logins are managed by landlord admins.";
         ui.staffPlanNotice.className = "plan-limit-note";
       }
       if (ui.staffInviteButton) ui.staffInviteButton.disabled = true;
       ui.staffCountLabel.textContent = "0 caretakers";
-      ui.staffTable.innerHTML = emptyTableRow(4, "Caretaker invitations are available to landlord admins.");
+      ui.staffTable.innerHTML = emptyTableRow(4, "Caretaker logins are managed by landlord admins.");
       return;
     }
 
@@ -2630,16 +2817,16 @@
               <small class="table-subtext">${escapeHtml(userContactLabel(member))}</small>
             </td>
             <td>${escapeHtml(assignedPropertyNames(member).join(", ") || "No properties assigned")}</td>
-            <td>${statusPill(member.invitation_status || "Invited")}</td>
+            <td>${statusPill(member.invitation_status || "Login Created")}</td>
             <td>
               <div class="button-row">
-                <button class="text-button" data-copy-staff-login="${member.id}" type="button">Copy Login</button>
+                <button class="text-button" data-copy-staff-login="${member.id}" type="button">Copy Login Details</button>
                 <button class="danger-button" data-remove-staff="${member.id}" type="button">Remove</button>
               </div>
             </td>
           </tr>
         `)
-        .join("") || emptyTableRow(4, "No caretakers invited yet.");
+        .join("") || emptyTableRow(4, "No caretakers added yet.");
 
   }
 
@@ -2846,7 +3033,7 @@
     const user = currentUser();
     if (!user) return;
     if (user.role === "staff") {
-      showToast("Staff cannot create properties.");
+      showToast("Caretakers cannot create properties.");
       return;
     }
 
@@ -2922,7 +3109,7 @@
   async function saveUnit(event) {
     event.preventDefault();
     if (currentUser()?.role === "staff") {
-      showToast("Staff cannot create rooms.");
+      showToast("Caretakers cannot create rooms.");
       return;
     }
     if (!ui.unitProperty.value) {
@@ -3177,7 +3364,7 @@
     event.preventDefault();
     const user = currentUser();
     if (!user || user.role !== "landlord") {
-      showToast("Only landlord admins can invite caretakers.");
+      showToast("Only landlord admins can create caretaker logins.");
       return;
     }
 
@@ -3207,19 +3394,20 @@
           password: ui.staffPassword.value,
           assigned_property_ids: assignedPropertyIds,
         });
-        state.users.push(result.user);
+        const createdCaretaker = { ...result.user, password: ui.staffPassword.value, invitation_status: "Login Created" };
+        state.users.push(createdCaretaker);
         addNotification({
           type: "staff",
-          title: "Caretaker invitation created",
-          message: `${result.user.name} can now access ${assignedPropertyNames(result.user).join(", ")}.`,
+          title: "Caretaker login created",
+          message: `${createdCaretaker.name} can now access ${assignedPropertyNames(createdCaretaker).join(", ")}.`,
         });
         saveState();
         ui.staffInviteForm.reset();
         renderAll();
-        showToast("Caretaker invitation saved.");
+        showToast("Caretaker login created. Copy the login details for the caretaker.");
       } catch (error) {
-        console.error("Staff invite failed", error);
-        showToast(error.message || "Could not invite caretaker.");
+        console.error("Caretaker login failed", error);
+        showToast(error.message || "Could not create caretaker login.");
       }
       return;
     }
@@ -3249,30 +3437,35 @@
       account_status: "Active",
       company_owner_id: user.id,
       assigned_property_ids: assignedPropertyIds,
-      invitation_status: "Invited",
+      invitation_status: "Login Created",
       created_at: new Date().toISOString(),
     };
 
     state.users.push(staffUser);
     addNotification({
       type: "staff",
-      title: "Caretaker invitation created",
+      title: "Caretaker login created",
       message: `${staffUser.name} can now access ${assignedPropertyNames(staffUser).join(", ")}.`,
     });
     saveState();
     ui.staffInviteForm.reset();
     renderAll();
-    showToast("Caretaker invitation saved.");
+    showToast("Caretaker login created. Copy the login details for the caretaker.");
+  }
+
+  function caretakerLoginText(staffUser) {
+    const loginLines = ["RentLedger UG caretaker login", `Phone: ${staffUser.phone}`];
+    if (staffUser.email) loginLines.push(`Email: ${staffUser.email}`);
+    if (staffUser.password) loginLines.push(`Password: ${staffUser.password}`);
+    else loginLines.push("Use the temporary password shared when this login was created.");
+    loginLines.push(`Assigned properties: ${assignedPropertyNames(staffUser).join(", ") || "None assigned"}`);
+    return loginLines.join("\n");
   }
 
   function copyStaffLogin(id) {
     const staffUser = userById(id);
     if (!staffUser) return;
-    const loginLines = ["RentLedger UG caretaker login", `Phone: ${staffUser.phone}`];
-    if (staffUser.email) loginLines.push(`Email: ${staffUser.email}`);
-    if (staffUser.password) loginLines.push(`Password: ${staffUser.password}`);
-    else loginLines.push("Use the temporary password shared during invitation.");
-    copyText(loginLines.join("\n"));
+    copyText(caretakerLoginText(staffUser));
   }
 
   async function removeStaff(id) {
@@ -3282,15 +3475,15 @@
       try {
         await apiRequest("/api/staff-user", { userId: id }, { method: "DELETE" });
       } catch (error) {
-        console.error("Staff removal failed", error);
-        showToast(error.message || "Could not remove staff access.");
+        console.error("Caretaker removal failed", error);
+        showToast(error.message || "Could not remove caretaker login.");
         return;
       }
     }
     state.users = state.users.filter((user) => user.id !== id);
     saveState();
     renderAll();
-    showToast("Staff access removed.");
+    showToast("Caretaker login removed.");
   }
 
   function startTenantMoveOut(id) {
@@ -3406,7 +3599,7 @@
   function saveExpense(event) {
     event.preventDefault();
     if (currentUser()?.role === "staff") {
-      showToast("Staff cannot record expenses.");
+      showToast("Caretakers cannot record expenses.");
       return;
     }
     const property = ownerProperties().find((item) => item.id === ui.expenseProperty.value);
@@ -4084,7 +4277,7 @@
 
   function accountStatus(user) {
     if (!user) return "Inactive";
-    return user.account_status || (user.role === "staff" ? user.invitation_status || "Invited" : "Active");
+    return user.account_status || (user.role === "staff" ? user.invitation_status || "Login Created" : "Active");
   }
 
   function isAccountSuspended(user) {
@@ -4190,7 +4383,7 @@
         ? "Starter includes 1 caretaker. Upgrade to Professional to add more."
         : "Starter includes 1 caretaker account.";
     }
-    if (limit.plan === "Trial") return "Trial accounts cannot invite caretakers. Upgrade to Starter or Professional.";
+    if (limit.plan === "Trial") return "Trial accounts cannot add caretakers. Upgrade to Starter or Professional.";
     return `${limit.plan} allows multiple caretaker accounts.`;
   }
 
@@ -4410,7 +4603,7 @@
     if (type === "tenant") return "Tenant";
     if (type === "support") return "Support";
     if (type === "billing") return "Billing";
-    if (type === "staff") return "Staff";
+    if (type === "staff") return "Caretaker";
     return "Notification";
   }
 
@@ -5234,7 +5427,7 @@
       });
     }
     migrated.users = migrated.users.map((user) => ({
-      invitation_status: user.role === "staff" ? "Invited" : undefined,
+      invitation_status: user.role === "staff" ? "Login Created" : undefined,
       assigned_property_ids: [],
       ...user,
     }));
@@ -5257,12 +5450,12 @@
       if (user.id === "staff-1") {
         return {
           ...user,
-          name: user.name === "Joseph Manager" ? "Staff Demo" : user.name,
+          name: user.name === "Joseph Manager" || user.name === "Staff Demo" ? "Caretaker Demo" : user.name,
           creator_email: SUPER_ADMIN_EMAIL,
           platform_owner_id: SUPER_ADMIN_USER_ID,
           company_owner_id: "user-1",
           assigned_property_ids: ["property-1", "property-4"],
-          invitation_status: user.invitation_status || "Invited",
+          invitation_status: user.invitation_status || "Login Created",
         };
       }
       if (isSuperAdminLinkedDemoAccount(user)) {
@@ -5420,7 +5613,7 @@
         },
         {
           id: "staff-1",
-          name: "Staff Demo",
+          name: "Caretaker Demo",
           phone: "0700111222",
           email: "staff@rentledger.ug",
           creator_email: SUPER_ADMIN_EMAIL,
@@ -5430,7 +5623,7 @@
           account_status: "Active",
           company_owner_id: "user-1",
           assigned_property_ids: ["property-1", "property-4"],
-          invitation_status: "Invited",
+          invitation_status: "Login Created",
           created_at: date(5),
         },
       ],

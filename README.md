@@ -21,7 +21,7 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 
 ## Open It
 
-Open `index.html` in a browser for local demo mode. For real users, deploy on Vercel or another host that can run the `/api/*` server routes; those routes handle signup, sign-in, staff invites, password resets, and admin-only actions.
+Open `index.html` in a browser for local demo mode. For real users, deploy on Vercel or another host that can run the `/api/*` server routes; those routes handle signup, sign-in, caretaker logins, password resets, and admin-only actions.
 
 For Vercel production, set these environment variables instead of hard-coding keys:
 
