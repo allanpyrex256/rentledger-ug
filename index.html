@@ -1236,6 +1236,28 @@
               </form>
             </section>
 
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Message Landlord</h2>
+                <span class="pill info">Communication</span>
+              </div>
+              <form id="adminMessageForm" class="stacked-form">
+                <label>
+                  Landlord
+                  <select id="adminMessageOwner" required></select>
+                </label>
+                <label>
+                  Subject
+                  <input id="adminMessageTitle" placeholder="e.g. Subscription reminder" required />
+                </label>
+                <label>
+                  Message
+                  <textarea id="adminMessageBody" rows="4" placeholder="Write the message for the landlord" required></textarea>
+                </label>
+                <button class="primary-button" type="submit">Send Message</button>
+              </form>
+            </section>
+
             <section class="panel wide-panel">
               <div class="panel-header">
                 <h2>System Health</h2>
@@ -1251,6 +1273,14 @@
                 <span id="supportTicketCount" class="pill warning">0 open</span>
               </div>
               <div id="supportTicketList" class="support-list"></div>
+            </section>
+
+            <section class="panel wide-panel">
+              <div class="panel-header">
+                <h2>Landlord Messages</h2>
+                <span id="adminMessageCount" class="pill neutral">0 sent</span>
+              </div>
+              <div id="adminMessageList" class="support-list"></div>
             </section>
 
             <section class="panel">
@@ -1351,7 +1381,7 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <script src="supabase-config.js?v=20260529-support-admin-notify"></script>
-    <script src="app.js?v=20260529-support-admin-notify"></script>
+    <script src="supabase-config.js?v=20260529-admin-landlord-messages"></script>
+    <script src="app.js?v=20260529-admin-landlord-messages"></script>
   </body>
 </html>

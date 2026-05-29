@@ -249,6 +249,12 @@
     supportNote: document.getElementById("supportNote"),
     supportTicketCount: document.getElementById("supportTicketCount"),
     supportTicketList: document.getElementById("supportTicketList"),
+    adminMessageForm: document.getElementById("adminMessageForm"),
+    adminMessageOwner: document.getElementById("adminMessageOwner"),
+    adminMessageTitle: document.getElementById("adminMessageTitle"),
+    adminMessageBody: document.getElementById("adminMessageBody"),
+    adminMessageCount: document.getElementById("adminMessageCount"),
+    adminMessageList: document.getElementById("adminMessageList"),
     systemStorageLabel: document.getElementById("systemStorageLabel"),
     systemMonitorSummary: document.getElementById("systemMonitorSummary"),
     systemSignalList: document.getElementById("systemSignalList"),
@@ -438,6 +444,7 @@
     ui.ownerPaymentDate.addEventListener("change", () => syncOwnerPaymentDefaults(false));
     ui.ownerPaymentForm.addEventListener("submit", saveOwnerPayment);
     ui.supportTicketForm.addEventListener("submit", saveSupportTicket);
+    if (ui.adminMessageForm) ui.adminMessageForm.addEventListener("submit", sendLandlordMessage);
     ui.adminPasswordResetForm.addEventListener("submit", sendAdminPasswordReset);
     ui.closeDashboardDetail.addEventListener("click", closeDashboardDetailModal);
     ui.dashboardDetailModal.addEventListener("click", (event) => {
@@ -1112,6 +1119,7 @@
   function populateOwnerControls() {
     if (!isSaasOwner()) return;
     const selectedPaymentOwnerId = ui.ownerPaymentLandlord.value;
+    const selectedMessageOwnerId = ui.adminMessageOwner?.value;
     const landlordOptions =
       landlordUsers()
         .map((user) => `<option value="${user.id}">${escapeHtml(user.name)} - ${escapeHtml(userContactLabel(user))}</option>`)
@@ -1121,6 +1129,12 @@
       ui.ownerPaymentLandlord.value = selectedPaymentOwnerId;
     }
     ui.supportOwner.innerHTML = landlordOptions;
+    if (ui.adminMessageOwner) {
+      ui.adminMessageOwner.innerHTML = landlordOptions;
+      if (selectedMessageOwnerId && landlordUsers().some((user) => user.id === selectedMessageOwnerId)) {
+        ui.adminMessageOwner.value = selectedMessageOwnerId;
+      }
+    }
     ui.adminPasswordResetUser.innerHTML =
       resettableUsers()
         .map((user) => `<option value="${user.id}">${escapeHtml(adminResetOptionLabel(user))}</option>`)
@@ -2662,6 +2676,33 @@
         })
         .join("") || emptyBlock("No support tickets yet.");
 
+    const landlordMessages = notifications
+      .filter((notification) => notification.type === "announcement" && notification.user_id)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    ui.adminMessageCount.textContent = `${landlordMessages.length} sent`;
+    ui.adminMessageList.innerHTML =
+      landlordMessages
+        .filter((notification) => {
+          const user = userById(notification.user_id);
+          return matchesSearch([notification.title, notification.message, user ? user.name : ""]);
+        })
+        .slice(0, 10)
+        .map((notification) => {
+          const user = userById(notification.user_id);
+          return `
+            <article class="support-card">
+              <div class="support-card-header">
+                <div class="support-card-title">
+                  <strong>${escapeHtml(notification.title)}</strong>
+                  <small>${escapeHtml(user ? user.name : "Unknown landlord")} - ${timeAgo(notification.created_at)}</small>
+                </div>
+                ${statusPill(notification.read ? "Read" : "Open")}
+              </div>
+              <p class="support-note">${escapeHtml(notification.message)}</p>
+            </article>
+          `;
+        })
+        .join("") || emptyBlock("No landlord messages yet.");
   }
 
   function renderProperties() {
@@ -3775,6 +3816,37 @@
     showToast("Support ticket saved.");
   }
 
+  function sendLandlordMessage(event) {
+    event.preventDefault();
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can message landlords.");
+      return;
+    }
+
+    const owner = userById(ui.adminMessageOwner.value);
+    const title = ui.adminMessageTitle.value.trim();
+    const message = ui.adminMessageBody.value.trim();
+    if (!owner || owner.role !== "landlord") {
+      showToast("Choose a landlord first.");
+      return;
+    }
+    if (!title || !message) {
+      showToast("Add a subject and message.");
+      return;
+    }
+
+    addNotification({
+      user_id: owner.id,
+      type: "announcement",
+      title,
+      message,
+    });
+    saveState();
+    ui.adminMessageForm.reset();
+    renderAll();
+    showToast(`Message sent to ${owner.name}.`);
+  }
+
   function saveLandlordSupportTicket(event) {
     event.preventDefault();
     const user = currentUser();
@@ -4609,6 +4681,7 @@
     if (type === "property") return "Property";
     if (type === "tenant") return "Tenant";
     if (type === "support") return "Support";
+    if (type === "announcement") return "Admin message";
     if (type === "billing") return "Billing";
     if (type === "staff") return "Caretaker";
     return "Notification";
