@@ -298,6 +298,11 @@
   }
 
   function bindEvents() {
+    window.addEventListener("pagehide", flushPendingSupabaseSave);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flushPendingSupabaseSave();
+    });
+
     document.querySelectorAll("[data-open-auth]").forEach((button) => {
       button.addEventListener("click", () => showAuth(button.dataset.openAuth || "signin"));
     });
@@ -4377,14 +4382,23 @@
       }
 
       const remote = await fetchSupabaseState(client);
+      const cachedState = state;
+      const mergedRemote = mergeRemoteWithLocalCache(remote, cachedState, session.user.id);
+      const { usedLocalCache, ...mergedData } = mergedRemote;
       const sessionState = {
         currentUserId: session.user.id,
         selectedPropertyId: state.selectedPropertyId,
         role: state.role,
         searchTerm: state.searchTerm,
       };
-      replaceState(migrateState({ ...emptyState(), ...remote, ...sessionState }));
+      replaceState(migrateState({ ...emptyState(), ...mergedData, ...sessionState }));
       saveLocalStateOnly();
+      if (usedLocalCache) {
+        window.setTimeout(() => {
+          saveState();
+          showToast("Recovered browser data and saved it again.");
+        }, 0);
+      }
       if (sessionState.currentUserId) showToast("Secure session loaded.");
     } catch (error) {
       console.error("Supabase sync failed", error);
@@ -4599,21 +4613,76 @@
   }
 
   function saveLocalStateOnly() {
-    if (!supabaseReady) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      return;
-    }
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        production: true,
-        currentUserId: state.currentUserId,
-        selectedPropertyId: state.selectedPropertyId,
-        role: state.role,
-        searchTerm: state.searchTerm,
-        dismissedNotificationIds: state.dismissedNotificationIds || [],
-      })
-    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(localCacheState()));
+  }
+
+  function localCacheState() {
+    return {
+      ...state,
+      production: supabaseReady || Boolean(state.production),
+      cached_at: new Date().toISOString(),
+      users: (state.users || []).map(({ password, ...user }) => user),
+    };
+  }
+
+  function mergeRemoteWithLocalCache(remote, cachedState, userId) {
+    if (!cachedState?.production) return remote;
+    if (cachedState.currentUserId && cachedState.currentUserId !== userId) return remote;
+    const merged = { ...remote };
+    let usedLocalCache = false;
+    const keys = ["users", "subscriptions", "properties", "units", "tenants", "payments", "expenses", "supportTickets", "notifications"];
+
+    keys.forEach((key) => {
+      const remoteRows = Array.isArray(remote[key]) ? remote[key] : [];
+      const cachedRows = Array.isArray(cachedState[key]) ? cachedState[key] : [];
+      const { rows, usedCache } = mergeRowsById(remoteRows, cachedRows);
+      merged[key] = rows;
+      usedLocalCache = usedLocalCache || usedCache;
+    });
+
+    return { ...merged, usedLocalCache };
+  }
+
+  function mergeRowsById(remoteRows, cachedRows) {
+    const rowsById = new Map(remoteRows.filter((row) => row?.id).map((row) => [row.id, row]));
+    let usedCache = false;
+
+    cachedRows
+      .filter((row) => row?.id && shouldKeepCachedRow(row))
+      .forEach((row) => {
+        const remoteRow = rowsById.get(row.id);
+        if (!remoteRow || (!sameCachedRow(row, remoteRow) && cacheLooksNewer(row, remoteRow))) {
+          rowsById.set(row.id, row);
+          usedCache = true;
+        }
+      });
+
+    return { rows: [...rowsById.values()], usedCache };
+  }
+
+  function shouldKeepCachedRow(row) {
+    return !String(row.id || "").startsWith("notification-daily-");
+  }
+
+  function cacheLooksNewer(cachedRow, remoteRow) {
+    const cachedDate = rowTimestamp(cachedRow);
+    const remoteDate = rowTimestamp(remoteRow);
+    if (!remoteDate) return true;
+    if (!cachedDate) return false;
+    return cachedDate >= remoteDate;
+  }
+
+  function sameCachedRow(left, right) {
+    const keys = new Set([...Object.keys(left || {}), ...Object.keys(right || {})]);
+    keys.delete("cached_at");
+    keys.delete("password");
+    return [...keys].every((key) => String(left?.[key] ?? "") === String(right?.[key] ?? ""));
+  }
+
+  function rowTimestamp(row) {
+    const value = row.updated_at || row.created_at || row.payment_date || row.date || row.move_in_date || "";
+    const time = value ? new Date(value).getTime() : 0;
+    return Number.isFinite(time) ? time : 0;
   }
 
   function scheduleSupabaseSave() {
@@ -4627,6 +4696,16 @@
         showToast("Could not save to Supabase. Browser copy kept.");
       });
     }, 450);
+  }
+
+  function flushPendingSupabaseSave() {
+    if (!supabaseSaveTimer || !supabaseReady || supabaseHydrating || !supabaseClient || !currentUser()) return;
+    const snapshot = JSON.parse(JSON.stringify(state));
+    window.clearTimeout(supabaseSaveTimer);
+    supabaseSaveTimer = null;
+    persistSupabaseState(snapshot).catch((error) => {
+      console.error("Supabase save failed", error);
+    });
   }
 
   async function persistSupabaseState(snapshot) {
