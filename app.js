@@ -4491,6 +4491,9 @@
   }
 
   async function fetchPublicSupabaseState(client) {
+    const apiState = await fetchPublicListingsFromApi();
+    if (apiState) return apiState;
+
     const [{ data: units, error: unitsError }, { data: properties, error: propertiesError }, { data: users, error: usersError }] =
       await Promise.all([
         client.from("units").select("*").eq("status", "vacant").eq("listing_published", true),
@@ -4509,6 +4512,37 @@
       dismissedNotificationIds: state.dismissedNotificationIds || [],
       passwordReset: state.passwordReset || null,
     };
+  }
+
+  async function fetchPublicListingsFromApi() {
+    try {
+      const response = await fetch("/api/vacancies", { cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Could not load vacancies.");
+      const listings = payload.listings || [];
+      return {
+        users: uniqueBy(listings.map((item) => item.owner).filter(Boolean), "id").map((row) => fromSupabaseRow("users", row)),
+        properties: uniqueBy(listings.map((item) => item.property).filter(Boolean), "id").map((row) =>
+          fromSupabaseRow("properties", row)
+        ),
+        units: listings.map((item) => fromSupabaseRow("units", item.unit)),
+        dismissedNotificationIds: state.dismissedNotificationIds || [],
+        passwordReset: state.passwordReset || null,
+      };
+    } catch (error) {
+      console.error("Public vacancies API failed", error);
+      return null;
+    }
+  }
+
+  function uniqueBy(rows, key) {
+    const seen = new Set();
+    return rows.filter((row) => {
+      const value = row && row[key];
+      if (!value || seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
   }
 
   async function safeFetchPublicSupabaseState(client) {

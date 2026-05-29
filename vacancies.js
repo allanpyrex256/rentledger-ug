@@ -24,16 +24,9 @@
     });
     if (ui.search) ui.search.addEventListener("click", renderListings);
 
-    const client = await createSupabaseClient();
-    if (!client) {
-      ui.status.textContent = "Vacancy database is not connected yet. Please check back soon.";
-      ui.grid.innerHTML = emptyBlock("Landlord listings will appear here once Supabase is connected.");
-      return;
-    }
-
     try {
       ui.status.textContent = "Loading vacant units...";
-      state.listings = await fetchListings(client);
+      state.listings = await fetchListings();
       renderListings();
     } catch (error) {
       console.error("Could not load vacancies", error);
@@ -42,85 +35,11 @@
     }
   }
 
-  async function createSupabaseClient() {
-    const config = await resolveSupabaseConfig();
-    if (!isSupabaseConfigReady(config)) return null;
-    const loaded = await loadSupabaseLibrary();
-    if (!loaded || !window.supabase?.createClient) return null;
-    return window.supabase.createClient(config.url, config.anonKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-  }
-
-  async function resolveSupabaseConfig() {
-    if (isSupabaseConfigReady(window.RENTLEDGER_SUPABASE)) return window.RENTLEDGER_SUPABASE;
-    try {
-      const response = await fetch("/api/supabase-config", { cache: "no-store" });
-      if (!response.ok) return window.RENTLEDGER_SUPABASE || null;
-      const config = await response.json();
-      if (isSupabaseConfigReady(config)) {
-        window.RENTLEDGER_SUPABASE = config;
-        return config;
-      }
-    } catch (error) {
-      return window.RENTLEDGER_SUPABASE || null;
-    }
-    return window.RENTLEDGER_SUPABASE || null;
-  }
-
-  function isSupabaseConfigReady(config) {
-    return Boolean(
-      config &&
-        config.url &&
-        config.anonKey &&
-        !config.url.includes("your-project") &&
-        !config.anonKey.includes("your-public")
-    );
-  }
-
-  function loadSupabaseLibrary() {
-    if (window.supabase?.createClient) return Promise.resolve(true);
-    if (loadSupabaseLibrary.promise) return loadSupabaseLibrary.promise;
-    loadSupabaseLibrary.promise = new Promise((resolve) => {
-      const script = document.createElement("script");
-      const timeout = window.setTimeout(() => resolve(false), 8000);
-      script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-      script.onload = () => {
-        window.clearTimeout(timeout);
-        resolve(true);
-      };
-      script.onerror = () => {
-        window.clearTimeout(timeout);
-        resolve(false);
-      };
-      document.head.appendChild(script);
-    });
-    return loadSupabaseLibrary.promise;
-  }
-
-  async function fetchListings(client) {
-    const [{ data: units, error: unitsError }, { data: properties, error: propertiesError }, { data: users, error: usersError }] =
-      await Promise.all([
-        client.from("units").select("*").eq("status", "vacant").eq("listing_published", true),
-        client.from("properties").select("*"),
-        client.from("app_users").select("id,name,phone,email"),
-      ]);
-
-    if (unitsError) throw unitsError;
-    if (propertiesError) throw propertiesError;
-    if (usersError) throw usersError;
-
-    const propertyById = new Map((properties || []).map((property) => [property.id, property]));
-    const userById = new Map((users || []).map((user) => [user.id, user]));
-
-    return (units || [])
-      .map((unit) => {
-        const property = propertyById.get(unit.property_id);
-        const owner = property ? userById.get(property.owner_id) : null;
-        return property && owner ? { unit, property, owner } : null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => Number(a.unit.rent_amount) - Number(b.unit.rent_amount));
+  async function fetchListings() {
+    const response = await fetch("/api/vacancies", { cache: "no-store" });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "Could not load vacancies.");
+    return (payload.listings || []).sort((a, b) => Number(a.unit.rent_amount) - Number(b.unit.rent_amount));
   }
 
   function renderListings() {
