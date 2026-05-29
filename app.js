@@ -194,6 +194,12 @@
     paymentHistoryTable: document.getElementById("paymentHistoryTable"),
     paymentCountLabel: document.getElementById("paymentCountLabel"),
     downloadRentReport: document.getElementById("downloadRentReport"),
+    landlordSupportForm: document.getElementById("landlordSupportForm"),
+    landlordSupportSubject: document.getElementById("landlordSupportSubject"),
+    landlordSupportPriority: document.getElementById("landlordSupportPriority"),
+    landlordSupportNote: document.getElementById("landlordSupportNote"),
+    landlordSupportCount: document.getElementById("landlordSupportCount"),
+    landlordSupportList: document.getElementById("landlordSupportList"),
     expenseForm: document.getElementById("expenseForm"),
     expenseProperty: document.getElementById("expenseProperty"),
     expenseType: document.getElementById("expenseType"),
@@ -262,6 +268,7 @@
     tenants: ["Tenants", "Tenant move-in records, deposits, balances, and contacts."],
     staff: ["Staff", "Invite managers and assign access to specific properties."],
     rent: ["Rent Collection", "Record paid, partial, overdue, balances, and Mobile Money references."],
+    support: ["Support", "Send help requests to the super admin and track ticket status."],
     expenses: ["Expenses & Maintenance", "Broken taps, wiring, painting, plumbing, utilities, and caretaker costs."],
     reminders: ["Reminders", "SMS and WhatsApp messages for rent collection."],
     platformLandlords: ["Account Management", "Approve landlords, create demos, reset passwords, and manage packages."],
@@ -274,6 +281,7 @@
     ["properties", "Setup"],
     ["tenants", "Tenants"],
     ["rent", "Rent"],
+    ["support", "Support"],
   ];
 
   const ownerNav = [
@@ -405,6 +413,7 @@
     ui.paymentForm.addEventListener("submit", savePayment);
     ui.paymentTenant.addEventListener("change", updatePaymentPreview);
     ui.paymentAmount.addEventListener("input", updatePaymentPreview);
+    if (ui.landlordSupportForm) ui.landlordSupportForm.addEventListener("submit", saveLandlordSupportTicket);
     ui.downloadRentReport.addEventListener("click", downloadMonthlyRentReport);
     ui.expenseForm.addEventListener("submit", saveExpense);
     ui.downloadExpenseReport.addEventListener("click", downloadExpenseReport);
@@ -1102,6 +1111,7 @@
     renderTenants();
     renderStaff();
     renderRent();
+    renderLandlordSupport();
     renderExpenses();
     renderReminders();
     renderPlatformViews();
@@ -1838,6 +1848,38 @@
     renderPlatformLandlords();
     renderPlatformBilling();
     renderPlatformSupport();
+  }
+
+  function renderLandlordSupport() {
+    if (!ui.landlordSupportList || isSaasOwner()) return;
+    const user = currentUser();
+    if (!user) return;
+    const tickets = (state.supportTickets || [])
+      .filter((ticket) => ticket.owner_id === user.id)
+      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    const openTickets = tickets.filter((ticket) => ticket.status !== "Resolved");
+
+    ui.landlordSupportCount.textContent = `${openTickets.length} open`;
+    ui.landlordSupportList.innerHTML =
+      tickets
+        .map(
+          (ticket) => `
+            <article class="support-card">
+              <div class="support-card-header">
+                <div class="support-card-title">
+                  <strong>${escapeHtml(ticket.subject)}</strong>
+                  <small>Updated ${formatDate(ticket.updated_at)}</small>
+                </div>
+                <div class="button-row">
+                  ${statusPill(ticket.priority)}
+                  ${statusPill(ticket.status)}
+                </div>
+              </div>
+              <p class="support-note">${escapeHtml(ticket.note || "No message added.")}</p>
+            </article>
+          `
+        )
+        .join("") || emptyBlock("No support requests yet.");
   }
 
   function renderActivityFeed(items) {
@@ -3377,6 +3419,31 @@
     showToast("Support ticket saved.");
   }
 
+  function saveLandlordSupportTicket(event) {
+    event.preventDefault();
+    const user = currentUser();
+    if (!user || user.role !== "landlord") {
+      showToast("Only landlord accounts can send support requests.");
+      return;
+    }
+
+    state.supportTickets.push({
+      id: makeId("ticket"),
+      owner_id: user.id,
+      subject: ui.landlordSupportSubject.value.trim(),
+      priority: ui.landlordSupportPriority.value,
+      status: "Open",
+      note: ui.landlordSupportNote.value.trim(),
+      updated_at: isoDate(new Date()),
+    });
+
+    saveState();
+    ui.landlordSupportForm.reset();
+    ui.landlordSupportPriority.value = "Medium";
+    renderAll();
+    showToast("Support request sent to the super admin.");
+  }
+
   async function createDemoLandlordAccount() {
     if (!isSaasOwner()) {
       showToast("Only the super admin can create demo accounts.");
@@ -4686,7 +4753,7 @@
     keys.forEach((key) => {
       const remoteRows = Array.isArray(remote[key]) ? remote[key] : [];
       const cachedRows = Array.isArray(cachedState[key]) ? cachedState[key] : [];
-      const { rows, usedCache } = mergeRowsById(remoteRows, cachedRows);
+      const { rows, usedCache } = mergeRowsById(key, remoteRows, cachedRows);
       merged[key] = rows;
       usedLocalCache = usedLocalCache || usedCache;
     });
@@ -4694,7 +4761,7 @@
     return { ...merged, usedLocalCache };
   }
 
-  function mergeRowsById(remoteRows, cachedRows) {
+  function mergeRowsById(stateKey, remoteRows, cachedRows) {
     const rowsById = new Map(remoteRows.filter((row) => row?.id).map((row) => [row.id, row]));
     let usedCache = false;
 
@@ -4702,7 +4769,7 @@
       .filter((row) => row?.id && shouldKeepCachedRow(row))
       .forEach((row) => {
         const remoteRow = rowsById.get(row.id);
-        if (!remoteRow || (!sameCachedRow(row, remoteRow) && cacheLooksNewer(row, remoteRow))) {
+        if (!remoteRow || (!sameCachedRow(row, remoteRow) && cacheLooksNewer(stateKey, row, remoteRow))) {
           rowsById.set(row.id, row);
           usedCache = true;
         }
@@ -4715,11 +4782,12 @@
     return !String(row.id || "").startsWith("notification-daily-");
   }
 
-  function cacheLooksNewer(cachedRow, remoteRow) {
+  function cacheLooksNewer(stateKey, cachedRow, remoteRow) {
     const cachedDate = rowTimestamp(cachedRow);
     const remoteDate = rowTimestamp(remoteRow);
     if (!remoteDate) return true;
     if (!cachedDate) return false;
+    if (stateKey === "supportTickets") return cachedDate > remoteDate;
     return cachedDate >= remoteDate;
   }
 

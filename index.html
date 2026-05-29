@@ -419,6 +419,7 @@
           <button class="nav-item" data-view="properties" type="button">Setup</button>
           <button class="nav-item" data-view="tenants" type="button">Tenants</button>
           <button class="nav-item" data-view="rent" type="button">Rent</button>
+          <button class="nav-item" data-view="support" type="button">Support</button>
         </nav>
 
         <div class="sidebar-footer">
@@ -468,6 +469,7 @@
           <button class="mobile-tab" data-view="properties" type="button">Setup</button>
           <button class="mobile-tab" data-view="tenants" type="button">Tenants</button>
           <button class="mobile-tab" data-view="rent" type="button">Rent</button>
+          <button class="mobile-tab" data-view="support" type="button">Support</button>
         </nav>
 
         <section id="superAdminDashboard" class="view super-admin-dashboard" aria-labelledby="viewTitle">
@@ -931,6 +933,44 @@
               </table>
             </div>
           </section>
+        </section>
+
+        <section id="support" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Request Help</h2>
+                <span class="pill neutral">Super admin</span>
+              </div>
+              <form id="landlordSupportForm" class="stacked-form">
+                <label>
+                  Issue
+                  <input id="landlordSupportSubject" placeholder="e.g. Help correcting tenant balance" required />
+                </label>
+                <label>
+                  Priority
+                  <select id="landlordSupportPriority">
+                    <option value="High">High</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </label>
+                <label>
+                  Message
+                  <textarea id="landlordSupportNote" rows="5" placeholder="Tell the super admin what you need help with" required></textarea>
+                </label>
+                <button class="primary-button" type="submit">Send Support Request</button>
+              </form>
+            </section>
+
+            <section class="panel wide-panel">
+              <div class="panel-header">
+                <h2>My Support Requests</h2>
+                <span id="landlordSupportCount" class="pill warning">0 open</span>
+              </div>
+              <div id="landlordSupportList" class="support-list"></div>
+            </section>
+          </div>
         </section>
 
         <section id="expenses" class="view" aria-labelledby="viewTitle">
