@@ -61,8 +61,9 @@ function normalizePhone(value) {
 
 function phoneVariants(value) {
   const local = normalizePhone(value);
-  const variants = new Set([String(value || "").trim(), local]);
-  if (local.startsWith("0")) variants.add(`256${local.slice(1)}`);
+  const international = local.startsWith("0") ? `256${local.slice(1)}` : local;
+  const variants = new Set([String(value || "").trim(), local, international]);
+  if (international) variants.add(`+${international}`);
   return [...variants].filter(Boolean);
 }
 
@@ -208,9 +209,15 @@ async function findUserByEmailOrPhone({ email, phone }) {
     const rows = await supabaseFetch(`/rest/v1/app_users?email=eq.${encodeURIComponent(normalizeEmail(email))}&select=*`);
     if (rows[0]) return rows[0];
   }
-  for (const variant of phoneVariants(phone)) {
+  const variants = phoneVariants(phone);
+  for (const variant of variants) {
     const rows = await supabaseFetch(`/rest/v1/app_users?phone=eq.${encodeURIComponent(variant)}&select=*`);
     if (rows[0]) return rows[0];
+  }
+  const normalizedPhone = normalizePhone(phone);
+  if (normalizedPhone) {
+    const rows = await supabaseFetch("/rest/v1/app_users?select=*");
+    return rows.find((row) => normalizePhone(row.phone) === normalizedPhone) || null;
   }
   return null;
 }

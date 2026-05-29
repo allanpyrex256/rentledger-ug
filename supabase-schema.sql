@@ -522,4 +522,4 @@ using (private.is_saas_owner() or user_id = (select auth.uid())::text);
 -- 2. Run this with that Auth user id and your real contact details:
 --
 -- insert into app_users (id, name, phone, email, role, account_status)
--- values ('AUTH_USER_ID', 'Super Admin', '0700000000', 'admin@example.com', 'saas-owner', 'Active');
+-- values ('AUTH_USER_ID', 'Super Admin', '0700000000', 'allanpyrex5@gmail.com', 'saas-owner', 'Active');

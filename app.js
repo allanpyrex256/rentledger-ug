@@ -39,7 +39,7 @@
   ];
 
   const SUPER_ADMIN_USER_ID = "user-saas-owner";
-  const SUPER_ADMIN_EMAIL = "admin@example.com";
+  const SUPER_ADMIN_EMAIL = "allanpyrex5@gmail.com";
   const DEMO_ACCOUNT_IDS = [SUPER_ADMIN_USER_ID, "user-1", "staff-1"];
   const PUBLIC_DEMO_ACCOUNT_IDS = ["user-1", "staff-1"];
   const CLIENT_WRITABLE_STATE_KEYS = new Set([
@@ -480,24 +480,32 @@
 
   async function signIn(event) {
     event.preventDefault();
-    const loginIdentifier = ui.signInIdentifier.value;
+    const loginIdentifier = ui.signInIdentifier.value.trim();
     const password = ui.signInPassword.value;
 
     if (supabaseReady && supabaseClient) {
       try {
         setAppLoading("Signing in");
-        const { session } = await apiRequest("/api/signin", { identifier: loginIdentifier, password });
-        const { data, error } = await supabaseClient.auth.setSession({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-        });
-        if (error) throw error;
-        await openUserSession(data.user.id);
+        const authUserId = await authenticateSupabaseUser(loginIdentifier, password);
+        const user = await openUserSession(authUserId);
+        if (!user) {
+          await supabaseClient.auth.signOut().catch(() => null);
+          showToast("Account profile is not active. Contact support.");
+          return;
+        }
+        if (isAccountSuspended(user)) {
+          await supabaseClient.auth.signOut().catch(() => null);
+          state.currentUserId = null;
+          saveLocalStateOnly();
+          renderSession();
+          showToast("This account is suspended. Contact support.");
+          return;
+        }
         ui.signInForm.reset();
         showToast("Welcome back.");
       } catch (error) {
         console.error("Supabase sign-in failed", error);
-        showToast("Use a valid email or phone and password.");
+        showToast(signInErrorMessage(error, loginIdentifier));
       } finally {
         clearAppLoading();
       }
@@ -520,6 +528,44 @@
     openUserSession(user.id);
     ui.signInForm.reset();
     showToast(`Welcome, ${user.name}.`);
+  }
+
+  async function authenticateSupabaseUser(identifier, password) {
+    if (identifier.includes("@")) {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: normalizeLoginEmail(identifier),
+        password,
+      });
+      if (error) throw error;
+      return data.user.id;
+    }
+
+    const { session } = await apiRequest("/api/signin", { identifier, password });
+    const { data, error } = await supabaseClient.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+    if (error) throw error;
+    return data.user.id;
+  }
+
+  function signInErrorMessage(error, identifier = "") {
+    const message = String(error?.message || "").trim();
+    if (!message || message === "Invalid login." || message === "Invalid login credentials") {
+      if (isSuperAdminIdentifier(identifier)) {
+        return "Super admin must be created in Supabase Auth first.";
+      }
+      return "Use a valid email or phone and password.";
+    }
+    if (message.includes("Supabase server credentials")) {
+      return "Server login is not configured. Add Supabase service credentials.";
+    }
+    return message;
+  }
+
+  function isSuperAdminIdentifier(identifier) {
+    const value = String(identifier || "").trim();
+    return normalizeLoginEmail(value) === SUPER_ADMIN_EMAIL || normalizeLoginPhone(value) === "256700000000";
   }
 
   function showForgotPassword() {
@@ -826,12 +872,20 @@
     }
 
     const user = state.users.find((item) => item.id === userId);
+    if (!user) {
+      state.currentUserId = null;
+      saveLocalStateOnly();
+      renderSession();
+      return null;
+    }
+
     state.currentUserId = userId;
     state.selectedPropertyId = "all";
     state.role = user && user.role === "saas-owner" ? "saas-owner" : user && user.role === "staff" ? "staff" : "landlord";
     saveState();
     renderSession();
     setView(defaultView());
+    return user;
   }
 
   async function refreshSupabaseState() {
