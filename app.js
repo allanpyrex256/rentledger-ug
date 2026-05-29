@@ -4972,7 +4972,6 @@
           showToast("Recovered browser data and saved it again.");
         }, 0);
       }
-      if (sessionState.currentUserId) showToast("Secure session loaded.");
     } catch (error) {
       console.error("Supabase sync failed", error);
       const remote = await safeFetchPublicSupabaseState(client);
