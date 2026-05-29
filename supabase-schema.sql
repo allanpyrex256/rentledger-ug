@@ -138,7 +138,23 @@ alter table notifications enable row level security;
 alter table app_settings enable row level security;
 
 create schema if not exists private;
-grant usage on schema private to anon, authenticated;
+grant usage on schema public to anon, authenticated, service_role;
+grant usage on schema private to anon, authenticated, service_role;
+
+grant select on app_users, properties, units to anon;
+grant select, insert, update, delete on
+  app_users,
+  subscriptions,
+  properties,
+  units,
+  tenants,
+  payments,
+  expenses,
+  support_tickets,
+  notifications,
+  app_settings
+to authenticated;
+grant all privileges on all tables in schema public to service_role;
 
 create or replace function private.current_role()
 returns text

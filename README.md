@@ -55,6 +55,8 @@ When Supabase is not configured, the app runs with local browser demo data for d
 
 If you already ran an older version of the schema with UUID columns, use a fresh Supabase project or drop those prototype tables before running this schema.
 
+If sign-in shows `permission denied for table app_users`, rerun the latest `supabase-schema.sql` grant section in the Supabase SQL editor.
+
 The app stores real rows in these tables:
 
 ```sql

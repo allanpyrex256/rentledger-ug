@@ -565,6 +565,9 @@
     if (message.includes("Supabase server credentials")) {
       return "Server login is not configured. Add Supabase service credentials.";
     }
+    if (message.includes("permission denied for table")) {
+      return "Database permissions need updating. Run the latest Supabase schema grants.";
+    }
     return message;
   }
 
