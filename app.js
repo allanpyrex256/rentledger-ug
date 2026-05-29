@@ -1157,7 +1157,7 @@
 
   function publicListingItems() {
     return state.units
-      .filter((unit) => unit.status === "vacant" && unit.listing_published)
+      .filter((unit) => unit.status === "vacant")
       .map((unit) => {
         const property = propertyById(unit.property_id);
         const owner = property ? userById(property.owner_id) : null;
@@ -2401,8 +2401,7 @@
         .map((unit) => {
           const property = propertyById(unit.property_id);
           const hasTenant = Boolean(state.tenants.find((tenant) => tenant.unit_id === unit.id));
-          const canPublish = unit.status === "vacant" && !removeDisabled;
-          const listingAction = unit.listing_published ? "Unpublish" : "Publish Vacancy";
+          const isVacant = unit.status === "vacant";
           return `
             <tr data-unit-row="${escapeHtml(unit.id)}" class="${unit.id === highlightedUnitId ? "row-highlight" : ""}">
               <td>${escapeHtml(unit.unit_number)}</td>
@@ -2410,12 +2409,12 @@
               <td>${formatMoney(unit.rent_amount)}</td>
               <td>${statusPill(capitalize(unit.status))}</td>
               <td>
-                ${statusPill(unit.listing_published ? "Published" : "Private")}
-                <small class="table-subtext">${unit.status === "vacant" ? "Can appear on public listings" : "Occupied rooms are hidden"}</small>
+                ${statusPill(isVacant ? "Public" : "Hidden")}
+                <small class="table-subtext">${isVacant ? "Appears in public search automatically" : "Occupied rooms are hidden"}</small>
               </td>
               <td>
                 <div class="button-row">
-                  <button class="text-button" data-toggle-listing="${unit.id}" ${canPublish ? "" : "disabled"} type="button">${listingAction}</button>
+                  <button class="text-button" disabled type="button">${isVacant ? "Auto-listed" : "Occupied"}</button>
                   <button class="danger-button" data-remove-unit="${unit.id}" ${removeDisabled || hasTenant ? "disabled" : ""} type="button">
                     ${hasTenant ? "Tenant assigned" : "Remove"}
                   </button>
@@ -2848,40 +2847,8 @@
   }
 
   function togglePublicListing(unitId) {
-    if (state.role === "caretaker" || currentUser()?.role === "staff") {
-      showToast("Only the owner can publish public vacancies.");
-      return;
-    }
-    const unit = ownerProperties()
-      .flatMap((property) => state.units.filter((item) => item.property_id === property.id))
-      .find((item) => item.id === unitId);
-    if (!unit) return;
-    if (unit.status !== "vacant") {
-      showToast("Only vacant rooms can be published publicly.");
-      return;
-    }
-    const nextPublished = !unit.listing_published;
-    state.units = state.units.map((item) =>
-      item.id === unitId
-        ? {
-            ...item,
-            listing_published: nextPublished,
-            listing_bedrooms: item.listing_bedrooms || 1,
-            listing_bathrooms: item.listing_bathrooms || 1,
-            listing_furnished: Boolean(item.listing_furnished),
-            listing_photo: item.listing_photo || listingPhotoForProperty(propertyById(item.property_id)),
-            listing_note: item.listing_note || "Vacant and ready for viewing. Contact the landlord on WhatsApp.",
-          }
-        : item
-    );
-    addNotification({
-      type: "property",
-      title: nextPublished ? "Vacancy published" : "Vacancy unpublished",
-      message: `${unit.unit_number} ${nextPublished ? "is now visible on public listings." : "has been removed from public listings."}`,
-    });
-    saveState();
-    renderAll();
-    showToast(nextPublished ? "Vacancy published publicly." : "Vacancy unpublished.");
+    const unit = unitById(unitId);
+    showToast(unit?.status === "vacant" ? "Vacant rooms are public automatically." : "Occupied rooms are hidden from public search.");
   }
 
   function saveTenant(event) {
@@ -4179,7 +4146,7 @@
         ? {
             ...unit,
             status,
-            listing_published: status === "vacant" ? Boolean(unit.listing_published) : false,
+            listing_published: status === "vacant",
           }
         : unit
     );
@@ -4778,7 +4745,7 @@
     }
     if (stateKey === "properties") return pick(row, ["id", "owner_id", "property_name", "location", "property_type"]);
     if (stateKey === "units") {
-      return pick(row, [
+      const unit = pick(row, [
         "id",
         "property_id",
         "unit_number",
@@ -4791,6 +4758,8 @@
         "listing_photo",
         "listing_note",
       ]);
+      unit.listing_published = row.status === "vacant";
+      return unit;
     }
     if (stateKey === "tenants") {
       return pick(row, ["id", "unit_id", "name", "phone", "national_id", "rent_amount", "deposit_paid", "move_in_date"]);
@@ -4930,7 +4899,7 @@
       const status = unit.status || seedUnit.status || "vacant";
       return {
         ...unit,
-        listing_published: status === "vacant" && Boolean(unit.listing_published ?? seedUnit.listing_published),
+        listing_published: status === "vacant",
         listing_bedrooms: Number(unit.listing_bedrooms ?? seedUnit.listing_bedrooms ?? 1),
         listing_bathrooms: Number(unit.listing_bathrooms ?? seedUnit.listing_bathrooms ?? 1),
         listing_furnished: Boolean(unit.listing_furnished ?? seedUnit.listing_furnished ?? false),
