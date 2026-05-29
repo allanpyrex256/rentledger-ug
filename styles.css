@@ -660,7 +660,7 @@ button {
 
 .listing-filters {
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) repeat(3, minmax(150px, 1fr));
+  grid-template-columns: minmax(180px, 1.2fr) repeat(3, minmax(150px, 1fr)) minmax(120px, auto);
   gap: 10px;
   border: 1px solid #cbd9d8;
   border-radius: 8px;
@@ -687,6 +687,13 @@ button {
   background: #fff;
   color: var(--ink);
   padding: 0 12px;
+}
+
+.listing-search-button {
+  min-height: 42px;
+  align-self: end;
+  justify-content: center;
+  padding-inline: 18px;
 }
 
 .public-listing-grid {

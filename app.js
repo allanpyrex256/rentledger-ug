@@ -83,6 +83,7 @@
     listingPriceFilter: document.getElementById("listingPriceFilter"),
     listingTypeFilter: document.getElementById("listingTypeFilter"),
     listingFurnishedFilter: document.getElementById("listingFurnishedFilter"),
+    listingSearchButton: document.getElementById("listingSearchButton"),
     publicListingGrid: document.getElementById("publicListingGrid"),
     logoutButton: document.getElementById("logoutButton"),
     sideNav: document.getElementById("sideNav"),
@@ -326,9 +327,12 @@
     [ui.listingLocationFilter, ui.listingPriceFilter, ui.listingTypeFilter, ui.listingFurnishedFilter]
       .filter(Boolean)
       .forEach((input) => {
-        input.addEventListener("input", renderPublicListings);
         input.addEventListener("change", renderPublicListings);
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") renderPublicListings();
+        });
       });
+    if (ui.listingSearchButton) ui.listingSearchButton.addEventListener("click", renderPublicListings);
 
     ui.signInForm.addEventListener("submit", signIn);
     ui.forgotPasswordButton.addEventListener("click", showForgotPassword);

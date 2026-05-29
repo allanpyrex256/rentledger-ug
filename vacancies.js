@@ -10,15 +10,19 @@
     price: document.getElementById("listingPriceFilter"),
     type: document.getElementById("listingTypeFilter"),
     furnished: document.getElementById("listingFurnishedFilter"),
+    search: document.getElementById("listingSearchButton"),
   };
 
   initialize();
 
   async function initialize() {
     [ui.location, ui.price, ui.type, ui.furnished].forEach((input) => {
-      input.addEventListener("input", renderListings);
       input.addEventListener("change", renderListings);
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") renderListings();
+      });
     });
+    if (ui.search) ui.search.addEventListener("click", renderListings);
 
     const client = await createSupabaseClient();
     if (!client) {
