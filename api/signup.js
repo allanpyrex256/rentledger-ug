@@ -102,7 +102,7 @@ module.exports = async function handler(request, response) {
           auto_collect_authorized: true,
           cancel_at_period_end: false,
           grace_period_end: addMonths(nextBillingDate, 0),
-          payment_provider: "flutterwave",
+          payment_provider: normalizeSignupPaymentProvider(process.env.PAYMENT_PROVIDER || "pesapal"),
           provider_payment_status: "Not started",
         },
       ]);
@@ -130,6 +130,10 @@ function normalizeSignupPaymentMethod(value) {
   return SIGNUP_PAYMENT_METHODS.find((method) => method.toLowerCase() === raw.toLowerCase()) || "";
 }
 
+function normalizeSignupPaymentProvider(value) {
+  return String(value || "").trim().toLowerCase() === "flutterwave" ? "flutterwave" : "pesapal";
+}
+
 function billingAuthorizationAccepted(value) {
   if (value === true) return true;
   return ["true", "yes", "on", "1"].includes(String(value || "").trim().toLowerCase());
@@ -153,6 +157,7 @@ function maskBillingContact(value) {
 
 module.exports._internal = {
   maskBillingContact,
+  normalizeSignupPaymentProvider,
   signupPlanOption,
   normalizeSignupPaymentMethod,
 };

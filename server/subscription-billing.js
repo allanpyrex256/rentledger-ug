@@ -14,11 +14,19 @@ const {
   normalizeProviderStatus,
   verifyFlutterwavePayment,
 } = require("./flutterwave");
+const {
+  createPesapalSubscriptionPayment,
+  extractPesapalPaymentEvent,
+  isPesapalEvent,
+  normalizePesapalPaymentMethod,
+  verifyPesapalPayment,
+} = require("./pesapal");
 
 async function startSubscriptionCollection({ request, profile, body = {} }) {
   const ownerId = ownerIdForBillingRequest(profile, body);
   const { owner, subscription } = await loadSubscriptionContext(ownerId);
-  const method = normalizeFlutterwavePaymentMethod(body.payment_method || body.paymentMethod || subscription.billing_method);
+  const provider = normalizePaymentProvider(body.payment_provider || body.provider || process.env.PAYMENT_PROVIDER || "pesapal");
+  const method = normalizeProviderPaymentMethod(provider, body.payment_method || body.paymentMethod || subscription.billing_method);
   const amount = billingAmount(profile, body, subscription);
   if (amount <= 0) {
     const error = new Error("This subscription does not have a billable monthly fee.");
@@ -27,15 +35,25 @@ async function startSubscriptionCollection({ request, profile, body = {} }) {
   }
 
   const reference = buildPaymentReference();
-  const providerResult = await createFlutterwaveSubscriptionPayment({
-    request,
-    owner,
-    subscription,
-    amount,
-    method,
-    billingContact: body.billing_contact || body.billingContact || owner.phone,
-    reference,
-  });
+  const providerResult =
+    provider === "pesapal"
+      ? await createPesapalSubscriptionPayment({
+          request,
+          owner,
+          subscription,
+          amount,
+          reference,
+        })
+      : await createFlutterwaveSubscriptionPayment({
+          request,
+          owner,
+          subscription,
+          amount,
+          method,
+          billingContact: body.billing_contact || body.billingContact || owner.phone,
+          reference,
+        });
+  const providerLabel = providerDisplayName(providerResult.provider);
 
   const patch = {
     status: nextCollectionStatus(subscription),
@@ -50,15 +68,15 @@ async function startSubscriptionCollection({ request, profile, body = {} }) {
     provider_payment_method_id: providerResult.payment_method_id || subscription.provider_payment_method_id || null,
     provider_next_action: providerResult.instruction || null,
     last_payment_method: method,
-    last_payment_note: `Flutterwave collection started: ${providerResult.reference}`,
+    last_payment_note: `${providerLabel} collection started: ${providerResult.reference}`,
   };
   await patchRows("subscriptions", `id=eq.${encodeURIComponent(subscription.id)}`, patch);
   await createBillingNotification({
     userId: owner.id,
     title: "Subscription payment started",
     message: providerResult.checkout_url
-      ? `Flutterwave checkout is ready for ${formatMoney(amount)}. Reference ${providerResult.reference}.`
-      : `${providerResult.instruction || "Approve the Flutterwave payment prompt."} Reference ${providerResult.reference}.`,
+      ? `${providerLabel} checkout is ready for ${formatMoney(amount)}. Reference ${providerResult.reference}.`
+      : `${providerResult.instruction || `Approve the ${providerLabel} payment prompt.`} Reference ${providerResult.reference}.`,
   });
 
   return {
@@ -66,7 +84,7 @@ async function startSubscriptionCollection({ request, profile, body = {} }) {
     payment: {
       reference: providerResult.reference,
       amount,
-      currency: "UGX",
+      currency: providerResult.currency || process.env.PAYMENT_CURRENCY || "UGX",
       method,
       status: providerResult.status,
       checkout_url: providerResult.checkout_url,
@@ -77,36 +95,37 @@ async function startSubscriptionCollection({ request, profile, body = {} }) {
 }
 
 async function settleSubscriptionPayment(input, options = {}) {
-  const incoming = input?.reference ? input : extractPaymentEvent(input);
+  const incoming = normalizeIncomingPaymentEvent(input);
   const shouldVerify = options.verify !== false;
-  const event = shouldVerify ? await verifyFlutterwavePayment(incoming).catch(() => incoming) : incoming;
-  if (!event.reference) return { ok: true, ignored: true, reason: "No payment reference." };
+  const event = shouldVerify ? await verifyProviderPayment(incoming).catch(() => incoming) : incoming;
+  if (!event.reference && !event.provider_id) return { ok: true, ignored: true, reason: "No payment reference." };
 
-  const rows = await supabaseFetch(
-    `/rest/v1/subscriptions?provider_payment_reference=eq.${encodeURIComponent(event.reference)}&select=*`
-  );
-  const subscription = rows[0];
+  const subscription = await findSubscriptionForPayment(event);
   if (!subscription) return { ok: true, ignored: true, reason: "No matching subscription." };
 
   const owners = await supabaseFetch(`/rest/v1/app_users?id=eq.${encodeURIComponent(subscription.owner_id)}&select=*`);
   const owner = owners[0];
   const amount = Number(event.amount || 0);
   const expectedAmount = Number(subscription.monthly_fee || 0);
-  const currency = String(event.currency || "UGX").toUpperCase();
+  const currency = String(event.currency || process.env.PAYMENT_CURRENCY || "UGX").toUpperCase();
   const status = normalizeProviderStatus(event.status);
-  const paidEnough = amount >= expectedAmount && currency === "UGX";
+  const expectedCurrency = String(process.env.PAYMENT_CURRENCY || process.env.PESAPAL_CURRENCY || "UGX").toUpperCase();
+  const paidEnough = amount >= expectedAmount && currency === expectedCurrency;
   const today = isoDate(new Date());
+  const provider = normalizePaymentProvider(event.provider || subscription.payment_provider || process.env.PAYMENT_PROVIDER || "pesapal");
+  const providerLabel = providerDisplayName(provider);
 
   if (status === "Successful" && paidEnough) {
     const patch = {
       status: "Active",
       last_payment_date: today,
-      last_payment_method: event.payment_method || subscription.billing_method || "Flutterwave",
-      last_payment_note: `Flutterwave payment successful: ${event.reference}`,
+      last_payment_method: event.payment_method || subscription.billing_method || providerLabel,
+      last_payment_note: `${providerLabel} payment successful: ${event.reference}`,
       next_billing_date: addMonths(today, 1),
       grace_period_end: addMonths(today, 1),
       cancel_at_period_end: false,
       provider_payment_status: "Successful",
+      payment_provider: provider,
       provider_charge_id: event.provider_id || subscription.provider_charge_id || null,
       provider_next_action: null,
     };
@@ -118,7 +137,7 @@ async function settleSubscriptionPayment(input, options = {}) {
       message: `Your ${subscription.plan} plan is active until ${formatDate(patch.next_billing_date)}.`,
     });
     await notifySuperAdmin(
-      `${owner?.name || "A landlord"} paid ${formatMoney(amount)} for ${subscription.plan}. Reference ${event.reference}.`
+      `${owner?.name || "A landlord"} paid ${formatMoney(amount)} for ${subscription.plan} by ${providerLabel}. Reference ${event.reference}.`
     );
     return { ok: true, status: "Active", subscription: { ...subscription, ...patch } };
   }
@@ -127,14 +146,41 @@ async function settleSubscriptionPayment(input, options = {}) {
   const patch = {
     status: subscriptionStatusAfterUnpaid(subscription),
     provider_payment_status: failureStatus,
+    payment_provider: provider,
     provider_charge_id: event.provider_id || subscription.provider_charge_id || null,
     last_payment_note:
       status === "Successful" && !paidEnough
-        ? `Flutterwave paid amount did not match expected fee: ${event.reference}`
-        : `Flutterwave payment ${failureStatus.toLowerCase()}: ${event.reference}`,
+        ? `${providerLabel} paid amount did not match expected fee: ${event.reference}`
+        : `${providerLabel} payment ${failureStatus.toLowerCase()}: ${event.reference}`,
   };
   await patchRows("subscriptions", `id=eq.${encodeURIComponent(subscription.id)}`, patch);
   return { ok: true, status: failureStatus, subscription: { ...subscription, ...patch } };
+}
+
+function normalizeIncomingPaymentEvent(input = {}) {
+  if (input.reference || input.provider_id || input.order_tracking_id) return input;
+  return isPesapalEvent(input) ? extractPesapalPaymentEvent(input) : extractPaymentEvent(input);
+}
+
+async function verifyProviderPayment(event) {
+  const provider = normalizePaymentProvider(event.provider || process.env.PAYMENT_PROVIDER || "pesapal");
+  return provider === "pesapal" ? verifyPesapalPayment(event) : verifyFlutterwavePayment(event);
+}
+
+async function findSubscriptionForPayment(event) {
+  if (event.reference) {
+    const rows = await supabaseFetch(
+      `/rest/v1/subscriptions?provider_payment_reference=eq.${encodeURIComponent(event.reference)}&select=*`
+    );
+    if (rows[0]) return rows[0];
+  }
+  if (event.provider_id) {
+    const rows = await supabaseFetch(
+      `/rest/v1/subscriptions?provider_charge_id=eq.${encodeURIComponent(event.provider_id)}&select=*`
+    );
+    if (rows[0]) return rows[0];
+  }
+  return null;
 }
 
 async function loadSubscriptionContext(ownerId) {
@@ -205,9 +251,23 @@ async function createBillingNotification({ userId, title, message }) {
 async function notifySuperAdmin(message) {
   return createBillingNotification({
     userId: "user-saas-owner",
-    title: "Flutterwave billing update",
+    title: "Billing update",
     message,
   });
+}
+
+function normalizePaymentProvider(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  return raw === "flutterwave" || raw === "flw" ? "flutterwave" : "pesapal";
+}
+
+function normalizeProviderPaymentMethod(provider, value) {
+  if (provider === "pesapal") return normalizePesapalPaymentMethod(value) || "Pesapal";
+  return normalizeFlutterwavePaymentMethod(value);
+}
+
+function providerDisplayName(provider) {
+  return normalizePaymentProvider(provider) === "flutterwave" ? "Flutterwave" : "Pesapal";
 }
 
 function formatMoney(value) {
@@ -227,6 +287,7 @@ module.exports = {
     billingAmount,
     nextCollectionStatus,
     ownerIdForBillingRequest,
+    normalizePaymentProvider,
     subscriptionStatusAfterUnpaid,
   },
 };

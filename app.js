@@ -2863,9 +2863,13 @@
   function subscriptionProviderNote(subscription) {
     const parts = [];
     if (subscription.billing_method) parts.push(subscription.billing_method);
-    if (subscription.provider_payment_status) parts.push(`Flutterwave ${subscription.provider_payment_status}`);
+    if (subscription.provider_payment_status) parts.push(`${paymentProviderLabel(subscription.payment_provider)} ${subscription.provider_payment_status}`);
     if (subscription.provider_payment_reference) parts.push(subscription.provider_payment_reference);
     return parts.join(" - ");
+  }
+
+  function paymentProviderLabel(provider) {
+    return String(provider || "").toLowerCase() === "flutterwave" ? "Flutterwave" : "Pesapal";
   }
 
   function renderPlatformSupport() {
@@ -4081,7 +4085,9 @@
             last_payment_method: ui.ownerPaymentMethod.value,
             last_payment_note: note,
             next_billing_date: addMonths(paymentDate, 1),
-            provider_payment_status: ui.ownerPaymentMethod.value === "Flutterwave" ? item.provider_payment_status : "Manual",
+            provider_payment_status: ["Pesapal", "Flutterwave"].includes(ui.ownerPaymentMethod.value)
+              ? item.provider_payment_status
+              : "Manual",
             provider_next_action: null,
           }
         : item
@@ -4163,7 +4169,7 @@
     const billingContact = ui.accountBillingContact?.value.trim();
     const contactLabel = billingContact ? ` from ${maskBillingContact(billingContact)}` : "";
     ui.accountTrialSummary.textContent =
-      `${planOption.plan} first month is free. Flutterwave will collect ${formatMoney(planOption.fee)}/month by ${paymentMethod}${contactLabel} from ${formatDate(nextBillingDate)} unless cancelled.`;
+      `${planOption.plan} first month is free. Secure checkout will collect ${formatMoney(planOption.fee)}/month by ${paymentMethod}${contactLabel} from ${formatDate(nextBillingDate)} unless cancelled.`;
   }
 
   function maskBillingContact(value) {
@@ -4497,18 +4503,18 @@
     }
 
     if (!supabaseReady) {
-      const reference = autoReference("Flutterwave");
+      const reference = autoReference("Pesapal");
       state.subscriptions = state.subscriptions.map((item) =>
         item.id === subscription.id
           ? {
               ...item,
               status: "Pending",
-              payment_provider: "flutterwave",
+              payment_provider: "pesapal",
               provider_payment_reference: reference,
               provider_payment_status: "Pending",
-              provider_next_action: "Demo collection queued. Connect Supabase and Flutterwave for live prompts.",
+              provider_next_action: "Demo collection queued. Connect Supabase and Pesapal for live checkout.",
               last_payment_method: item.billing_method || item.last_payment_method || "MTN MoMo",
-              last_payment_note: `Demo Flutterwave collection queued: ${reference}`,
+              last_payment_note: `Demo Pesapal collection queued: ${reference}`,
             }
           : item
       );
@@ -4516,18 +4522,18 @@
         user_id: owner.id,
         type: "billing",
         title: "Subscription collection queued",
-        message: `Demo Flutterwave collection queued for ${formatMoney(subscription.monthly_fee)}. Reference ${reference}.`,
+        message: `Demo Pesapal collection queued for ${formatMoney(subscription.monthly_fee)}. Reference ${reference}.`,
       });
       saveState();
       renderAll();
-      showToast("Demo collection queued. Live Flutterwave needs Supabase and Vercel env vars.");
+      showToast("Demo collection queued. Live Pesapal needs Supabase and Vercel env vars.");
       return;
     }
 
     let checkoutWindow = null;
     try {
       checkoutWindow = window.open("", "_blank", "noopener");
-      setAppLoading("Starting Flutterwave collection");
+      setAppLoading("Starting payment collection");
       const result = await apiRequest("/api/subscription-payment", {
         owner_id: subscription.owner_id,
         payment_method: subscription.billing_method || subscription.last_payment_method || "MTN MoMo",
@@ -4536,16 +4542,16 @@
       if (checkoutUrl) {
         if (checkoutWindow) checkoutWindow.location = checkoutUrl;
         else window.location.href = checkoutUrl;
-        showToast("Flutterwave checkout opened.");
+        showToast("Payment checkout opened.");
       } else {
         if (checkoutWindow) checkoutWindow.close();
-        showToast(result.payment?.instruction || "Flutterwave Mobile Money prompt sent.");
+        showToast(result.payment?.instruction || "Payment prompt sent.");
       }
       await refreshSupabaseState();
     } catch (error) {
       if (checkoutWindow) checkoutWindow.close();
-      console.error("Flutterwave collection failed", error);
-      showToast(error.message || "Could not start Flutterwave collection.");
+      console.error("Payment collection failed", error);
+      showToast(error.message || "Could not start payment collection.");
     } finally {
       clearAppLoading();
     }

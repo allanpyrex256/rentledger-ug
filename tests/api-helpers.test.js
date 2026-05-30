@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const { planLimitForPlan } = require("../server/supabase-admin");
 const flutterwave = require("../server/flutterwave");
+const pesapal = require("../server/pesapal");
 const payments = require("../api/payments");
 const signup = require("../api/signup");
 
@@ -16,6 +17,8 @@ test("plan limits match public package promises", () => {
 test("signup masks billing contacts before storing subscription metadata", () => {
   assert.equal(signup._internal.maskBillingContact("0772123456"), "******3456");
   assert.equal(signup._internal.maskBillingContact("landlord@example.com"), "la***@example.com");
+  assert.equal(signup._internal.normalizeSignupPaymentProvider("flutterwave"), "flutterwave");
+  assert.equal(signup._internal.normalizeSignupPaymentProvider("anything"), "pesapal");
 });
 
 test("payment proof and verification helpers normalize user input", () => {
@@ -43,4 +46,27 @@ test("flutterwave statuses map to billing statuses", () => {
   assert.equal(flutterwave.normalizeProviderStatus("failed"), "Failed");
   assert.equal(flutterwave.normalizeProviderStatus("pending"), "Pending");
   assert.equal(flutterwave._internal.paymentOptionsForMethod("MTN MoMo"), "mobilemoneyuganda");
+});
+
+test("pesapal helpers normalize callback payloads", () => {
+  const event = pesapal.extractPesapalPaymentEvent({
+    OrderTrackingId: "track-123",
+    OrderMerchantReference: "RLUG-001",
+    payment_status_description: "COMPLETED",
+    payment_method: "MTN",
+    amount: 50000,
+    currency: "UGX",
+  });
+
+  assert.equal(event.provider, "pesapal");
+  assert.equal(event.provider_id, "track-123");
+  assert.equal(event.reference, "RLUG-001");
+  assert.equal(event.status, "Successful");
+  assert.equal(event.payment_method, "MTN MoMo");
+});
+
+test("pesapal environment defaults to sandbox", () => {
+  assert.equal(pesapal.pesapalConfig().env, "sandbox");
+  assert.equal(pesapal.normalizePesapalStatus("FAILED"), "Failed");
+  assert.equal(pesapal.normalizePesapalPaymentMethod("Airtel"), "Airtel Money");
 });

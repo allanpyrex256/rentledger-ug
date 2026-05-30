@@ -7,7 +7,7 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 - V1 landlord workflow: create property, add unit, add tenant, record payment, and see balance.
 - Landlord daily dashboard with rent collected today, late tenants, and vacant rooms.
 - Landlord account signup/sign-in with required plan selection, billing method, and first-month auto-collection authorization.
-- Flutterwave subscription billing endpoints for Mobile Money prompts, hosted card checkout support, callbacks, and signed webhooks.
+- Pesapal subscription billing endpoints for hosted Mobile Money/card checkout, callbacks, and IPN status updates, with Flutterwave still available as a fallback provider.
 - Plan limits for properties, units, and caretaker accounts across Trial, Starter, Professional, and Enterprise packages.
 - Setup checklist for the first property, rooms, tenant, payment, and public vacancy.
 - Property setup for rooms, shops, boys quarters, houses, and rent amounts.
@@ -39,7 +39,12 @@ SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 WHATSAPP_ACCESS_TOKEN=your-meta-whatsapp-token
 WHATSAPP_PHONE_NUMBER_ID=your-whatsapp-phone-number-id
 WHATSAPP_GRAPH_VERSION=v25.0
-PAYMENT_PROVIDER=flutterwave
+PAYMENT_PROVIDER=pesapal
+PESAPAL_ENV=sandbox
+PESAPAL_CONSUMER_KEY=your-pesapal-consumer-key
+PESAPAL_CONSUMER_SECRET=your-pesapal-consumer-secret
+PESAPAL_IPN_ID=your-registered-pesapal-ipn-id
+PESAPAL_CURRENCY=UGX
 FLUTTERWAVE_MODE=sandbox
 FLUTTERWAVE_CLIENT_ID=your-flutterwave-v4-client-id
 FLUTTERWAVE_CLIENT_SECRET=your-flutterwave-v4-client-secret
@@ -53,7 +58,7 @@ The app exposes `/api/supabase-config` so the browser can read only the public S
 
 WhatsApp sending uses `/api/whatsapp`. If the WhatsApp environment variables are not configured, landlords can still use the Open WhatsApp and Call buttons. Tenants can also open landlord profile pages at `/landlords/:id` from published vacancy cards. For production messages outside WhatsApp's customer-service window, configure approved message templates in Meta Business Manager.
 
-Flutterwave billing uses `/api/subscription-payment` to start a landlord subscription collection, `/api/subscription-callback` for checkout redirects, and `/api/subscription-webhook` for final payment status updates. In Flutterwave, set the webhook URL to `https://your-domain.com/api/subscription-webhook` and use the same value in `FLUTTERWAVE_WEBHOOK_SECRET` as the dashboard secret hash. The v4 `CLIENT_ID` and `CLIENT_SECRET` support MTN/Airtel Mobile Money prompts; hosted card checkout also needs a v3 `FLUTTERWAVE_SECRET_KEY`, or a live Flutterwave recurring-card approval flow.
+Subscription billing uses `/api/subscription-payment` to start a landlord subscription collection, `/api/subscription-callback` for checkout redirects, and `/api/subscription-webhook` for final payment status updates. For Pesapal, register `https://your-domain.com/api/subscription-webhook` as an API 3.0 IPN URL with notification type `GET`, then put the returned IPN ID in `PESAPAL_IPN_ID`. Pesapal uses `PESAPAL_CONSUMER_KEY` and `PESAPAL_CONSUMER_SECRET` to generate a short-lived token before creating checkout orders. If `PAYMENT_PROVIDER=flutterwave`, the same billing flow uses the Flutterwave helper and signed webhooks instead.
 
 ## Demo Mode
 

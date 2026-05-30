@@ -310,6 +310,7 @@ function extractPaymentEvent(payload = {}) {
   const reference = data.reference || data.tx_ref || data.txRef || payload.tx_ref || payload.txRef || "";
   const providerId = data.id || payload.id || data.transaction_id || payload.transaction_id || "";
   return {
+    provider: "flutterwave",
     reference: String(reference || ""),
     provider_id: providerId ? String(providerId) : "",
     transaction_id: data.transaction_id || payload.transaction_id || data.id || "",

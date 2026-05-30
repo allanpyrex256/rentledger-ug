@@ -1,18 +1,22 @@
 const { fail, send } = require("../server/supabase-admin");
 const { extractPaymentEvent, publicBaseUrl } = require("../server/flutterwave");
+const { extractPesapalPaymentEvent, isPesapalEvent } = require("../server/pesapal");
 const { settleSubscriptionPayment } = require("../server/subscription-billing");
 
 module.exports = async function handler(request, response) {
   if (request.method !== "GET") return send(response, 405, { error: "Method not allowed" });
 
   try {
-    const event = extractPaymentEvent({
-      reference: request.query?.reference || request.query?.tx_ref,
-      tx_ref: request.query?.tx_ref || request.query?.reference,
-      transaction_id: request.query?.transaction_id,
-      id: request.query?.charge_id,
-      status: request.query?.status || "pending",
-    });
+    const query = request.query || {};
+    const event = isPesapalEvent(query)
+      ? extractPesapalPaymentEvent(query)
+      : extractPaymentEvent({
+          reference: query.reference || query.tx_ref,
+          tx_ref: query.tx_ref || query.reference,
+          transaction_id: query.transaction_id,
+          id: query.charge_id,
+          status: query.status || "pending",
+        });
     const result = await settleSubscriptionPayment(event);
     const status = result.status || event.status || "Pending";
     return redirect(response, `${publicBaseUrl(request)}/?billing=${encodeURIComponent(status.toLowerCase())}`);
