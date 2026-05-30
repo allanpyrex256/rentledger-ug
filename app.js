@@ -7,6 +7,7 @@
   let supabaseReady = false;
   let supabaseHydrating = false;
   let supabaseSaveTimer = null;
+  let supabaseSessionActive = false;
   let authVisible = false;
   let highlightedUnitId = null;
   let unitPhotoPreviewUrl = null;
@@ -541,6 +542,37 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  async function requireSupabaseWriteSession(message = "Sign in again to sync changes across devices.") {
+    if (!supabaseReady || !supabaseClient?.auth) return true;
+    if (await hasActiveSupabaseSession()) return true;
+    promptSupabaseSignIn(message);
+    return false;
+  }
+
+  async function hasActiveSupabaseSession() {
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      supabaseSessionActive = Boolean(data.session?.access_token);
+      return supabaseSessionActive;
+    } catch (error) {
+      console.error("Supabase session check failed", error);
+      supabaseSessionActive = false;
+      return false;
+    }
+  }
+
+  function promptSupabaseSignIn(message = "Sign in again to sync changes across devices.") {
+    supabaseSessionActive = false;
+    if (supabaseReady) {
+      state.currentUserId = null;
+      state.selectedPropertyId = "all";
+      state.role = "landlord";
+      saveLocalStateOnly();
+      showAuth("signin");
+    }
+    showToast(message);
+  }
+
   async function signIn(event) {
     event.preventDefault();
     const loginIdentifier = ui.signInIdentifier.value.trim();
@@ -601,6 +633,7 @@
         password,
       });
       if (error) throw error;
+      supabaseSessionActive = Boolean(data.session?.access_token);
       return data.user.id;
     }
 
@@ -610,6 +643,7 @@
       refresh_token: session.refresh_token,
     });
     if (error) throw error;
+    supabaseSessionActive = Boolean(data.session?.access_token);
     return data.user.id;
   }
 
@@ -690,6 +724,7 @@
     const headers = { "Content-Type": "application/json" };
     if (supabaseClient?.auth) {
       const { data } = await supabaseClient.auth.getSession();
+      supabaseSessionActive = Boolean(data.session?.access_token);
       if (data.session?.access_token) headers.Authorization = `Bearer ${data.session.access_token}`;
     }
 
@@ -1024,6 +1059,7 @@
         console.error("Supabase sign-out failed", error);
       }
     }
+    supabaseSessionActive = false;
     state.currentUserId = null;
     state.selectedPropertyId = "all";
     state.role = "landlord";
@@ -3259,6 +3295,7 @@
       showToast("Caretakers cannot create rooms.");
       return;
     }
+    if (!(await requireSupabaseWriteSession("Sign in again to add rooms and photos across devices."))) return;
     if (!ui.unitProperty.value) {
       showToast("Add a property before adding rooms.");
       return;
@@ -3348,6 +3385,11 @@
     const unitId = ui.unitPhotoPicker?.dataset.unitId || "";
     const file = ui.unitPhotoPicker?.files?.[0];
     if (!unitId || !file) return;
+    if (!(await requireSupabaseWriteSession("Sign in again to upload this photo across devices."))) {
+      ui.unitPhotoPicker.value = "";
+      ui.unitPhotoPicker.dataset.unitId = "";
+      return;
+    }
     try {
       const photo = await imageFileToDataUrl(file);
       state.units = state.units.map((unit) =>
@@ -5243,6 +5285,7 @@
     try {
       const { data: sessionData } = await client.auth.getSession();
       const session = sessionData.session;
+      supabaseSessionActive = Boolean(session?.access_token);
       toggleProductionDemoControls();
 
       if (!session?.user) {
@@ -5596,7 +5639,7 @@
     supabaseSaveTimer = window.setTimeout(() => {
       persistSupabaseState(snapshot).catch((error) => {
         console.error("Supabase save failed", error);
-        showToast(`Could not save to Supabase: ${error.message || "Browser copy kept."}`);
+        handleSupabaseSaveError(error);
       });
     }, 450);
   }
@@ -5613,8 +5656,25 @@
 
   async function persistSupabaseState(snapshot) {
     if (!supabaseClient) return;
+    if (!(await hasActiveSupabaseSession())) {
+      const error = new Error("Sign in required.");
+      error.code = "AUTH_REQUIRED";
+      throw error;
+    }
     await apiRequest("/api/sync-state", { state: syncStatePayload(snapshot) });
     clearSyncedDeletedRows(snapshot.deletedRowIds || {});
+  }
+
+  function handleSupabaseSaveError(error) {
+    if (isSignInRequiredError(error)) {
+      promptSupabaseSignIn("Sign in again to sync changes across devices.");
+      return;
+    }
+    showToast(`Could not save to Supabase: ${error.message || "Browser copy kept."}`);
+  }
+
+  function isSignInRequiredError(error) {
+    return error?.code === "AUTH_REQUIRED" || /sign in required|jwt|auth session/i.test(String(error?.message || ""));
   }
 
   function syncStatePayload(snapshot) {
