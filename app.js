@@ -1,5 +1,8 @@
 (function () {
   const STORAGE_KEY = "rentledger_ug_mvp_v1";
+  const BROWSER_DB_NAME = "rentledger_ug_mvp_store";
+  const BROWSER_DB_STORE = "app_state";
+  const BROWSER_DB_STATE_KEY = "latest";
   let supabaseClient = null;
   let supabaseReady = false;
   let supabaseHydrating = false;
@@ -318,6 +321,7 @@
 
   async function initialize() {
     try {
+      await hydrateStateFromBrowserStore();
       await hydrateStateFromSupabase();
       toggleProductionDemoControls();
       bindAuthRecovery();
@@ -1025,19 +1029,10 @@
       } catch (error) {
         console.error("Supabase sign-out failed", error);
       }
-      const remote = await safeFetchPublicSupabaseState(supabaseClient);
-      replaceState(
-        migrateState({
-          ...emptyState(),
-          ...remote,
-          currentUserId: null,
-          selectedPropertyId: "all",
-          role: "landlord",
-          searchTerm: state.searchTerm,
-        })
-      );
     }
     state.currentUserId = null;
+    state.selectedPropertyId = "all";
+    state.role = "landlord";
     saveState();
     authVisible = false;
     renderSession();
@@ -5213,6 +5208,7 @@
       return;
     }
     localStorage.removeItem(STORAGE_KEY);
+    deleteStateFromIndexedDB().catch((error) => console.warn("Could not clear IndexedDB demo data", error));
     const fresh = seedState();
     Object.keys(state).forEach((key) => delete state[key]);
     Object.assign(state, fresh);
@@ -5244,16 +5240,7 @@
 
       if (!session?.user) {
         const remote = await safeFetchPublicSupabaseState(client);
-        replaceState(
-          migrateState({
-            ...emptyState(),
-            ...remote,
-            currentUserId: null,
-            selectedPropertyId: "all",
-            role: "landlord",
-            searchTerm: state.searchTerm,
-          })
-        );
+        replaceState(anonymousStateWithPublicListings(remote));
         saveLocalStateOnly();
         return;
       }
@@ -5278,19 +5265,8 @@
       }
     } catch (error) {
       console.error("Supabase sync failed", error);
-      const remote = await safeFetchPublicSupabaseState(client);
-      replaceState(
-        migrateState({
-          ...emptyState(),
-          ...remote,
-          currentUserId: null,
-          selectedPropertyId: "all",
-          role: "landlord",
-          searchTerm: state.searchTerm,
-        })
-      );
       saveLocalStateOnly();
-      showToast("Could not load Supabase data. Please sign in again.");
+      showToast("Could not refresh Supabase. Your browser copy is still saved.");
     } finally {
       supabaseHydrating = false;
     }
@@ -5447,6 +5423,28 @@
     }
   }
 
+  function anonymousStateWithPublicListings(remote = {}) {
+    return migrateState({
+      ...state,
+      users: mergeRowsPreservingLocal(state.users, remote.users),
+      properties: mergeRowsPreservingLocal(state.properties, remote.properties),
+      units: mergeRowsPreservingLocal(state.units, remote.units),
+      dismissedNotificationIds: state.dismissedNotificationIds || remote.dismissedNotificationIds || [],
+      passwordReset: state.passwordReset || remote.passwordReset || null,
+      currentUserId: null,
+      selectedPropertyId: "all",
+      role: "landlord",
+      searchTerm: state.searchTerm,
+    });
+  }
+
+  function mergeRowsPreservingLocal(localRows = [], remoteRows = []) {
+    const rowsById = new Map();
+    (remoteRows || []).filter((row) => row?.id).forEach((row) => rowsById.set(row.id, row));
+    (localRows || []).filter((row) => row?.id).forEach((row) => rowsById.set(row.id, { ...rowsById.get(row.id), ...row }));
+    return [...rowsById.values()];
+  }
+
   function settingValue(settings, key, fallback) {
     const row = (settings || []).find((item) => item.setting_key === key);
     return row && row.value !== undefined && row.value !== null ? row.value : fallback;
@@ -5495,7 +5493,15 @@
   }
 
   function saveLocalStateOnly() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(localCacheState()));
+    const snapshot = localCacheState();
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    } catch (error) {
+      console.warn("LocalStorage save failed; IndexedDB fallback will keep the browser copy.", error);
+    }
+    saveStateToIndexedDB(snapshot).catch((error) => {
+      console.error("IndexedDB save failed", error);
+    });
   }
 
   function localCacheState() {
@@ -5505,6 +5511,71 @@
       cached_at: new Date().toISOString(),
       users: (state.users || []).map(({ password, ...user }) => user),
     };
+  }
+
+  async function hydrateStateFromBrowserStore() {
+    try {
+      const stored = await readStateFromIndexedDB();
+      if (!stored || !browserStoreIsNewer(stored, state)) return;
+      replaceState(migrateState(stored));
+    } catch (error) {
+      console.warn("IndexedDB restore failed", error);
+    }
+  }
+
+  function browserStoreIsNewer(stored, current) {
+    const storedTime = rowTimestamp({ updated_at: stored.cached_at });
+    const currentTime = rowTimestamp({ updated_at: current.cached_at });
+    return storedTime >= currentTime;
+  }
+
+  async function saveStateToIndexedDB(snapshot) {
+    if (!window.indexedDB) return;
+    const db = await openBrowserStateDb();
+    try {
+      await indexedDbRequest(db.transaction(BROWSER_DB_STORE, "readwrite").objectStore(BROWSER_DB_STORE).put(snapshot, BROWSER_DB_STATE_KEY));
+    } finally {
+      db.close();
+    }
+  }
+
+  async function readStateFromIndexedDB() {
+    if (!window.indexedDB) return null;
+    const db = await openBrowserStateDb();
+    try {
+      return await indexedDbRequest(db.transaction(BROWSER_DB_STORE, "readonly").objectStore(BROWSER_DB_STORE).get(BROWSER_DB_STATE_KEY));
+    } finally {
+      db.close();
+    }
+  }
+
+  async function deleteStateFromIndexedDB() {
+    if (!window.indexedDB) return;
+    const db = await openBrowserStateDb();
+    try {
+      await indexedDbRequest(db.transaction(BROWSER_DB_STORE, "readwrite").objectStore(BROWSER_DB_STORE).delete(BROWSER_DB_STATE_KEY));
+    } finally {
+      db.close();
+    }
+  }
+
+  function openBrowserStateDb() {
+    return new Promise((resolve, reject) => {
+      const request = window.indexedDB.open(BROWSER_DB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(BROWSER_DB_STORE)) db.createObjectStore(BROWSER_DB_STORE);
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error("Could not open browser storage."));
+    });
+  }
+
+  function indexedDbRequest(request) {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error || new Error("Browser storage request failed."));
+    });
   }
 
   function mergeRemoteWithLocalCache(remote, cachedState, userId) {
