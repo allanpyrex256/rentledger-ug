@@ -31,12 +31,12 @@ module.exports = async function handler(request, response) {
     const selectedPlan = normalizeSignupPlan(body.plan || body.selectedPlan);
     const planOption = signupPlanOption(selectedPlan);
     if (!planOption) {
-      return send(response, 400, { error: "Choose Starter or Professional before starting the free trial." });
+      return send(response, 400, { error: "Choose Starter or Professional before starting the first free month." });
     }
 
     const paymentMethod = normalizeSignupPaymentMethod(body.payment_method || body.paymentMethod);
     if (!paymentMethod) {
-      return send(response, 400, { error: "Choose a payment method for automatic billing after the trial." });
+      return send(response, 400, { error: "Choose a payment method for automatic billing after the first free month." });
     }
 
     const billingContact = String(body.billing_contact || body.billingContact || "").trim();
@@ -48,7 +48,7 @@ module.exports = async function handler(request, response) {
     }
 
     if (!billingAuthorizationAccepted(body.auto_collect_authorized || body.autoCollectAuthorized)) {
-      return send(response, 400, { error: "Automatic collection authorization is required to start a trial." });
+      return send(response, 400, { error: "Automatic collection authorization is required to start the first free month." });
     }
 
     const email = normalizeEmail(body.email);
@@ -94,7 +94,7 @@ module.exports = async function handler(request, response) {
           status: "Trial",
           last_payment_date: today,
           last_payment_method: paymentMethod,
-          last_payment_note: `Free trial opened from public signup. Auto-collect authorized for ${paymentMethod} (${billingContact}) after trial unless cancelled.`,
+          last_payment_note: `First free month opened from public signup. Auto-collect authorized for ${paymentMethod} (${billingContact}) after the first month unless cancelled.`,
           next_billing_date: nextBillingDate,
         },
       ]);

@@ -6,7 +6,7 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 
 - V1 landlord workflow: create property, add unit, add tenant, record payment, and see balance.
 - Landlord daily dashboard with rent collected today, late tenants, and vacant rooms.
-- Landlord account signup/sign-in with required plan selection, billing method, and free-trial auto-collection authorization.
+- Landlord account signup/sign-in with required plan selection, billing method, and first-month auto-collection authorization.
 - Property setup for rooms, shops, boys quarters, houses, and rent amounts.
 - Public rental listings at `/vacancies` and `/available-units`, with district/budget/type search, featured listings, property photos, landlord profile pages, and WhatsApp inquiry buttons.
 - Landing page with local photo assets for apartments, mobile payments, and property handover moments.

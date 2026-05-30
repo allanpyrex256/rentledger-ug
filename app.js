@@ -934,11 +934,11 @@
       return;
     }
     if (!selectedPlanOption) {
-      showToast("Choose Starter or Professional before starting the free trial.");
+      showToast("Choose Starter or Professional before starting the first free month.");
       return;
     }
     if (!paymentMethod) {
-      showToast("Choose a payment method for automatic billing after the trial.");
+      showToast("Choose a payment method for automatic billing after the first free month.");
       return;
     }
     if (!billingContact) {
@@ -950,7 +950,7 @@
       return;
     }
     if (!ui.accountBillingConsent.checked) {
-      showToast("Confirm automatic collection after the trial.");
+      showToast("Confirm automatic collection after the first free month.");
       return;
     }
 
@@ -972,7 +972,7 @@
       ui.createAccountForm.reset();
       updateSignupBillingSummary();
       setView("properties");
-      showToast(`${selectedPlanOption.plan} free trial opened.`);
+      showToast(`${selectedPlanOption.plan} first free month opened.`);
     } catch (error) {
       console.error("Account creation failed", error);
       showToast(error.message || "Could not create account.");
@@ -3932,18 +3932,18 @@
     const nextBillingDate = addMonths(isoDate(new Date()), 1);
 
     if (!planOption) {
-      ui.accountTrialSummary.textContent = "Select a paid plan and payment method to start the free trial.";
+      ui.accountTrialSummary.textContent = "Select Starter or Professional and a payment method to start the first month free.";
       return;
     }
     if (!paymentMethod) {
-      ui.accountTrialSummary.textContent = `${planOption.plan} trial selected. Choose how billing will be collected after the trial.`;
+      ui.accountTrialSummary.textContent = `${planOption.plan} selected. Choose how billing will be collected after the first free month.`;
       return;
     }
 
     const billingContact = ui.accountBillingContact?.value.trim();
     const contactLabel = billingContact ? ` from ${maskBillingContact(billingContact)}` : "";
     ui.accountTrialSummary.textContent =
-      `${planOption.plan} trial selected. ${formatMoney(planOption.fee)}/month will be collected by ${paymentMethod}${contactLabel} from ${formatDate(nextBillingDate)} unless cancelled.`;
+      `${planOption.plan} first month is free. ${formatMoney(planOption.fee)}/month will be collected by ${paymentMethod}${contactLabel} from ${formatDate(nextBillingDate)} unless cancelled.`;
   }
 
   function maskBillingContact(value) {

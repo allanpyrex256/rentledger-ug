@@ -1162,12 +1162,12 @@ button {
 .price-card {
   display: grid;
   gap: 14px;
-  min-height: 250px;
+  min-height: 360px;
   color: var(--ink);
 }
 
 .price-card strong {
-  font-size: 30px;
+  font-size: clamp(24px, 2.5vw, 30px);
 }
 
 .price-card strong span {
@@ -1175,8 +1175,22 @@ button {
   font-size: 14px;
 }
 
+.price-card ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .price-card button {
   align-self: end;
+}
+
+.price-card .link-button {
+  align-self: end;
+  justify-self: start;
 }
 
 .featured-price {

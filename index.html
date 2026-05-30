@@ -43,7 +43,7 @@
               Know who paid rent, who did not, and which rooms need tenants without notebooks, Excel, or scattered WhatsApp chats.
             </p>
             <div class="hero-actions">
-              <button class="primary-button" data-open-auth="signup" type="button">Start Free</button>
+              <button class="primary-button" data-open-auth="signup" type="button">Start First Month Free</button>
               <a class="ghost-button link-button" href="vacancies.html">View Vacant Units</a>
               <button class="ghost-button hidden" data-start-demo type="button">Real Dashboard Preview</button>
             </div>
@@ -271,20 +271,35 @@
             <article class="price-card">
               <h3>Starter</h3>
               <strong>USh 50,000<span>/month</span></strong>
-              <p>For landlords starting with a few rooms and 1 caretaker account.</p>
-              <button class="ghost-button" data-open-auth="signup" data-signup-plan="Starter" type="button">Create Account</button>
+              <p>For single-property landlords moving rent records from notebooks to a phone.</p>
+              <ul>
+                <li>1 caretaker account</li>
+                <li>Rent, tenant, expense, and receipt tracking</li>
+                <li>Vacancy publishing for available units</li>
+              </ul>
+              <button class="ghost-button" data-open-auth="signup" data-signup-plan="Starter" type="button">Start First Month Free</button>
             </article>
             <article class="price-card featured-price">
               <h3>Professional</h3>
               <strong>USh 120,000<span>/month</span></strong>
-              <p>For landlords managing multiple properties and more caretaker accounts.</p>
-              <button class="primary-button" data-open-auth="signup" data-signup-plan="Professional" type="button">Start Free Trial</button>
+              <p>For landlords managing multiple properties with staff collecting rent.</p>
+              <ul>
+                <li>Multiple caretaker accounts</li>
+                <li>Portfolio dashboards and SaaS billing records</li>
+                <li>Monthly rent and expense report downloads</li>
+              </ul>
+              <button class="primary-button" data-open-auth="signup" data-signup-plan="Professional" type="button">Start First Month Free</button>
             </article>
             <article class="price-card">
               <h3>Enterprise</h3>
-              <strong>Custom</strong>
-              <p>For agencies, estates, and larger portfolios.</p>
-              <button class="ghost-button" data-open-auth="signup" type="button">Talk to Sales</button>
+              <strong>From USh 250,000<span>/month</span></strong>
+              <p>For agencies, estates, and larger portfolios that need setup support.</p>
+              <ul>
+                <li>Custom onboarding for larger portfolios</li>
+                <li>Advanced support and account setup help</li>
+                <li>Flexible billing for agency teams</li>
+              </ul>
+              <a class="ghost-button link-button" href="mailto:allanpyrex5@gmail.com?subject=RentLedger%20UG%20Enterprise%20plan">Talk to Sales</a>
             </article>
           </div>
         </section>
@@ -373,11 +388,11 @@
             <input id="accountPassword" type="password" autocomplete="new-password" minlength="8" required />
           </label>
           <label>
-            Trial Plan
+            First-Month Trial Plan
             <select id="accountPlan" required>
               <option value="">Select a paid plan</option>
-              <option value="Starter">Starter - USh 50,000/month after trial</option>
-              <option value="Professional">Professional - USh 120,000/month after trial</option>
+              <option value="Starter">Starter - USh 50,000/month after first month</option>
+              <option value="Professional">Professional - USh 120,000/month after first month</option>
             </select>
           </label>
           <label>
@@ -392,14 +407,14 @@
           <label>
             Billing Phone / Authorization Reference
             <input id="accountBillingContact" autocomplete="tel" placeholder="e.g. 0772123456" required />
-            <small class="form-helper">Used after the trial. Do not enter a full card number.</small>
+            <small class="form-helper">Used after the first free month. Do not enter a full card number.</small>
           </label>
           <label class="checkbox-consent">
             <input id="accountBillingConsent" type="checkbox" required />
-            <span>I authorize automatic monthly collection after my free trial unless I cancel.</span>
+            <span>I authorize automatic monthly collection after my first free month unless I cancel.</span>
           </label>
-          <div id="accountTrialSummary" class="billing-summary-note">Select a paid plan and payment method to start the free trial.</div>
-          <button class="primary-button" type="submit">Start Free Trial</button>
+          <div id="accountTrialSummary" class="billing-summary-note">Select Starter or Professional and a payment method to start the first month free.</div>
+          <button class="primary-button" type="submit">Start First Month Free</button>
         </form>
 
         <form id="forgotPasswordForm" class="stacked-form auth-form hidden">
