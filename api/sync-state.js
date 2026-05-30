@@ -31,6 +31,7 @@ module.exports = async function handler(request, response) {
     const snapshot = normalizeSnapshot(body.state || body);
     const context = await buildSyncContext(profile, snapshot);
     const rowsByKey = new Map();
+    const deletedRowsByKey = normalizeDeletedRowIds(snapshot.deletedRowIds);
 
     for (const item of STATE_TABLES) {
       const rows = writableRowsForStateKey(item.stateKey, snapshot, profile, context).map((row) =>
@@ -42,7 +43,7 @@ module.exports = async function handler(request, response) {
     for (const stateKey of DELETE_ORDER) {
       const table = STATE_TABLES.find((item) => item.stateKey === stateKey)?.table;
       if (!table) continue;
-      await deleteRemovedRows(table, stateKey, rowsByKey.get(stateKey) || [], profile, context);
+      await deleteRequestedRows(table, stateKey, deletedRowsByKey[stateKey] || [], profile, context);
     }
 
     for (const item of STATE_TABLES) {
@@ -66,6 +67,7 @@ function normalizeSnapshot(value) {
     expenses: Array.isArray(state.expenses) ? state.expenses : [],
     supportTickets: Array.isArray(state.supportTickets) ? state.supportTickets : [],
     notifications: Array.isArray(state.notifications) ? state.notifications : [],
+    deletedRowIds: normalizeDeletedRowIds(state.deletedRowIds),
   };
 }
 
@@ -121,16 +123,26 @@ function writableRowsForStateKey(stateKey, snapshot, profile, context) {
   return [];
 }
 
-async function deleteRemovedRows(table, stateKey, keepRows, profile, context) {
+async function deleteRequestedRows(table, stateKey, deleteIds, profile, context) {
+  if (!deleteIds.length) return;
   const remoteIds = await remoteIdsForStateKey(table, stateKey, profile, context);
   if (!remoteIds.length) return;
-  const keepIds = new Set(keepRows.map((row) => row.id));
-  const staleIds = remoteIds.filter((id) => !keepIds.has(id));
-  if (!staleIds.length) return;
-  await supabaseFetch(`/rest/v1/${table}?id=in.(${listValues(staleIds)})`, {
+  const allowedIds = new Set(remoteIds);
+  const scopedDeleteIds = deleteIds.filter((id) => allowedIds.has(id));
+  if (!scopedDeleteIds.length) return;
+  await supabaseFetch(`/rest/v1/${table}?id=in.(${listValues(scopedDeleteIds)})`, {
     method: "DELETE",
     prefer: "return=minimal",
   });
+}
+
+function normalizeDeletedRowIds(value = {}) {
+  const stateKeys = STATE_TABLES.map((item) => item.stateKey);
+  return stateKeys.reduce((result, key) => {
+    const ids = Array.isArray(value[key]) ? value[key].filter(Boolean) : [];
+    if (ids.length) result[key] = [...new Set(ids)];
+    return result;
+  }, {});
 }
 
 async function remoteIdsForStateKey(table, stateKey, profile, context) {

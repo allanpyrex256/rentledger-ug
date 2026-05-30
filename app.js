@@ -46,15 +46,6 @@
   const SUPER_ADMIN_EMAIL = "allanpyrex5@gmail.com";
   const DEMO_ACCOUNT_IDS = [SUPER_ADMIN_USER_ID, "user-1", "staff-1"];
   const PUBLIC_DEMO_ACCOUNT_IDS = ["user-1", "staff-1"];
-  const CLIENT_WRITABLE_STATE_KEYS = new Set([
-    "properties",
-    "units",
-    "tenants",
-    "payments",
-    "expenses",
-    "supportTickets",
-    "notifications",
-  ]);
   const state = loadState();
 
   const ui = {
@@ -977,7 +968,7 @@
 
   async function openUserSession(userId) {
     if (supabaseReady && supabaseClient) {
-      const remote = await fetchSupabaseState(supabaseClient);
+      const remote = applyDeletedRowIdsToStateRows(await fetchSupabaseState(supabaseClient), state.deletedRowIds);
       const sessionState = {
         currentUserId: userId,
         selectedPropertyId: "all",
@@ -985,6 +976,8 @@
         searchTerm: state.searchTerm,
       };
       replaceState(migrateState({ ...emptyState(), ...remote, ...sessionState }));
+      saveLocalStateOnly();
+      await syncPendingDeletedRows();
     }
 
     const user = state.users.find((item) => item.id === userId);
@@ -1007,7 +1000,7 @@
   async function refreshSupabaseState() {
     if (!supabaseReady || !supabaseClient) return;
     const { data: sessionData } = await supabaseClient.auth.getSession();
-    const remote = await fetchSupabaseState(supabaseClient);
+    const remote = applyDeletedRowIdsToStateRows(await fetchSupabaseState(supabaseClient), state.deletedRowIds);
     replaceState(
       migrateState({
         ...emptyState(),
@@ -1019,6 +1012,7 @@
       })
     );
     saveLocalStateOnly();
+    await syncPendingDeletedRows();
     renderSession();
   }
 
@@ -3239,12 +3233,19 @@
     const tenantIds = state.tenants
       .filter((tenant) => unitIds.includes(tenant.unit_id))
       .map((tenant) => tenant.id);
+    const paymentIds = state.payments.filter((payment) => tenantIds.includes(payment.tenant_id)).map((payment) => payment.id);
+    const expenseIds = state.expenses.filter((expense) => expense.property_id === id).map((expense) => expense.id);
 
     state.properties = state.properties.filter((item) => item.id !== id);
     state.units = state.units.filter((unit) => unit.property_id !== id);
     state.tenants = state.tenants.filter((tenant) => !unitIds.includes(tenant.unit_id));
     state.payments = state.payments.filter((payment) => !tenantIds.includes(payment.tenant_id));
     state.expenses = state.expenses.filter((expense) => expense.property_id !== id);
+    markRowsDeleted("payments", paymentIds);
+    markRowsDeleted("expenses", expenseIds);
+    markRowsDeleted("tenants", tenantIds);
+    markRowsDeleted("units", unitIds);
+    markRowsDeleted("properties", id);
     state.selectedPropertyId = "all";
     saveState();
     resetPropertyForm();
@@ -3393,6 +3394,7 @@
       return;
     }
     state.units = state.units.filter((unit) => unit.id !== id);
+    markRowsDeleted("units", id);
     saveState();
     renderAll();
     showToast("Room removed.");
@@ -3672,6 +3674,7 @@
 
     setUnitStatus(tenant.unit_id, "vacant");
     state.tenants = state.tenants.filter((item) => item.id !== tenant.id);
+    markRowsDeleted("tenants", tenant.id);
     addNotification({
       type: "tenant",
       title: "Tenant moved out",
@@ -3696,8 +3699,11 @@
     }
     const tenant = getScopedData().tenants.find((item) => item.id === id);
     if (!tenant) return;
+    const paymentIds = state.payments.filter((payment) => payment.tenant_id === id).map((payment) => payment.id);
     state.tenants = state.tenants.filter((item) => item.id !== id);
     state.payments = state.payments.filter((payment) => payment.tenant_id !== id);
+    markRowsDeleted("payments", paymentIds);
+    markRowsDeleted("tenants", id);
     setUnitStatus(tenant.unit_id, "vacant");
     saveState();
     renderAll();
@@ -3788,6 +3794,7 @@
     const expense = getScopedData().expenses.find((item) => item.id === id);
     if (!expense) return;
     state.expenses = state.expenses.filter((item) => item.id !== id);
+    markRowsDeleted("expenses", id);
     saveState();
     renderAll();
     showToast("Expense removed.");
@@ -5245,24 +5252,16 @@
         return;
       }
 
-      const remote = await fetchSupabaseState(client);
-      const cachedState = state;
-      const mergedRemote = mergeRemoteWithLocalCache(remote, cachedState, session.user.id);
-      const { usedLocalCache, ...mergedData } = mergedRemote;
+      const remote = applyDeletedRowIdsToStateRows(await fetchSupabaseState(client), state.deletedRowIds);
       const sessionState = {
         currentUserId: session.user.id,
         selectedPropertyId: state.selectedPropertyId,
         role: state.role,
         searchTerm: state.searchTerm,
       };
-      replaceState(migrateState({ ...emptyState(), ...mergedData, ...sessionState }));
+      replaceState(migrateState({ ...emptyState(), ...remote, ...sessionState }));
       saveLocalStateOnly();
-      if (usedLocalCache) {
-        window.setTimeout(() => {
-          saveState();
-          showToast("Recovered browser data and saved it again.");
-        }, 0);
-      }
+      await syncPendingDeletedRows();
     } catch (error) {
       console.error("Supabase sync failed", error);
       saveLocalStateOnly();
@@ -5353,6 +5352,7 @@
 
     remote.dismissedNotificationIds = state.dismissedNotificationIds || [];
     remote.passwordReset = state.passwordReset || null;
+    remote.deletedRowIds = state.deletedRowIds || {};
     return remote;
   }
 
@@ -5377,6 +5377,7 @@
       units: (units || []).map((row) => fromSupabaseRow("units", row)),
       dismissedNotificationIds: state.dismissedNotificationIds || [],
       passwordReset: state.passwordReset || null,
+      deletedRowIds: state.deletedRowIds || {},
     };
   }
 
@@ -5394,6 +5395,7 @@
         units: listings.map((item) => fromSupabaseRow("units", item.unit)),
         dismissedNotificationIds: state.dismissedNotificationIds || [],
         passwordReset: state.passwordReset || null,
+        deletedRowIds: state.deletedRowIds || {},
       };
     } catch (error) {
       console.error("Public vacancies API failed", error);
@@ -5419,6 +5421,7 @@
       return {
         dismissedNotificationIds: state.dismissedNotificationIds || [],
         passwordReset: state.passwordReset || null,
+        deletedRowIds: state.deletedRowIds || {},
       };
     }
   }
@@ -5431,6 +5434,7 @@
       units: mergeRowsPreservingLocal(state.units, remote.units),
       dismissedNotificationIds: state.dismissedNotificationIds || remote.dismissedNotificationIds || [],
       passwordReset: state.passwordReset || remote.passwordReset || null,
+      deletedRowIds: state.deletedRowIds || remote.deletedRowIds || {},
       currentUserId: null,
       selectedPropertyId: "all",
       role: "landlord",
@@ -5578,61 +5582,6 @@
     });
   }
 
-  function mergeRemoteWithLocalCache(remote, cachedState, userId) {
-    if (!cachedState?.production) return remote;
-    if (cachedState.currentUserId && cachedState.currentUserId !== userId) return remote;
-    const merged = { ...remote };
-    let usedLocalCache = false;
-    const keys = ["users", "subscriptions", "properties", "units", "tenants", "payments", "expenses", "supportTickets", "notifications"];
-
-    keys.forEach((key) => {
-      const remoteRows = Array.isArray(remote[key]) ? remote[key] : [];
-      const cachedRows = Array.isArray(cachedState[key]) ? cachedState[key] : [];
-      const { rows, usedCache } = mergeRowsById(key, remoteRows, cachedRows);
-      merged[key] = rows;
-      usedLocalCache = usedLocalCache || usedCache;
-    });
-
-    return { ...merged, usedLocalCache };
-  }
-
-  function mergeRowsById(stateKey, remoteRows, cachedRows) {
-    const rowsById = new Map(remoteRows.filter((row) => row?.id).map((row) => [row.id, row]));
-    let usedCache = false;
-
-    cachedRows
-      .filter((row) => row?.id && shouldKeepCachedRow(row))
-      .forEach((row) => {
-        const remoteRow = rowsById.get(row.id);
-        if (!remoteRow || (!sameCachedRow(row, remoteRow) && cacheLooksNewer(stateKey, row, remoteRow))) {
-          rowsById.set(row.id, row);
-          usedCache = true;
-        }
-      });
-
-    return { rows: [...rowsById.values()], usedCache };
-  }
-
-  function shouldKeepCachedRow(row) {
-    return !String(row.id || "").startsWith("notification-daily-");
-  }
-
-  function cacheLooksNewer(stateKey, cachedRow, remoteRow) {
-    const cachedDate = rowTimestamp(cachedRow);
-    const remoteDate = rowTimestamp(remoteRow);
-    if (!remoteDate) return true;
-    if (!cachedDate) return false;
-    if (stateKey === "supportTickets") return cachedDate > remoteDate;
-    return cachedDate >= remoteDate;
-  }
-
-  function sameCachedRow(left, right) {
-    const keys = new Set([...Object.keys(left || {}), ...Object.keys(right || {})]);
-    keys.delete("cached_at");
-    keys.delete("password");
-    return [...keys].every((key) => String(left?.[key] ?? "") === String(right?.[key] ?? ""));
-  }
-
   function rowTimestamp(row) {
     const value = row.updated_at || row.created_at || row.payment_date || row.date || row.move_in_date || "";
     const time = value ? new Date(value).getTime() : 0;
@@ -5665,6 +5614,7 @@
   async function persistSupabaseState(snapshot) {
     if (!supabaseClient) return;
     await apiRequest("/api/sync-state", { state: syncStatePayload(snapshot) });
+    clearSyncedDeletedRows(snapshot.deletedRowIds || {});
   }
 
   function syncStatePayload(snapshot) {
@@ -5676,73 +5626,53 @@
       expenses: snapshot.expenses || [],
       supportTickets: snapshot.supportTickets || [],
       notifications: snapshot.notifications || [],
+      deletedRowIds: snapshot.deletedRowIds || {},
     };
   }
 
-  function isClientWritableStateKey(stateKey) {
-    if (!CLIENT_WRITABLE_STATE_KEYS.has(stateKey)) return false;
-    const user = currentUser();
-    if (!user) return false;
-    if (user.role === "staff") return ["tenants", "payments", "notifications"].includes(stateKey);
-    if (user.role === "saas-owner") return ["supportTickets", "notifications"].includes(stateKey);
-    return true;
+  function applyDeletedRowIdsToStateRows(nextState, deletedRowIds = {}) {
+    const normalizedDeletedRows = normalizeDeletedRowIds(deletedRowIds);
+    const sanitizedState = { ...nextState, deletedRowIds: normalizedDeletedRows };
+    Object.entries(normalizedDeletedRows).forEach(([stateKey, ids]) => {
+      if (!Array.isArray(sanitizedState[stateKey])) return;
+      const deletedIds = new Set(ids);
+      sanitizedState[stateKey] = sanitizedState[stateKey].filter((row) => !row?.id || !deletedIds.has(row.id));
+    });
+    return sanitizedState;
   }
 
-  function buildWritableContext(snapshot, user) {
-    const properties = snapshot.properties || [];
-    const units = snapshot.units || [];
-    const tenants = snapshot.tenants || [];
-    const propertyIds =
-      user?.role === "staff"
-        ? new Set(user.assigned_property_ids || [])
-        : new Set(properties.filter((property) => property.owner_id === user?.id).map((property) => property.id));
-    const unitIds = new Set(units.filter((unit) => propertyIds.has(unit.property_id)).map((unit) => unit.id));
-    const tenantIds = new Set(tenants.filter((tenant) => unitIds.has(tenant.unit_id)).map((tenant) => tenant.id));
-    return { user, propertyIds, unitIds, tenantIds };
-  }
-
-  function writableRowsForStateKey(stateKey, snapshot, context) {
-    const rows = snapshot[stateKey] || [];
-    const { user, propertyIds, unitIds, tenantIds } = context;
-    if (!user) return [];
-    if (stateKey === "properties") return rows.filter((row) => user.role === "landlord" && row.owner_id === user.id);
-    if (stateKey === "units") return rows.filter((row) => propertyIds.has(row.property_id));
-    if (stateKey === "tenants") return rows.filter((row) => unitIds.has(row.unit_id));
-    if (stateKey === "payments") return rows.filter((row) => tenantIds.has(row.tenant_id));
-    if (stateKey === "expenses") return rows.filter((row) => propertyIds.has(row.property_id));
-    if (stateKey === "supportTickets") return user.role === "saas-owner" ? rows : rows.filter((row) => row.owner_id === user.id);
-    if (stateKey === "notifications") {
-      return user.role === "saas-owner"
-        ? rows
-        : rows.filter((row) => row.user_id === user.id || isSuperAdminSupportNotification(row));
+  async function syncPendingDeletedRows() {
+    if (!hasDeletedRowIds(state.deletedRowIds)) return;
+    try {
+      await persistSupabaseState(JSON.parse(JSON.stringify(state)));
+    } catch (error) {
+      console.error("Pending Supabase deletes failed", error);
+      showToast("Could not finish syncing deleted rows. Browser copy kept.");
     }
-    return [];
   }
 
-  async function deleteRemovedSupabaseRows(table, rows, stateKey, context) {
-    const keepIds = new Set(rows.map((row) => row.id));
-    const query = scopedDeleteSelect(table, stateKey, context);
-    if (!query) return;
-    const { data, error } = await query;
-    if (error) throw error;
-    const staleIds = (data || []).map((row) => row.id).filter((id) => !keepIds.has(id));
-    if (!staleIds.length) return;
-    const deleteResult = await supabaseClient.from(table).delete().in("id", staleIds);
-    if (deleteResult.error) throw deleteResult.error;
+  function hasDeletedRowIds(deletedRowIds = {}) {
+    return Object.values(deletedRowIds).some((ids) => Array.isArray(ids) && ids.length);
   }
 
-  function scopedDeleteSelect(table, stateKey, context) {
-    const { user, propertyIds, unitIds, tenantIds } = context;
-    if (!user) return null;
-    let query = supabaseClient.from(table).select("id");
-    if (stateKey === "properties") return user.role === "landlord" ? query.eq("owner_id", user.id) : null;
-    if (stateKey === "units") return propertyIds.size ? query.in("property_id", [...propertyIds]) : null;
-    if (stateKey === "tenants") return query;
-    if (stateKey === "payments") return query;
-    if (stateKey === "expenses") return query;
-    if (stateKey === "supportTickets") return user.role === "saas-owner" ? query : query.eq("owner_id", user.id);
-    if (stateKey === "notifications") return user.role === "saas-owner" ? query : query.eq("user_id", user.id);
-    return null;
+  function markRowsDeleted(stateKey, ids) {
+    const deletedIds = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
+    if (!deletedIds.length) return;
+    state.deletedRowIds = state.deletedRowIds || {};
+    state.deletedRowIds[stateKey] = [...new Set([...(state.deletedRowIds[stateKey] || []), ...deletedIds])];
+  }
+
+  function clearSyncedDeletedRows(deletedRowIds = {}) {
+    if (!state.deletedRowIds) return;
+    Object.entries(deletedRowIds).forEach(([stateKey, ids]) => {
+      const synced = new Set(Array.isArray(ids) ? ids : []);
+      if (!synced.size) return;
+      const remaining = (state.deletedRowIds[stateKey] || []).filter((id) => !synced.has(id));
+      if (remaining.length) state.deletedRowIds[stateKey] = remaining;
+      else delete state.deletedRowIds[stateKey];
+    });
+    if (!Object.keys(state.deletedRowIds).length) state.deletedRowIds = {};
+    saveLocalStateOnly();
   }
 
   function toSupabaseRow(stateKey, row) {
@@ -5837,6 +5767,7 @@
     migrated.supportTickets = Array.isArray(saved.supportTickets) ? saved.supportTickets : seeded.supportTickets;
     migrated.notifications = Array.isArray(saved.notifications) ? saved.notifications : seeded.notifications;
     migrated.dismissedNotificationIds = Array.isArray(saved.dismissedNotificationIds) ? saved.dismissedNotificationIds : [];
+    migrated.deletedRowIds = normalizeDeletedRowIds(saved.deletedRowIds);
     migrated.passwordReset = saved.passwordReset || null;
 
     const seedUsersById = new Map(seeded.users.map((user) => [user.id, user]));
@@ -5976,6 +5907,15 @@
     });
   }
 
+  function normalizeDeletedRowIds(value = {}) {
+    const stateKeys = ["properties", "units", "tenants", "payments", "expenses", "supportTickets", "notifications"];
+    return stateKeys.reduce((result, key) => {
+      const ids = Array.isArray(value[key]) ? value[key].filter(Boolean) : [];
+      if (ids.length) result[key] = [...new Set(ids)];
+      return result;
+    }, {});
+  }
+
   function saveState() {
     saveLocalStateOnly();
     scheduleSupabaseSave();
@@ -5999,6 +5939,7 @@
       supportTickets: [],
       notifications: [],
       dismissedNotificationIds: [],
+      deletedRowIds: {},
     };
   }
 
@@ -6015,6 +5956,7 @@
       role: "landlord",
       searchTerm: "",
       passwordReset: null,
+      deletedRowIds: {},
       users: [
         {
           id: "user-saas-owner",
