@@ -273,6 +273,7 @@
               <strong>USh 50,000<span>/month</span></strong>
               <p>For single-property landlords moving rent records from notebooks to a phone.</p>
               <ul>
+                <li>Up to 1 property and 20 units</li>
                 <li>1 caretaker account</li>
                 <li>Rent, tenant, expense, and receipt tracking</li>
                 <li>Vacancy publishing for available units</li>
@@ -284,7 +285,8 @@
               <strong>USh 120,000<span>/month</span></strong>
               <p>For landlords managing multiple properties with staff collecting rent.</p>
               <ul>
-                <li>Multiple caretaker accounts</li>
+                <li>Up to 5 properties and 100 units</li>
+                <li>Up to 5 caretaker accounts</li>
                 <li>Portfolio dashboards and SaaS billing records</li>
                 <li>Monthly rent and expense report downloads</li>
               </ul>
@@ -295,9 +297,9 @@
               <strong>From USh 250,000<span>/month</span></strong>
               <p>For agencies, estates, and larger portfolios that need setup support.</p>
               <ul>
+                <li>Custom property, unit, and staff limits</li>
                 <li>Custom onboarding for larger portfolios</li>
                 <li>Advanced support and account setup help</li>
-                <li>Flexible billing for agency teams</li>
               </ul>
               <a class="ghost-button link-button" href="mailto:allanpyrex5@gmail.com?subject=RentLedger%20UG%20Enterprise%20plan">Talk to Sales</a>
             </article>
@@ -476,6 +478,8 @@
           <button class="nav-item" data-view="tenants" type="button">Tenants</button>
           <button class="nav-item" data-view="staff" type="button">Caretakers</button>
           <button class="nav-item" data-view="rent" type="button">Rent</button>
+          <button class="nav-item" data-view="expenses" type="button">Expenses</button>
+          <button class="nav-item" data-view="reminders" type="button">Reminders</button>
           <button class="nav-item" data-view="support" type="button">Support</button>
         </nav>
 
@@ -527,6 +531,8 @@
           <button class="mobile-tab" data-view="tenants" type="button">Tenants</button>
           <button class="mobile-tab" data-view="staff" type="button">Caretakers</button>
           <button class="mobile-tab" data-view="rent" type="button">Rent</button>
+          <button class="mobile-tab" data-view="expenses" type="button">Expenses</button>
+          <button class="mobile-tab" data-view="reminders" type="button">Alerts</button>
           <button class="mobile-tab" data-view="support" type="button">Support</button>
         </nav>
 
@@ -585,6 +591,16 @@
 
         <section id="dashboard" class="view active-view" aria-labelledby="viewTitle">
           <div class="metric-grid" id="metricGrid"></div>
+          <section id="onboardingPanel" class="panel onboarding-panel hidden">
+            <div class="panel-header">
+              <div>
+                <h2>Setup Checklist</h2>
+                <p class="panel-subtitle">Finish these once and daily rent tracking gets easier.</p>
+              </div>
+              <span id="onboardingProgressLabel" class="pill neutral">0/5 done</span>
+            </div>
+            <div id="onboardingChecklist" class="onboarding-checklist"></div>
+          </section>
           <div id="dailyOpsGrid" class="daily-ops-grid"></div>
 
           <div class="content-grid two-columns">
@@ -667,6 +683,7 @@
         </section>
 
         <section id="properties" class="view" aria-labelledby="viewTitle">
+          <div id="planLimitNotice" class="plan-limit-note setup-limit-note"></div>
           <div class="content-grid form-layout">
             <section class="panel">
               <div class="panel-header">
@@ -827,7 +844,12 @@
             <section class="panel wide-panel">
               <div class="panel-header">
                 <h2>Tenant Records</h2>
-                <input id="tenantSearch" class="search-input" placeholder="Search tenants" />
+                <div class="button-row">
+                  <input id="tenantImportFile" class="hidden" type="file" accept=".csv,text/csv" />
+                  <button id="importTenantsButton" class="text-button" type="button">Import CSV</button>
+                  <button id="exportTenantsCsv" class="text-button" type="button">Export CSV</button>
+                  <input id="tenantSearch" class="search-input" placeholder="Search tenants" />
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
@@ -838,6 +860,7 @@
                       <th>Room</th>
                       <th>Rent</th>
                       <th>Deposit</th>
+                      <th>Status</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -938,6 +961,18 @@
                   Transaction Reference
                   <input id="paymentReference" name="paymentReference" placeholder="e.g. MOMO-48391" />
                 </label>
+                <label>
+                  Proof / Screenshot Link
+                  <input id="paymentProof" name="paymentProof" placeholder="e.g. MoMo screenshot URL or note" />
+                </label>
+                <label>
+                  Verification Status
+                  <select id="paymentVerification" name="paymentVerification">
+                    <option value="Unverified">Unverified</option>
+                    <option value="Verified">Verified</option>
+                    <option value="Disputed">Disputed</option>
+                  </select>
+                </label>
                 <div id="tenantBalancePreview" class="balance-preview"></div>
                 <button class="primary-button" type="submit">Confirm Payment</button>
               </form>
@@ -984,6 +1019,7 @@
                     <th>Method</th>
                     <th>Receipt</th>
                     <th>Reference</th>
+                    <th>Proof</th>
                     <th>Date</th>
                     <th>Balance</th>
                     <th>Actions</th>
@@ -1105,7 +1141,10 @@
           <section class="panel">
             <div class="panel-header">
               <h2>Reminder Queue</h2>
-              <span id="reminderCountLabel" class="pill warning">0 reminders</span>
+              <div class="button-row">
+                <span id="reminderCountLabel" class="pill warning">0 reminders</span>
+                <button id="queueReminderAlerts" class="text-button" type="button">Queue Alerts</button>
+              </div>
             </div>
             <div id="reminderList" class="reminder-list"></div>
           </section>
@@ -1186,6 +1225,7 @@
                     <select id="ownerPaymentMethod">
                       <option value="MTN MoMo">MTN MoMo</option>
                       <option value="Airtel Money">Airtel Money</option>
+                      <option value="Flutterwave">Flutterwave</option>
                       <option value="Bank transfer">Bank transfer</option>
                       <option value="Cash">Cash</option>
                     </select>
@@ -1194,6 +1234,16 @@
                 <label>
                   Note
                   <input id="ownerPaymentNote" placeholder="e.g. May subscription cleared" />
+                </label>
+                <label>
+                  Billing Status
+                  <select id="ownerPaymentStatus">
+                    <option value="Active">Active</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Overdue">Overdue</option>
+                    <option value="Paused">Paused</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
                 </label>
                 <button class="primary-button" type="submit">Save Subscription Payment</button>
               </form>
@@ -1215,6 +1265,7 @@
                       <th>Last Paid</th>
                       <th>Next Billing</th>
                       <th>Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody id="ownerBillingTable"></tbody>

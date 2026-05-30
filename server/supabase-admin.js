@@ -5,6 +5,17 @@ const PACKAGE_OPTIONS = [
   { plan: "Enterprise", fee: 250000, status: "Active" },
 ];
 
+const PLAN_LIMITS = {
+  Trial: { properties: 1, units: 5, caretakers: 0 },
+  Starter: { properties: 1, units: 20, caretakers: 1 },
+  Professional: { properties: 5, units: 100, caretakers: 5 },
+  Enterprise: { properties: Number.POSITIVE_INFINITY, units: Number.POSITIVE_INFINITY, caretakers: Number.POSITIVE_INFINITY },
+};
+
+function planLimitForPlan(plan) {
+  return PLAN_LIMITS[plan] || PLAN_LIMITS.Trial;
+}
+
 function env() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
   const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
@@ -243,6 +254,7 @@ async function sendPasswordRecovery(email) {
 
 module.exports = {
   PACKAGE_OPTIONS,
+  PLAN_LIMITS,
   addMonths,
   autoReference,
   authUserFromRequest,
@@ -257,6 +269,7 @@ module.exports = {
   makeId,
   normalizeEmail,
   phoneVariants,
+  planLimitForPlan,
   patchRows,
   readBody,
   requireAdmin,

@@ -43,6 +43,13 @@
     { plan: "Enterprise", fee: 250000, status: "Active" },
   ];
 
+  const PLAN_LIMITS = {
+    Trial: { properties: 1, units: 5, caretakers: 0 },
+    Starter: { properties: 1, units: 20, caretakers: 1 },
+    Professional: { properties: 5, units: 100, caretakers: 5 },
+    Enterprise: { properties: Number.POSITIVE_INFINITY, units: Number.POSITIVE_INFINITY, caretakers: Number.POSITIVE_INFINITY },
+  };
+
   const SUPER_ADMIN_USER_ID = "user-saas-owner";
   const SUPER_ADMIN_EMAIL = "allanpyrex5@gmail.com";
   const DEMO_ACCOUNT_IDS = [SUPER_ADMIN_USER_ID, "user-1", "staff-1"];
@@ -144,6 +151,10 @@
     dashboardActivityTitle: document.getElementById("dashboardActivityTitle"),
     activityCountLabel: document.getElementById("activityCountLabel"),
     activityList: document.getElementById("activityList"),
+    onboardingPanel: document.getElementById("onboardingPanel"),
+    onboardingProgressLabel: document.getElementById("onboardingProgressLabel"),
+    onboardingChecklist: document.getElementById("onboardingChecklist"),
+    planLimitNotice: document.getElementById("planLimitNotice"),
     propertyForm: document.getElementById("propertyForm"),
     propertyFormTitle: document.getElementById("propertyFormTitle"),
     propertyFormMode: document.getElementById("propertyFormMode"),
@@ -176,6 +187,9 @@
     tenantMoveIn: document.getElementById("tenantMoveIn"),
     tenantTable: document.getElementById("tenantTable"),
     tenantSearch: document.getElementById("tenantSearch"),
+    tenantImportFile: document.getElementById("tenantImportFile"),
+    importTenantsButton: document.getElementById("importTenantsButton"),
+    exportTenantsCsv: document.getElementById("exportTenantsCsv"),
     cancelTenantEdit: document.getElementById("cancelTenantEdit"),
     staffInviteForm: document.getElementById("staffInviteForm"),
     staffName: document.getElementById("staffName"),
@@ -193,6 +207,8 @@
     paymentDate: document.getElementById("paymentDate"),
     paymentMethod: document.getElementById("paymentMethod"),
     paymentReference: document.getElementById("paymentReference"),
+    paymentProof: document.getElementById("paymentProof"),
+    paymentVerification: document.getElementById("paymentVerification"),
     paymentStatusPill: document.getElementById("paymentStatusPill"),
     tenantBalancePreview: document.getElementById("tenantBalancePreview"),
     rentStatusTable: document.getElementById("rentStatusTable"),
@@ -220,6 +236,7 @@
     dueTomorrowTemplate: document.getElementById("dueTomorrowTemplate"),
     receivedTemplate: document.getElementById("receivedTemplate"),
     overdueTemplate: document.getElementById("overdueTemplate"),
+    queueReminderAlerts: document.getElementById("queueReminderAlerts"),
     occupancyLabel: document.getElementById("occupancyLabel"),
     dueSoonLabel: document.getElementById("dueSoonLabel"),
     monthLabel: document.getElementById("monthLabel"),
@@ -236,6 +253,7 @@
     ownerPaymentDate: document.getElementById("ownerPaymentDate"),
     ownerPaymentMethod: document.getElementById("ownerPaymentMethod"),
     ownerPaymentNote: document.getElementById("ownerPaymentNote"),
+    ownerPaymentStatus: document.getElementById("ownerPaymentStatus"),
     ownerBillingTotalLabel: document.getElementById("ownerBillingTotalLabel"),
     ownerBillingSummary: document.getElementById("ownerBillingSummary"),
     ownerBillingTable: document.getElementById("ownerBillingTable"),
@@ -293,6 +311,8 @@
     ["tenants", "Tenants"],
     ["staff", "Caretakers"],
     ["rent", "Rent"],
+    ["expenses", "Expenses"],
+    ["reminders", "Reminders"],
     ["support", "Support"],
   ];
 
@@ -307,6 +327,7 @@
     ["dashboard", "Dashboard"],
     ["tenants", "Tenants"],
     ["rent", "Rent"],
+    ["reminders", "Reminders"],
   ];
 
   initialize();
@@ -438,6 +459,9 @@
     if (ui.unitPhoto) ui.unitPhoto.addEventListener("change", previewNewUnitPhoto);
     if (ui.unitPhotoPicker) ui.unitPhotoPicker.addEventListener("change", saveExistingUnitPhoto);
     ui.tenantSearch.addEventListener("input", renderTenants);
+    if (ui.importTenantsButton) ui.importTenantsButton.addEventListener("click", () => ui.tenantImportFile.click());
+    if (ui.tenantImportFile) ui.tenantImportFile.addEventListener("change", importTenantsCsv);
+    if (ui.exportTenantsCsv) ui.exportTenantsCsv.addEventListener("click", exportTenantsCsv);
     ui.tenantUnit.addEventListener("change", syncRentFromUnit);
     ui.cancelTenantEdit.addEventListener("click", resetTenantForm);
     ui.tenantForm.addEventListener("submit", saveTenant);
@@ -450,6 +474,7 @@
     ui.downloadRentReport.addEventListener("click", downloadMonthlyRentReport);
     ui.expenseForm.addEventListener("submit", saveExpense);
     ui.downloadExpenseReport.addEventListener("click", downloadExpenseReport);
+    if (ui.queueReminderAlerts) ui.queueReminderAlerts.addEventListener("click", queueReminderNotifications);
     ui.createDemoAccountButton.addEventListener("click", createDemoLandlordAccount);
     ui.ownerPaymentLandlord.addEventListener("change", () => syncOwnerPaymentDefaults(true));
     ui.ownerPaymentDate.addEventListener("change", () => syncOwnerPaymentDefaults(false));
@@ -475,6 +500,8 @@
       ["openActivity", openActivity],
       ["toggleAccountStatus", toggleLandlordAccountStatus],
       ["cyclePlan", cycleSubscriptionPackage],
+      ["subscriptionCollect", startSubscriptionCollection],
+      ["subscriptionCancel", toggleSubscriptionCancellation],
       ["adminResetUser", createAdminPasswordReset],
       ["focusLandlord", focusLandlordAccount],
       ["toggleTicket", toggleSupportTicket],
@@ -1422,22 +1449,78 @@
     return "assets/apartment-exterior.jpg";
   }
 
+  function renderOnboardingChecklist(scope) {
+    if (!ui.onboardingPanel || !ui.onboardingChecklist) return;
+    const user = currentUser();
+    if (!user || user.role !== "landlord") {
+      ui.onboardingPanel.classList.add("hidden");
+      return;
+    }
+
+    const activeTenants = scope.tenants.filter(isActiveTenant);
+    const publicVacancies = scope.units.filter((unit) => unit.status === "vacant" && unit.listing_published);
+    const steps = [
+      {
+        label: "Add your first property",
+        done: scope.properties.length > 0,
+        view: "properties",
+      },
+      {
+        label: "Add rooms, shops, or houses",
+        done: scope.units.length > 0,
+        view: "properties",
+      },
+      {
+        label: "Register an active tenant",
+        done: activeTenants.length > 0,
+        view: "tenants",
+      },
+      {
+        label: "Record a rent payment",
+        done: scope.payments.length > 0,
+        view: "rent",
+      },
+      {
+        label: "Publish a vacant unit",
+        done: publicVacancies.length > 0,
+        view: "properties",
+      },
+    ];
+    const completed = steps.filter((step) => step.done).length;
+    ui.onboardingProgressLabel.textContent = `${completed}/${steps.length} done`;
+    ui.onboardingProgressLabel.className = `pill ${completed === steps.length ? "success" : "neutral"}`;
+    ui.onboardingChecklist.innerHTML = steps
+      .map(
+        (step) => `
+          <button class="onboarding-step ${step.done ? "done" : ""}" data-dashboard-view="${escapeHtml(step.view)}" type="button">
+            <span>${step.done ? "Done" : "Next"}</span>
+            <strong>${escapeHtml(step.label)}</strong>
+          </button>
+        `
+      )
+      .join("");
+    ui.onboardingPanel.classList.toggle("hidden", completed === steps.length);
+  }
+
   function renderDashboard() {
     if (isSaasOwner()) return;
     if (currentUser()?.role === "staff") {
+      if (ui.onboardingPanel) ui.onboardingPanel.classList.add("hidden");
       renderCaretakerDashboard();
       return;
     }
 
     const scope = getScopedData();
-    const rentRows = getRentRows(scope.tenants);
+    renderOnboardingChecklist(scope);
+    const activeTenants = scope.tenants.filter(isActiveTenant);
+    const rentRows = getRentRows(activeTenants);
     const todayPayments = scope.payments.filter((payment) => isToday(payment.created_at || payment.payment_date));
     const currentMonthPayments = getCurrentMonthPayments(scope.payments);
     const currentMonthExpenses = getCurrentMonthExpenses(scope.expenses);
     const occupied = scope.units.filter((unit) => unit.status === "occupied").length;
     const vacant = scope.units.filter((unit) => unit.status === "vacant").length;
     const vacantUnits = scope.units.filter((unit) => unit.status === "vacant");
-    const expectedRent = scope.tenants.reduce((sum, tenant) => sum + Number(tenant.rent_amount), 0);
+    const expectedRent = activeTenants.reduce((sum, tenant) => sum + Number(tenant.rent_amount), 0);
     const collected = currentMonthPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
     const collectedToday = todayPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
     const expenses = currentMonthExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
@@ -1552,8 +1635,10 @@
   }
 
   function renderCaretakerDashboard() {
+    if (ui.onboardingPanel) ui.onboardingPanel.classList.add("hidden");
     const scope = getScopedData();
-    const rentRows = getRentRows(scope.tenants);
+    const activeTenants = scope.tenants.filter(isActiveTenant);
+    const rentRows = getRentRows(activeTenants);
     const todayPayments = scope.payments.filter((payment) => isToday(payment.created_at || payment.payment_date));
     const collectedToday = todayPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
     const overdueRows = rentRows
@@ -1586,7 +1671,7 @@
 
     ui.metricGrid.innerHTML = [
       metricCard("Assigned Properties", scope.properties.length, `${scope.units.length} rooms and shops assigned`, "assignedProperties"),
-      metricCard("Active Tenants", scope.tenants.length, `${dueSoonRows.length} due soon`, "dueSoon"),
+      metricCard("Active Tenants", activeTenants.length, `${dueSoonRows.length} due soon`, "dueSoon"),
       metricCard("Late Tenants", overdueRows.length, `${formatMoney(totalBalance(overdueRows))} still unpaid`, "lateTenants"),
     ].join("");
 
@@ -1649,7 +1734,8 @@
 
   function dashboardSnapshot() {
     const scope = getScopedData();
-    const rentRows = getRentRows(scope.tenants);
+    const activeTenants = scope.tenants.filter(isActiveTenant);
+    const rentRows = getRentRows(activeTenants);
     const currentMonthPayments = getCurrentMonthPayments(scope.payments);
     const currentMonthExpenses = getCurrentMonthExpenses(scope.expenses);
     const todayPayments = scope.payments.filter((payment) => isToday(payment.created_at || payment.payment_date));
@@ -1670,7 +1756,7 @@
       overdueRows,
       dueSoonRows,
       vacantUnits: scope.units.filter((unit) => unit.status === "vacant"),
-      expectedRent: scope.tenants.reduce((sum, tenant) => sum + Number(tenant.rent_amount), 0),
+      expectedRent: activeTenants.reduce((sum, tenant) => sum + Number(tenant.rent_amount), 0),
     };
   }
 
@@ -1806,7 +1892,7 @@
       return;
     }
     const property = propertyById(unit.property_id);
-    const tenant = state.tenants.find((item) => item.unit_id === unit.id);
+    const tenant = state.tenants.find((item) => item.unit_id === unit.id && isActiveTenant(item));
     const rentRow = tenant ? getRentRows([tenant])[0] : null;
     openDashboardDetailModal(
       unit.unit_number,
@@ -1839,7 +1925,7 @@
     }
     const unit = unitById(tenant.unit_id);
     const property = unit ? propertyById(unit.property_id) : null;
-    const rentRow = getRentRows([tenant])[0];
+    const rentRow = isActiveTenant(tenant) ? getRentRows([tenant])[0] : null;
     const payments = state.payments
       .filter((payment) => payment.tenant_id === tenant.id)
       .sort((a, b) => new Date(b.created_at || b.payment_date) - new Date(a.created_at || a.payment_date))
@@ -1855,13 +1941,18 @@
           ["Monthly rent", formatMoney(tenant.rent_amount)],
           ["Deposit", formatMoney(tenant.deposit_paid)],
           ["Move-in date", formatDate(tenant.move_in_date)],
-          ["Status", rentRow ? rentRow.status : "Unknown"],
+          ["Tenant status", tenantStatusLabel(tenant)],
+          ["Rent status", rentRow ? rentRow.status : "-"],
           ["Balance", rentRow ? formatMoney(rentRow.balance) : "-"],
+          ["Move-out date", tenant.move_out_date ? formatDate(tenant.move_out_date) : "-"],
+          ["Move-out refund", tenant.move_out_refund ? formatMoney(tenant.move_out_refund) : "-"],
         ]),
         paymentDetailList(payments, "No payment history for this tenant yet."),
-        detailActions([["rent", "Open Rent Collection"]], [
-          tenantContactActions(tenant, tenantWhatsAppMessage(tenant), { compact: false, sendLabel: "Send WhatsApp" }),
-        ]),
+        isActiveTenant(tenant)
+          ? detailActions([["rent", "Open Rent Collection"]], [
+              tenantContactActions(tenant, tenantWhatsAppMessage(tenant), { compact: false, sendLabel: "Send WhatsApp" }),
+            ])
+          : detailActions([["tenants", "Open Tenants"]]),
       ].join("")
     );
   }
@@ -1889,6 +1980,8 @@
           ["Method", payment.payment_method],
           ["Receipt No.", receiptNumber(payment)],
           ["Reference", payment.reference || "-"],
+          ["Proof", payment.payment_proof || "-"],
+          ["Verification", payment.verification_status || "Unverified"],
           ["Date", formatDate(payment.payment_date)],
         ]),
         detailActions([["rent", "Open Rent Collection"]], [
@@ -2097,7 +2190,7 @@
     const newSignups = newLandlordSignups();
     const openTickets = tickets.filter((ticket) => ticket.status !== "Resolved");
     const activeSubscriptions = subscriptions.filter(
-      (subscription) => subscription.status === "Active" && !isSubscriptionExpired(subscription)
+      (subscription) => effectiveSubscriptionStatus(subscription) === "Active" && !isSubscriptionExpired(subscription)
     );
     const monthlyRecurringRevenue = activeSubscriptions.reduce(
       (sum, subscription) => sum + Number(subscription.monthly_fee),
@@ -2126,11 +2219,12 @@
         .slice(0, 10)
         .map((subscription) => {
           const user = userById(subscription.owner_id);
+          const baseStatus = effectiveSubscriptionStatus(subscription);
           const status = isSubscriptionExpired(subscription)
             ? "Expired"
-            : isSubscriptionExpiring(subscription) && subscription.status === "Active"
+            : isSubscriptionExpiring(subscription) && baseStatus === "Active"
               ? "Expiring"
-              : subscription.status;
+              : baseStatus;
           return `
             <tr>
               <td>${escapeHtml(user ? user.name : "Unknown landlord")}</td>
@@ -2396,7 +2490,9 @@
   }
 
   function pendingSubscriptions() {
-    return (state.subscriptions || []).filter((subscription) => ["Overdue", "Pending"].includes(subscription.status));
+    return (state.subscriptions || []).filter((subscription) =>
+      ["Overdue", "Pending"].includes(effectiveSubscriptionStatus(subscription))
+    );
   }
 
   function newLandlordSignups() {
@@ -2408,7 +2504,8 @@
   }
 
   function isSubscriptionExpired(subscription) {
-    if (subscription.status === "Expired" || subscription.status === "Overdue") return true;
+    const status = effectiveSubscriptionStatus(subscription);
+    if (status === "Expired" || status === "Overdue" || status === "Cancelled") return true;
     if (!subscription.next_billing_date) return false;
     const today = new Date();
     const nextBilling = new Date(`${subscription.next_billing_date}T00:00:00`);
@@ -2421,6 +2518,8 @@
 
   function isSubscriptionExpiring(subscription) {
     if (!subscription.next_billing_date) return false;
+    const status = effectiveSubscriptionStatus(subscription);
+    if (!["Active", "Cancelling"].includes(status)) return false;
     const today = new Date();
     const soon = new Date(today);
     soon.setDate(today.getDate() + 14);
@@ -2428,9 +2527,22 @@
     return nextBilling >= today && nextBilling <= soon;
   }
 
+  function effectiveSubscriptionStatus(subscription) {
+    if (!subscription) return "Inactive";
+    const status = subscription.status || "Active";
+    if (["Cancelled", "Expired", "Paused"].includes(status)) return status;
+    if (subscription.cancel_at_period_end) return "Cancelling";
+    if (subscription.next_billing_date) {
+      const today = stripTime(new Date());
+      const nextBilling = new Date(`${subscription.next_billing_date}T00:00:00`);
+      if (nextBilling < today) return "Overdue";
+    }
+    return status;
+  }
+
   function isTrialAccount(user) {
     const subscription = subscriptionByOwner(user.id);
-    return accountStatus(user) === "Trial" || subscription?.plan === "Trial" || subscription?.status === "Trial";
+    return accountStatus(user) === "Trial" || subscription?.plan === "Trial" || effectiveSubscriptionStatus(subscription) === "Trial";
   }
 
   function systemHealthLabel() {
@@ -2620,7 +2732,7 @@
     const subscriptions = state.subscriptions || [];
     const tickets = state.supportTickets || [];
     const totalMrr = subscriptions
-      .filter((subscription) => subscription.status !== "Paused" && subscription.status !== "Trial")
+      .filter((subscription) => !["Paused", "Trial", "Cancelled", "Overdue"].includes(effectiveSubscriptionStatus(subscription)))
       .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
     const totalOpenTickets = tickets.filter((ticket) => ticket.status !== "Resolved").length;
     const activeAccounts = landlords.filter((user) => accountStatus(user) === "Active").length;
@@ -2668,7 +2780,7 @@
               </td>
               <td>
                 ${escapeHtml(subscription ? subscription.plan : "No plan")}
-                <small class="table-subtext">${subscription ? statusPill(subscription.status) : ""}</small>
+                <small class="table-subtext">${subscription ? statusPill(effectiveSubscriptionStatus(subscription)) : ""}</small>
               </td>
               <td>${statusPill(status)}</td>
               <td>${portfolio.properties.length} properties / ${portfolio.units.length} rooms</td>
@@ -2693,13 +2805,13 @@
   function renderPlatformBilling() {
     const subscriptions = state.subscriptions || [];
     const currentMrr = subscriptions
-      .filter((subscription) => subscription.status !== "Paused")
+      .filter((subscription) => !["Paused", "Cancelled"].includes(effectiveSubscriptionStatus(subscription)))
       .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
     const paidThisMonth = subscriptions
       .filter((subscription) => isCurrentMonth(subscription.last_payment_date))
       .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
     const expiring = expiringSubscriptions().length;
-    const trials = subscriptions.filter((subscription) => subscription.plan === "Trial" || subscription.status === "Trial").length;
+    const trials = subscriptions.filter((subscription) => subscription.plan === "Trial" || effectiveSubscriptionStatus(subscription) === "Trial").length;
 
     ui.ownerBillingTotalLabel.textContent = formatMoney(currentMrr);
     ui.ownerBillingSummary.innerHTML = [
@@ -2708,7 +2820,7 @@
       ownerSummaryItem("Pending Payments", pendingSubscriptions().length),
       ownerSummaryItem("Expiring Plans", expiring),
       ownerSummaryItem("Trial Accounts", trials),
-      ownerSummaryItem("Active Plans", subscriptions.filter((subscription) => subscription.status === "Active").length),
+      ownerSummaryItem("Active Plans", subscriptions.filter((subscription) => effectiveSubscriptionStatus(subscription) === "Active").length),
     ].join("");
 
     ui.ownerBillingTable.innerHTML =
@@ -2716,12 +2828,15 @@
         .slice()
         .filter((subscription) => {
           const user = userById(subscription.owner_id);
-          return matchesSearch([user ? user.name : "", subscription.plan, subscription.status, subscription.monthly_fee]);
+          return matchesSearch([user ? user.name : "", subscription.plan, effectiveSubscriptionStatus(subscription), subscription.monthly_fee]);
         })
         .sort((a, b) => new Date(a.next_billing_date) - new Date(b.next_billing_date))
         .map((subscription) => {
           const user = userById(subscription.owner_id);
-          const status = isSubscriptionExpiring(subscription) && subscription.status === "Active" ? "Expiring" : subscription.status;
+          const baseStatus = effectiveSubscriptionStatus(subscription);
+          const status = isSubscriptionExpiring(subscription) && baseStatus === "Active" ? "Expiring" : baseStatus;
+          const cancelLabel = subscription.cancel_at_period_end ? "Resume" : "Cancel";
+          const providerNote = subscriptionProviderNote(subscription);
           return `
             <tr>
               <td>${escapeHtml(user ? user.name : "Unknown landlord")}</td>
@@ -2729,11 +2844,28 @@
               <td>${formatMoney(subscription.monthly_fee)}</td>
               <td>${formatDate(subscription.last_payment_date)}</td>
               <td>${formatDate(subscription.next_billing_date)}</td>
-              <td>${statusPill(status)}</td>
+              <td>
+                ${statusPill(status)}
+                ${providerNote ? `<small class="table-subtext">${escapeHtml(providerNote)}</small>` : ""}
+              </td>
+              <td>
+                <div class="button-row">
+                  <button class="text-button" data-subscription-collect="${escapeHtml(subscription.id)}" type="button">Collect</button>
+                  <button class="text-button" data-subscription-cancel="${escapeHtml(subscription.id)}" type="button">${cancelLabel}</button>
+                </div>
+              </td>
             </tr>
           `;
         })
-        .join("") || emptyTableRow(6, "No subscription records yet.");
+        .join("") || emptyTableRow(7, "No subscription records yet.");
+  }
+
+  function subscriptionProviderNote(subscription) {
+    const parts = [];
+    if (subscription.billing_method) parts.push(subscription.billing_method);
+    if (subscription.provider_payment_status) parts.push(`Flutterwave ${subscription.provider_payment_status}`);
+    if (subscription.provider_payment_reference) parts.push(subscription.provider_payment_reference);
+    return parts.join(" - ");
   }
 
   function renderPlatformSupport() {
@@ -2841,6 +2973,7 @@
     const scope = getScopedData();
     const allOwnerProperties = ownerProperties();
     const removeDisabled = state.role === "caretaker" || currentUser()?.role === "staff" ? "disabled" : "";
+    renderPlanLimitNotice();
     const properties = scope.properties.filter((property) =>
       matchesSearch([property.property_name, property.location, property.property_type, ownerName(property.owner_id)])
     );
@@ -2884,7 +3017,7 @@
       units
         .map((unit) => {
           const property = propertyById(unit.property_id);
-          const hasTenant = Boolean(state.tenants.find((tenant) => tenant.unit_id === unit.id));
+          const hasTenant = Boolean(state.tenants.find((tenant) => tenant.unit_id === unit.id && isActiveTenant(tenant)));
           const isVacant = unit.status === "vacant";
           const canPublish = isVacant && !removeDisabled;
           const listingAction = unit.listing_published ? "Unpublish" : "Publish Vacancy";
@@ -2920,8 +3053,8 @@
     const tenants = scope.tenants.filter((tenant) => {
       const unit = unitById(tenant.unit_id);
       const property = unit ? propertyById(unit.property_id) : null;
-      return matchesSearch([tenant.name, tenant.phone, tenant.national_id, unit ? unit.unit_number : "", property ? property.property_name : ""]) &&
-        [tenant.name, tenant.phone, tenant.national_id, unit ? unit.unit_number : ""]
+      return matchesSearch([tenant.name, tenant.phone, tenant.national_id, tenantStatusLabel(tenant), unit ? unit.unit_number : "", property ? property.property_name : ""]) &&
+        [tenant.name, tenant.phone, tenant.national_id, tenantStatusLabel(tenant), unit ? unit.unit_number : ""]
         .join(" ")
         .toLowerCase()
         .includes(search);
@@ -2932,6 +3065,7 @@
         .map((tenant) => {
           const unit = unitById(tenant.unit_id);
           const removeDisabled = state.role === "caretaker" || currentUser()?.role === "staff" ? "disabled" : "";
+          const movedOut = !isActiveTenant(tenant);
           return `
             <tr>
               <td>${escapeHtml(tenant.name)}</td>
@@ -2940,16 +3074,20 @@
               <td>${formatMoney(tenant.rent_amount)}</td>
               <td>${formatMoney(tenant.deposit_paid)}</td>
               <td>
+                ${statusPill(tenantStatusLabel(tenant))}
+                ${movedOut ? `<small class="table-subtext">Moved out ${formatDate(tenant.move_out_date)}</small>` : ""}
+              </td>
+              <td>
                 <div class="button-row">
                   <button class="text-button" data-edit-tenant="${tenant.id}" type="button">Edit</button>
-                  ${tenantContactActions(tenant, tenantWhatsAppMessage(tenant), { compact: true, sendLabel: "Send" })}
-                  <button class="danger-button" data-move-out-tenant="${tenant.id}" ${removeDisabled} type="button">Move Out</button>
+                  ${movedOut ? "" : tenantContactActions(tenant, tenantWhatsAppMessage(tenant), { compact: true, sendLabel: "Send" })}
+                  <button class="danger-button" data-move-out-tenant="${tenant.id}" ${removeDisabled || movedOut ? "disabled" : ""} type="button">${movedOut ? "Moved Out" : "Move Out"}</button>
                 </div>
               </td>
             </tr>
           `;
         })
-        .join("") || emptyTableRow(6, "No tenants match this view.");
+        .join("") || emptyTableRow(7, "No tenants match this view.");
 
   }
 
@@ -3003,7 +3141,7 @@
 
   function renderRent() {
     const scope = getScopedData();
-    const rentRows = getRentRows(scope.tenants).filter((row) =>
+    const rentRows = getRentRows(scope.tenants.filter(isActiveTenant)).filter((row) =>
       matchesSearch([row.tenant.name, row.unit ? row.unit.unit_number : "", row.status, row.balance])
     );
     ui.rentStatusLabel.textContent = monthName(new Date());
@@ -3065,6 +3203,10 @@
               <td>${escapeHtml(payment.payment_method)}</td>
               <td>${escapeHtml(receiptNumber(payment))}</td>
               <td>${escapeHtml(payment.reference || "-")}</td>
+              <td>
+                ${statusPill(payment.verification_status || "Unverified")}
+                <small class="table-subtext">${escapeHtml(payment.payment_proof || "No proof attached")}</small>
+              </td>
               <td>${formatDate(payment.payment_date)}</td>
               <td>${formatMoney(payment.balance)}</td>
               <td>
@@ -3080,7 +3222,7 @@
             </tr>
           `;
         })
-        .join("") || emptyTableRow(8, "No payment history yet.");
+        .join("") || emptyTableRow(9, "No payment history yet.");
 
     updatePaymentPreview();
   }
@@ -3137,7 +3279,7 @@
 
   function renderReminders() {
     const scope = getScopedData();
-    const rows = getRentRows(scope.tenants);
+    const rows = getRentRows(scope.tenants.filter(isActiveTenant));
     const reminders = rows
       .filter((row) => row.balance > 0 && (row.daysUntilDue <= 1 || row.status === "Overdue"))
       .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
@@ -3174,6 +3316,26 @@
       : "No tenant available.";
   }
 
+  function queueReminderNotifications() {
+    const scope = getScopedData();
+    const rows = getRentRows(scope.tenants.filter(isActiveTenant))
+      .filter((row) => row.balance > 0 && (row.daysUntilDue <= 1 || row.status === "Overdue"));
+    if (!rows.length) {
+      showToast("No rent reminders need attention today.");
+      return;
+    }
+    rows.forEach((row) => {
+      addNotification({
+        type: "rent",
+        title: `${row.status} reminder queued`,
+        message: reminderMessage(row),
+      });
+    });
+    saveState();
+    renderAll();
+    showToast(`${rows.length} reminder alerts queued.`);
+  }
+
   function populateDynamicSelects() {
     const scope = getScopedData();
     const editingTenantId = ui.tenantId.value;
@@ -3196,6 +3358,7 @@
 
     const tenantOptions =
       scope.tenants
+        .filter(isActiveTenant)
         .map((tenant) => {
           const unit = unitById(tenant.unit_id);
           return `<option value="${tenant.id}">${escapeHtml(tenant.name)} - ${escapeHtml(unit ? unit.unit_number : "Room")}</option>`;
@@ -3226,6 +3389,12 @@
       state.properties = state.properties.map((item) => (item.id === id ? property : item));
       showToast("Property updated.");
     } else {
+      const limit = planLimitForOwner(user.id);
+      const portfolio = ownerPortfolio(user.id);
+      if (portfolio.properties.length >= limit.properties) {
+        showToast(`Your ${limit.plan} plan allows ${limitLabel(limit.properties)} properties. Upgrade to add more.`);
+        return;
+      }
       state.properties.push(property);
       state.selectedPropertyId = property.id;
       showToast("Property added.");
@@ -3304,6 +3473,13 @@
     const property = ownerProperties().find((item) => item.id === ui.unitProperty.value);
     if (!property) {
       showToast("Choose one of your properties.");
+      return;
+    }
+
+    const limit = planLimitForOwner(property.owner_id);
+    const portfolio = ownerPortfolio(property.owner_id);
+    if (portfolio.units.length >= limit.units) {
+      showToast(`Your ${limit.plan} plan allows ${limitLabel(limit.units)} units. Upgrade before adding more rooms.`);
       return;
     }
 
@@ -3492,6 +3668,12 @@
       rent_amount: Number(ui.tenantRent.value),
       deposit_paid: Number(ui.tenantDeposit.value),
       move_in_date: ui.tenantMoveIn.value,
+      status: previous?.status || "active",
+      move_out_date: previous?.move_out_date || null,
+      move_out_balance: previous?.move_out_balance || 0,
+      move_out_damages: previous?.move_out_damages || 0,
+      move_out_refund: previous?.move_out_refund || 0,
+      move_out_note: previous?.move_out_note || "",
     };
 
     if (!tenant.unit_id) {
@@ -3505,10 +3687,20 @@
       return;
     }
 
+    const activeTenantInUnit = state.tenants.find(
+      (item) => item.unit_id === tenant.unit_id && item.id !== id && isActiveTenant(item)
+    );
+    if (activeTenantInUnit) {
+      showToast(`${ownedUnit.unit_number} already has an active tenant.`);
+      return;
+    }
+
     if (previous) {
       state.tenants = state.tenants.map((item) => (item.id === id ? tenant : item));
-      setUnitStatus(previous.unit_id, "vacant");
-      setUnitStatus(tenant.unit_id, "occupied");
+      if (isActiveTenant(tenant)) {
+        setUnitStatus(previous.unit_id, "vacant");
+        setUnitStatus(tenant.unit_id, "occupied");
+      }
       showToast("Tenant updated.");
     } else {
       state.tenants.push(tenant);
@@ -3682,7 +3874,7 @@
       return;
     }
     const tenant = getScopedData().tenants.find((item) => item.id === id);
-    if (!tenant) return;
+    if (!tenant || !isActiveTenant(tenant)) return;
     const unit = unitById(tenant.unit_id);
     const rentRow = getRentRows([tenant])[0];
     ui.moveOutTenantId.value = tenant.id;
@@ -3704,7 +3896,7 @@
   function completeTenantMoveOut(event) {
     event.preventDefault();
     const tenant = getScopedData().tenants.find((item) => item.id === ui.moveOutTenantId.value);
-    if (!tenant) {
+    if (!tenant || !isActiveTenant(tenant)) {
       closeMoveOutModal();
       return;
     }
@@ -3715,8 +3907,19 @@
     const note = ui.moveOutNote.value.trim();
 
     setUnitStatus(tenant.unit_id, "vacant");
-    state.tenants = state.tenants.filter((item) => item.id !== tenant.id);
-    markRowsDeleted("tenants", tenant.id);
+    state.tenants = state.tenants.map((item) =>
+      item.id === tenant.id
+        ? {
+            ...item,
+            status: "moved_out",
+            move_out_date: isoDate(new Date()),
+            move_out_balance: balance,
+            move_out_damages: damages,
+            move_out_refund: refund,
+            move_out_note: note,
+          }
+        : item
+    );
     addNotification({
       type: "tenant",
       title: "Tenant moved out",
@@ -3764,8 +3967,15 @@
     const balance = Math.max(0, Number(tenant.rent_amount) - existingPaid - amount);
     const method = ui.paymentMethod.value;
     const reference = ui.paymentReference.value.trim() || autoReference(method);
+    const proof = ui.paymentProof.value.trim();
+    const verificationStatus = ui.paymentVerification.value || "Unverified";
     const paymentId = makeId("payment");
     const receiptNumber = generateReceiptNumber(ui.paymentDate.value, paymentId);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showToast("Payment amount must be greater than 0.");
+      return;
+    }
 
     const payment = {
       id: paymentId,
@@ -3776,6 +3986,8 @@
       balance,
       reference,
       receipt_number: receiptNumber,
+      payment_proof: proof,
+      verification_status: verificationStatus,
       created_at: new Date().toISOString(),
     };
 
@@ -3788,6 +4000,7 @@
 
     saveState();
     ui.paymentForm.reset();
+    ui.paymentVerification.value = "Unverified";
     setTodayDefaults();
     renderAll();
     ui.paymentStatusPill.textContent = method.includes("Money") || method.includes("MoMo") ? "MoMo confirmed" : "Recorded";
@@ -3856,16 +4069,20 @@
     const paymentDate = ui.ownerPaymentDate.value || isoDate(new Date());
     const amount = Number(ui.ownerPaymentAmount.value || subscription.monthly_fee || 0);
     const note = ui.ownerPaymentNote.value.trim() || defaultOwnerPaymentNote(owner, subscription, paymentDate);
+    const status = ui.ownerPaymentStatus?.value || "Active";
     state.subscriptions = state.subscriptions.map((item) =>
       item.id === subscription.id
         ? {
             ...item,
             monthly_fee: Number.isFinite(amount) ? amount : item.monthly_fee,
-            status: "Active",
+            status,
+            cancel_at_period_end: status === "Cancelled" ? true : item.cancel_at_period_end && status !== "Active",
             last_payment_date: paymentDate,
             last_payment_method: ui.ownerPaymentMethod.value,
             last_payment_note: note,
             next_billing_date: addMonths(paymentDate, 1),
+            provider_payment_status: ui.ownerPaymentMethod.value === "Flutterwave" ? item.provider_payment_status : "Manual",
+            provider_next_action: null,
           }
         : item
     );
@@ -3910,6 +4127,9 @@
     if (!ui.ownerPaymentMethod.value) {
       ui.ownerPaymentMethod.value = "MTN MoMo";
     }
+    if (ui.ownerPaymentStatus) {
+      ui.ownerPaymentStatus.value = effectiveSubscriptionStatus(subscription) === "Overdue" ? "Overdue" : subscription.status || "Active";
+    }
   }
 
   function defaultOwnerPaymentNote(owner, subscription, paymentDate) {
@@ -3943,7 +4163,7 @@
     const billingContact = ui.accountBillingContact?.value.trim();
     const contactLabel = billingContact ? ` from ${maskBillingContact(billingContact)}` : "";
     ui.accountTrialSummary.textContent =
-      `${planOption.plan} first month is free. ${formatMoney(planOption.fee)}/month will be collected by ${paymentMethod}${contactLabel} from ${formatDate(nextBillingDate)} unless cancelled.`;
+      `${planOption.plan} first month is free. Flutterwave will collect ${formatMoney(planOption.fee)}/month by ${paymentMethod}${contactLabel} from ${formatDate(nextBillingDate)} unless cancelled.`;
   }
 
   function maskBillingContact(value) {
@@ -4121,6 +4341,7 @@
       rent_amount: 650000,
       deposit_paid: 650000,
       move_in_date: today,
+      status: "active",
     };
     const payment = {
       id: paymentId,
@@ -4131,6 +4352,8 @@
       balance: 0,
       reference: autoReference("MTN MoMo"),
       receipt_number: generateReceiptNumber(today, paymentId),
+      payment_proof: "Demo MoMo confirmation",
+      verification_status: "Verified",
       created_at: new Date().toISOString(),
     };
     const subscription = {
@@ -4143,6 +4366,10 @@
       last_payment_method: "Trial",
       last_payment_note: "Demo trial account created by super admin",
       next_billing_date: addMonths(today, 1),
+      billing_method: "Trial",
+      billing_contact_masked: "",
+      auto_collect_authorized: false,
+      cancel_at_period_end: false,
     };
 
     state.users.push(demoUser);
@@ -4254,6 +4481,105 @@
     saveState();
     renderAll();
     showToast(`Package changed to ${nextPackage.plan}.`);
+  }
+
+  async function startSubscriptionCollection(subscriptionId) {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can collect subscription payments.");
+      return;
+    }
+    const subscription = (state.subscriptions || []).find((item) => item.id === subscriptionId);
+    if (!subscription) return;
+    const owner = userById(subscription.owner_id);
+    if (!owner) {
+      showToast("Landlord account was not found.");
+      return;
+    }
+
+    if (!supabaseReady) {
+      const reference = autoReference("Flutterwave");
+      state.subscriptions = state.subscriptions.map((item) =>
+        item.id === subscription.id
+          ? {
+              ...item,
+              status: "Pending",
+              payment_provider: "flutterwave",
+              provider_payment_reference: reference,
+              provider_payment_status: "Pending",
+              provider_next_action: "Demo collection queued. Connect Supabase and Flutterwave for live prompts.",
+              last_payment_method: item.billing_method || item.last_payment_method || "MTN MoMo",
+              last_payment_note: `Demo Flutterwave collection queued: ${reference}`,
+            }
+          : item
+      );
+      addNotification({
+        user_id: owner.id,
+        type: "billing",
+        title: "Subscription collection queued",
+        message: `Demo Flutterwave collection queued for ${formatMoney(subscription.monthly_fee)}. Reference ${reference}.`,
+      });
+      saveState();
+      renderAll();
+      showToast("Demo collection queued. Live Flutterwave needs Supabase and Vercel env vars.");
+      return;
+    }
+
+    let checkoutWindow = null;
+    try {
+      checkoutWindow = window.open("", "_blank", "noopener");
+      setAppLoading("Starting Flutterwave collection");
+      const result = await apiRequest("/api/subscription-payment", {
+        owner_id: subscription.owner_id,
+        payment_method: subscription.billing_method || subscription.last_payment_method || "MTN MoMo",
+      });
+      const checkoutUrl = result.payment?.checkout_url || "";
+      if (checkoutUrl) {
+        if (checkoutWindow) checkoutWindow.location = checkoutUrl;
+        else window.location.href = checkoutUrl;
+        showToast("Flutterwave checkout opened.");
+      } else {
+        if (checkoutWindow) checkoutWindow.close();
+        showToast(result.payment?.instruction || "Flutterwave Mobile Money prompt sent.");
+      }
+      await refreshSupabaseState();
+    } catch (error) {
+      if (checkoutWindow) checkoutWindow.close();
+      console.error("Flutterwave collection failed", error);
+      showToast(error.message || "Could not start Flutterwave collection.");
+    } finally {
+      clearAppLoading();
+    }
+  }
+
+  function toggleSubscriptionCancellation(subscriptionId) {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can manage subscription cancellation.");
+      return;
+    }
+    const subscription = (state.subscriptions || []).find((item) => item.id === subscriptionId);
+    if (!subscription) return;
+    const willCancel = !subscription.cancel_at_period_end;
+    state.subscriptions = state.subscriptions.map((item) =>
+      item.id === subscriptionId
+        ? {
+            ...item,
+            cancel_at_period_end: willCancel,
+            cancellation_requested_at: willCancel ? new Date().toISOString() : null,
+            status: item.status === "Cancelled" && !willCancel ? "Active" : item.status,
+          }
+        : item
+    );
+    addNotification({
+      user_id: subscription.owner_id,
+      type: "billing",
+      title: willCancel ? "Subscription cancellation queued" : "Subscription resumed",
+      message: willCancel
+        ? "Your subscription is marked to cancel at the end of the current billing period."
+        : "Your subscription is active again for the next billing period.",
+    });
+    saveState();
+    renderAll();
+    showToast(willCancel ? "Cancellation queued." : "Subscription resumed.");
   }
 
   function sendAdminPasswordReset(event) {
@@ -4373,6 +4699,8 @@
         <span>Balance</span><strong>${formatMoney(payment.balance)}</strong>
         <span>Method</span><strong>${escapeHtml(payment.payment_method)}</strong>
         <span>Payment Ref.</span><strong>${escapeHtml(payment.reference || "-")}</strong>
+        <span>Proof</span><strong>${escapeHtml(payment.payment_proof || "-")}</strong>
+        <span>Verification</span><strong>${escapeHtml(payment.verification_status || "Unverified")}</strong>
         <span>Date</span><strong>${formatDate(payment.payment_date)}</strong>
       </div>
       <p class="receipt-note">This receipt confirms rent payment captured in RentLedger UG.</p>
@@ -4438,6 +4766,8 @@
       `Balance: ${formatMoney(payment.balance)}`,
       `Method: ${payment.payment_method}`,
       `Payment Ref.: ${payment.reference || "-"}`,
+      `Proof: ${payment.payment_proof || "-"}`,
+      `Verification: ${payment.verification_status || "Unverified"}`,
       `Date: ${formatDate(payment.payment_date)}`,
       "",
       "This receipt confirms rent payment captured in RentLedger UG.",
@@ -4506,7 +4836,7 @@
       `Total collected: ${formatMoney(total)}`,
       `Payments recorded: ${payments.length}`,
       "",
-      "Tenant | Room | Amount | Method | Date | Balance",
+      "Tenant | Room | Amount | Method | Reference | Proof | Verification | Date | Balance",
       ...payments.map((payment) => {
         const tenant = tenantById(payment.tenant_id);
         const unit = tenant ? unitById(tenant.unit_id) : null;
@@ -4515,6 +4845,9 @@
           unit ? unit.unit_number : "Unassigned",
           formatMoney(payment.amount),
           payment.payment_method,
+          payment.reference || "-",
+          payment.payment_proof || "-",
+          payment.verification_status || "Unverified",
           formatDate(payment.payment_date),
           formatMoney(payment.balance),
         ].join(" | ");
@@ -4550,6 +4883,145 @@
     ];
     downloadTextFile(`rentledger-expense-report-${isoDate(new Date())}.txt`, lines.join("\n"));
     showToast("Expense report downloaded.");
+  }
+
+  async function importTenantsCsv(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      if (supabaseReady && !(await requireSupabaseWriteSession("Sign in again to import tenants across devices."))) return;
+      const text = await file.text();
+      const rows = parseCsv(text);
+      if (!rows.length) {
+        showToast("CSV file is empty.");
+        return;
+      }
+      const scope = getScopedData();
+      const vacantUnits = scope.units.filter((unit) => unit.status === "vacant");
+      const unitsByNumber = new Map(vacantUnits.map((unit) => [String(unit.unit_number).trim().toLowerCase(), unit]));
+      const imported = [];
+      rows.forEach((row) => {
+        const unitNumber = String(row.unit_number || row.unit || row.room || "").trim().toLowerCase();
+        const unit = unitsByNumber.get(unitNumber);
+        if (!unit || !row.name || !row.phone) return;
+        imported.push({
+          id: makeId("tenant"),
+          unit_id: unit.id,
+          name: String(row.name).trim(),
+          phone: String(row.phone).trim(),
+          national_id: String(row.national_id || row.nationalid || "").trim(),
+          rent_amount: Number(row.rent_amount || row.rent || unit.rent_amount || 0),
+          deposit_paid: Number(row.deposit_paid || row.deposit || 0),
+          move_in_date: normalizeCsvDate(row.move_in_date || row.movein || row.move_in) || isoDate(new Date()),
+          status: "active",
+          move_out_date: null,
+          move_out_balance: 0,
+          move_out_damages: 0,
+          move_out_refund: 0,
+          move_out_note: "",
+        });
+        unitsByNumber.delete(unitNumber);
+      });
+      if (!imported.length) {
+        showToast("No tenants imported. Match CSV unit_number values to vacant rooms.");
+        return;
+      }
+      state.tenants.push(...imported);
+      imported.forEach((tenant) => setUnitStatus(tenant.unit_id, "occupied"));
+      addNotification({
+        type: "tenant",
+        title: "Tenant CSV imported",
+        message: `${imported.length} tenant records were imported from ${file.name}.`,
+      });
+      saveState();
+      renderAll();
+      showToast(`${imported.length} tenants imported.`);
+    } catch (error) {
+      console.error("Tenant CSV import failed", error);
+      showToast(error.message || "Could not import tenant CSV.");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  function exportTenantsCsv() {
+    const scope = getScopedData();
+    const rows = scope.tenants.map((tenant) => {
+      const unit = unitById(tenant.unit_id);
+      const property = unit ? propertyById(unit.property_id) : null;
+      return {
+        name: tenant.name,
+        phone: tenant.phone,
+        national_id: tenant.national_id || "",
+        property: property ? property.property_name : "",
+        unit_number: unit ? unit.unit_number : "",
+        rent_amount: tenant.rent_amount,
+        deposit_paid: tenant.deposit_paid,
+        move_in_date: tenant.move_in_date,
+        status: tenantStatusLabel(tenant),
+        move_out_date: tenant.move_out_date || "",
+      };
+    });
+    const headers = ["name", "phone", "national_id", "property", "unit_number", "rent_amount", "deposit_paid", "move_in_date", "status", "move_out_date"];
+    const csv = [
+      headers.join(","),
+      ...rows.map((row) => headers.map((header) => csvCell(row[header])).join(",")),
+    ].join("\n");
+    downloadTextFile(`rentledger-tenants-${isoDate(new Date())}.csv`, csv);
+    showToast("Tenant CSV exported.");
+  }
+
+  function parseCsv(text) {
+    const rows = [];
+    let row = [];
+    let cell = "";
+    let quoted = false;
+    for (let index = 0; index < text.length; index += 1) {
+      const char = text[index];
+      const next = text[index + 1];
+      if (char === '"' && quoted && next === '"') {
+        cell += '"';
+        index += 1;
+      } else if (char === '"') {
+        quoted = !quoted;
+      } else if (char === "," && !quoted) {
+        row.push(cell);
+        cell = "";
+      } else if ((char === "\n" || char === "\r") && !quoted) {
+        if (char === "\r" && next === "\n") index += 1;
+        row.push(cell);
+        rows.push(row);
+        row = [];
+        cell = "";
+      } else {
+        cell += char;
+      }
+    }
+    if (cell || row.length) {
+      row.push(cell);
+      rows.push(row);
+    }
+    const [headerRow, ...dataRows] = rows.filter((item) => item.some((value) => String(value).trim()));
+    if (!headerRow) return [];
+    const headers = headerRow.map((header) => String(header).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_"));
+    return dataRows.map((values) =>
+      headers.reduce((result, header, index) => {
+        result[header] = String(values[index] || "").trim();
+        return result;
+      }, {})
+    );
+  }
+
+  function csvCell(value) {
+    const text = String(value ?? "");
+    return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  }
+
+  function normalizeCsvDate(value) {
+    const raw = String(value || "").trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const date = raw ? new Date(raw) : null;
+    return date && !Number.isNaN(date.getTime()) ? isoDate(date) : "";
   }
 
   function downloadBackup() {
@@ -4687,29 +5159,65 @@
     return (state.subscriptions || []).find((subscription) => subscription.owner_id === ownerId) || null;
   }
 
-  function caretakerLimitForOwner(ownerId) {
+  function planLimitForOwner(ownerId) {
     const subscription = subscriptionByOwner(ownerId);
     const plan = subscription?.plan || "Trial";
-    if (plan === "Starter") {
+    return {
+      plan,
+      ...(PLAN_LIMITS[plan] || PLAN_LIMITS.Trial),
+    };
+  }
+
+  function limitLabel(value) {
+    return Number.isFinite(value) ? String(value) : "unlimited";
+  }
+
+  function renderPlanLimitNotice() {
+    if (!ui.planLimitNotice) return;
+    const user = currentUser();
+    if (!user || user.role !== "landlord") {
+      ui.planLimitNotice.classList.add("hidden");
+      return;
+    }
+    const limit = planLimitForOwner(user.id);
+    const portfolio = ownerPortfolio(user.id);
+    const caretakers = staffUsersForOwner(user.id).length;
+    const usage = [
+      `${portfolio.properties.length}/${limitLabel(limit.properties)} properties`,
+      `${portfolio.units.length}/${limitLabel(limit.units)} units`,
+      `${caretakers}/${limitLabel(limit.caretakers)} caretakers`,
+    ];
+    const atLimit =
+      portfolio.properties.length >= limit.properties ||
+      portfolio.units.length >= limit.units ||
+      caretakers >= limit.caretakers;
+    ui.planLimitNotice.className = `plan-limit-note setup-limit-note ${atLimit ? "warning" : ""}`;
+    ui.planLimitNotice.textContent = `${limit.plan} plan usage: ${usage.join(" - ")}.`;
+    ui.planLimitNotice.classList.remove("hidden");
+  }
+
+  function caretakerLimitForOwner(ownerId) {
+    const limit = planLimitForOwner(ownerId);
+    if (limit.plan === "Starter") {
       return {
-        plan,
-        max: 1,
-        label: "1",
+        plan: limit.plan,
+        max: limit.caretakers,
+        label: limitLabel(limit.caretakers),
         upgradeMessage: "Starter plan includes 1 caretaker account. Upgrade to Professional to add more caretakers.",
       };
     }
-    if (plan === "Trial") {
+    if (limit.plan === "Trial") {
       return {
-        plan,
-        max: 0,
-        label: "0",
+        plan: limit.plan,
+        max: limit.caretakers,
+        label: limitLabel(limit.caretakers),
         upgradeMessage: "Upgrade to Starter or Professional before inviting caretaker accounts.",
       };
     }
     return {
-      plan,
-      max: Number.POSITIVE_INFINITY,
-      label: "unlimited",
+      plan: limit.plan,
+      max: limit.caretakers,
+      label: limitLabel(limit.caretakers),
       upgradeMessage: "",
     };
   }
@@ -4721,7 +5229,7 @@
         : "Starter includes 1 caretaker account.";
     }
     if (limit.plan === "Trial") return "Trial accounts cannot add caretakers. Upgrade to Starter or Professional.";
-    return `${limit.plan} allows multiple caretaker accounts.`;
+    return `${limit.plan} allows ${limit.label} caretaker accounts.`;
   }
 
   function isSaasOwner(user = currentUser()) {
@@ -4814,7 +5322,7 @@
     );
     const rows = [];
     const scope = getScopedData();
-    const rentRows = getRentRows(scope.tenants);
+    const rentRows = getRentRows(scope.tenants.filter(isActiveTenant));
     const dismissed = state.dismissedNotificationIds || [];
     const overdueRows = rentRows.filter((row) => row.status === "Overdue");
     const dueTomorrowRows = rentRows.filter((row) => row.daysUntilDue === 1 && row.balance > 0);
@@ -5047,6 +5555,14 @@
     return state.tenants.find((tenant) => tenant.id === id);
   }
 
+  function isActiveTenant(tenant) {
+    return String(tenant?.status || "active").toLowerCase() !== "moved_out";
+  }
+
+  function tenantStatusLabel(tenant) {
+    return isActiveTenant(tenant) ? "Active" : "Moved Out";
+  }
+
   function unitById(id) {
     return state.units.find((unit) => unit.id === id);
   }
@@ -5258,7 +5774,7 @@
     }
     localStorage.removeItem(STORAGE_KEY);
     deleteStateFromIndexedDB().catch((error) => console.warn("Could not clear IndexedDB demo data", error));
-    const fresh = seedState();
+    const fresh = migrateState(seedState());
     Object.keys(state).forEach((key) => delete state[key]);
     Object.assign(state, fresh);
     saveState();
@@ -5531,6 +6047,23 @@
         listing_note: row.listing_note || "",
       };
     }
+    if (stateKey === "subscriptions") {
+      return {
+        ...row,
+        monthly_fee: Number(row.monthly_fee || 0),
+        auto_collect_authorized: Boolean(row.auto_collect_authorized),
+        cancel_at_period_end: Boolean(row.cancel_at_period_end),
+        billing_contact_masked: row.billing_contact_masked || "",
+        payment_provider: row.payment_provider || "",
+        provider_payment_reference: row.provider_payment_reference || "",
+        provider_payment_status: row.provider_payment_status || "",
+        provider_checkout_url: row.provider_checkout_url || "",
+        provider_charge_id: row.provider_charge_id || "",
+        provider_customer_id: row.provider_customer_id || "",
+        provider_payment_method_id: row.provider_payment_method_id || "",
+        provider_next_action: row.provider_next_action || "",
+      };
+    }
     return { ...row };
   }
 
@@ -5680,6 +6213,7 @@
   function syncStatePayload(snapshot) {
     return {
       properties: snapshot.properties || [],
+      subscriptions: snapshot.subscriptions || [],
       units: snapshot.units || [],
       tenants: snapshot.tenants || [],
       payments: snapshot.payments || [],
@@ -5763,6 +6297,20 @@
         "last_payment_method",
         "last_payment_note",
         "next_billing_date",
+        "billing_method",
+        "billing_contact_masked",
+        "auto_collect_authorized",
+        "cancel_at_period_end",
+        "cancellation_requested_at",
+        "grace_period_end",
+        "payment_provider",
+        "provider_payment_reference",
+        "provider_payment_status",
+        "provider_checkout_url",
+        "provider_charge_id",
+        "provider_customer_id",
+        "provider_payment_method_id",
+        "provider_next_action",
       ]);
     }
     if (stateKey === "properties") return pick(row, ["id", "owner_id", "property_name", "location", "property_type"]);
@@ -5783,10 +6331,36 @@
       return unit;
     }
     if (stateKey === "tenants") {
-      return pick(row, ["id", "unit_id", "name", "phone", "national_id", "rent_amount", "deposit_paid", "move_in_date"]);
+      return pick(row, [
+        "id",
+        "unit_id",
+        "name",
+        "phone",
+        "national_id",
+        "rent_amount",
+        "deposit_paid",
+        "move_in_date",
+        "status",
+        "move_out_date",
+        "move_out_balance",
+        "move_out_damages",
+        "move_out_refund",
+        "move_out_note",
+      ]);
     }
     if (stateKey === "payments") {
-      return pick(row, ["id", "tenant_id", "amount", "payment_method", "payment_date", "balance", "reference", "receipt_number"]);
+      return pick(row, [
+        "id",
+        "tenant_id",
+        "amount",
+        "payment_method",
+        "payment_date",
+        "balance",
+        "reference",
+        "receipt_number",
+        "payment_proof",
+        "verification_status",
+      ]);
     }
     if (stateKey === "expenses") return pick(row, ["id", "property_id", "type", "amount", "date"]);
     if (stateKey === "supportTickets") {
@@ -5930,13 +6504,24 @@
       };
     });
     if (includeSeedRows) appendMissingSeedRows(migrated.tenants, seeded.tenants);
+    migrated.tenants = migrated.tenants.map((tenant) => ({
+      status: "active",
+      move_out_date: null,
+      move_out_balance: 0,
+      move_out_damages: 0,
+      move_out_refund: 0,
+      move_out_note: "",
+      ...tenant,
+    }));
     if (includeSeedRows) appendMissingSeedRows(migrated.payments, seeded.payments);
     migrated.payments = migrated.payments.map((payment) => ({
       ...payment,
       receipt_number: payment.receipt_number || generateReceiptNumber(payment.payment_date, payment.id || payment.reference),
+      payment_proof: payment.payment_proof || "",
+      verification_status: payment.verification_status || "Unverified",
     }));
     if (includeSeedRows) appendMissingSeedRows(migrated.expenses, seeded.expenses);
-    const occupiedUnitIds = new Set(migrated.tenants.map((tenant) => tenant.unit_id));
+    const occupiedUnitIds = new Set(migrated.tenants.filter(isActiveTenant).map((tenant) => tenant.unit_id));
     migrated.units = migrated.units.map((unit) =>
       occupiedUnitIds.has(unit.id) ? { ...unit, status: "occupied", listing_published: false } : unit
     );
@@ -5950,6 +6535,23 @@
         if (!exists) migrated.supportTickets.push(seedTicket);
       });
     }
+    migrated.subscriptions = migrated.subscriptions.map((subscription) => ({
+      billing_method: subscription.last_payment_method || "",
+      billing_contact_masked: "",
+      auto_collect_authorized: false,
+      cancel_at_period_end: false,
+      cancellation_requested_at: null,
+      grace_period_end: subscription.next_billing_date || null,
+      payment_provider: "",
+      provider_payment_reference: "",
+      provider_payment_status: "",
+      provider_checkout_url: "",
+      provider_charge_id: "",
+      provider_customer_id: "",
+      provider_payment_method_id: "",
+      provider_next_action: "",
+      ...subscription,
+    }));
     migrated.selectedPropertyId = migrated.selectedPropertyId || "all";
     migrated.role = migrated.role || "landlord";
     migrated.searchTerm = migrated.searchTerm || "";
@@ -5968,7 +6570,7 @@
   }
 
   function normalizeDeletedRowIds(value = {}) {
-    const stateKeys = ["properties", "units", "tenants", "payments", "expenses", "supportTickets", "notifications"];
+    const stateKeys = ["subscriptions", "properties", "units", "tenants", "payments", "expenses", "supportTickets", "notifications"];
     return stateKeys.reduce((result, key) => {
       const ids = Array.isArray(value[key]) ? value[key].filter(Boolean) : [];
       if (ids.length) result[key] = [...new Set(ids)];
@@ -6786,11 +7388,11 @@
   function statusPill(status) {
     const normalizedStatus = String(status || "");
     const className =
-      normalizedStatus === "Paid" || normalizedStatus === "Advance" || normalizedStatus === "Occupied" || normalizedStatus === "Active" || normalizedStatus === "Resolved" || normalizedStatus === "Low" || normalizedStatus === "Read"
+      normalizedStatus === "Paid" || normalizedStatus === "Advance" || normalizedStatus === "Occupied" || normalizedStatus === "Active" || normalizedStatus === "Resolved" || normalizedStatus === "Low" || normalizedStatus === "Read" || normalizedStatus === "Verified"
         ? "success"
-        : normalizedStatus === "Overdue" || normalizedStatus.includes("late") || normalizedStatus === "Open" || normalizedStatus === "High" || normalizedStatus === "Suspended" || normalizedStatus === "Inactive" || normalizedStatus === "Expired"
+        : normalizedStatus === "Overdue" || normalizedStatus.includes("late") || normalizedStatus === "Open" || normalizedStatus === "High" || normalizedStatus === "Suspended" || normalizedStatus === "Inactive" || normalizedStatus === "Expired" || normalizedStatus === "Cancelled" || normalizedStatus === "Disputed"
           ? "danger"
-          : normalizedStatus === "Partial" || normalizedStatus === "Vacant" || normalizedStatus === "Due" || normalizedStatus === "Medium" || normalizedStatus === "In Progress" || normalizedStatus === "Invited" || normalizedStatus === "Pending" || normalizedStatus === "Expiring" || normalizedStatus === "Attention" || normalizedStatus === "Local"
+          : normalizedStatus === "Partial" || normalizedStatus === "Vacant" || normalizedStatus === "Due" || normalizedStatus === "Medium" || normalizedStatus === "In Progress" || normalizedStatus === "Invited" || normalizedStatus === "Pending" || normalizedStatus === "Expiring" || normalizedStatus === "Cancelling" || normalizedStatus === "Unverified" || normalizedStatus === "Attention" || normalizedStatus === "Local"
             ? "warning"
             : "info";
     return `<span class="pill ${className}">${escapeHtml(normalizedStatus)}</span>`;

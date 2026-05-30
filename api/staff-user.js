@@ -6,6 +6,7 @@ const {
   findUserByEmailOrPhone,
   insertRows,
   normalizeEmail,
+  planLimitForPlan,
   readBody,
   requireFields,
   requireProfile,
@@ -92,19 +93,20 @@ async function createStaff(request, response) {
 async function staffLimitForOwner(ownerId) {
   const rows = await supabaseFetch(`/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(ownerId)}&select=plan,status`);
   const plan = String(rows[0]?.plan || "Trial");
+  const limit = planLimitForPlan(plan);
   if (plan === "Starter") {
     return {
-      max: 1,
+      max: limit.caretakers,
       message: "Starter plan includes 1 caretaker account. Upgrade to Professional to add more caretakers.",
     };
   }
   if (plan === "Trial") {
     return {
-      max: 0,
+      max: limit.caretakers,
       message: "Upgrade to Starter or Professional before inviting caretaker accounts.",
     };
   }
-  return { max: Number.POSITIVE_INFINITY, message: "" };
+  return { max: limit.caretakers, message: "" };
 }
 
 async function removeStaff(request, response) {

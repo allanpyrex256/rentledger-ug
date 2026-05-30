@@ -47,6 +47,8 @@ async function recordPayment(request, response) {
   const paymentMethod = String(body.payment_method || body.paymentMethod || "Mobile Money").trim() || "Mobile Money";
   const paymentDate = normalizePaymentDate(body.payment_date || body.paymentDate);
   const reference = String(body.reference || body.transaction_reference || body.transactionReference || "").trim();
+  const paymentProof = normalizePaymentProof(body.payment_proof || body.paymentProof || body.proof || "");
+  const verificationStatus = normalizeVerificationStatus(body.verification_status || body.verificationStatus || "Unverified");
   const paymentId = String(body.id || body.payment_id || body.paymentId || "").trim() || makeId("payment");
   const receiptNumber = String(body.receipt_number || body.receiptNumber || "").trim() || generateReceiptNumber(paymentDate, paymentId);
 
@@ -66,6 +68,8 @@ async function recordPayment(request, response) {
     balance,
     reference: reference || autoReference(paymentMethod),
     receipt_number: receiptNumber,
+    payment_proof: paymentProof,
+    verification_status: verificationStatus,
   };
 
   const rows = await supabaseFetch("/rest/v1/payments", {
@@ -162,6 +166,17 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, Math.floor(value)));
 }
 
+function normalizePaymentProof(value) {
+  return String(value || "").trim().slice(0, 500);
+}
+
+function normalizeVerificationStatus(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  const allowed = ["unverified", "verified", "disputed"];
+  const resolved = allowed.includes(raw) ? raw : "unverified";
+  return resolved[0].toUpperCase() + resolved.slice(1);
+}
+
 function formatMoney(value) {
   return `USh ${Number(value || 0).toLocaleString("en-UG")}`;
 }
@@ -174,7 +189,19 @@ function generateReceiptNumber(paymentDate, seed = "") {
 }
 
 function setCors(response) {
-  response.setHeader("Access-Control-Allow-Origin", process.env.API_CORS_ORIGIN || "*");
+  response.setHeader("Access-Control-Allow-Origin", apiCorsOrigin());
   response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
+
+function apiCorsOrigin() {
+  if (process.env.API_CORS_ORIGIN) return process.env.API_CORS_ORIGIN;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
+module.exports._internal = {
+  normalizePaymentProof,
+  normalizeVerificationStatus,
+  monthRange,
+};

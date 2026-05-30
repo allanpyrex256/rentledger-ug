@@ -83,6 +83,7 @@ module.exports = async function handler(request, response) {
 
       const today = isoDate(new Date());
       const nextBillingDate = addMonths(today, 1);
+      const maskedBillingContact = maskBillingContact(billingContact);
 
       await insertRows("app_users", [user]);
       await insertRows("subscriptions", [
@@ -94,8 +95,15 @@ module.exports = async function handler(request, response) {
           status: "Trial",
           last_payment_date: today,
           last_payment_method: paymentMethod,
-          last_payment_note: `First free month opened from public signup. Auto-collect authorized for ${paymentMethod} (${billingContact}) after the first month unless cancelled.`,
+          last_payment_note: `First free month opened from public signup. Auto-collect authorized for ${paymentMethod} after the first month unless cancelled.`,
           next_billing_date: nextBillingDate,
+          billing_method: paymentMethod,
+          billing_contact_masked: maskedBillingContact,
+          auto_collect_authorized: true,
+          cancel_at_period_end: false,
+          grace_period_end: addMonths(nextBillingDate, 0),
+          payment_provider: "flutterwave",
+          provider_payment_status: "Not started",
         },
       ]);
 
@@ -131,3 +139,20 @@ function looksLikeFullCardNumber(value) {
   const digits = String(value || "").replace(/\D/g, "");
   return digits.length >= 12;
 }
+
+function maskBillingContact(value) {
+  const raw = String(value || "").trim();
+  if (raw.includes("@")) {
+    const [name, domain] = raw.split("@");
+    return `${name.slice(0, 2)}***@${domain || "email"}`;
+  }
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length <= 4) return "***";
+  return `${"*".repeat(Math.max(3, digits.length - 4))}${digits.slice(-4)}`;
+}
+
+module.exports._internal = {
+  maskBillingContact,
+  signupPlanOption,
+  normalizeSignupPaymentMethod,
+};

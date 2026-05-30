@@ -88,7 +88,13 @@ function encodeListValue(value) {
 }
 
 function setCors(response) {
-  response.setHeader("Access-Control-Allow-Origin", process.env.API_CORS_ORIGIN || "*");
+  response.setHeader("Access-Control-Allow-Origin", apiCorsOrigin());
   response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+function apiCorsOrigin() {
+  if (process.env.API_CORS_ORIGIN) return process.env.API_CORS_ORIGIN;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
 }

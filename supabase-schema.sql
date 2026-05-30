@@ -31,8 +31,37 @@ create table if not exists subscriptions (
   last_payment_method text,
   last_payment_note text,
   next_billing_date date,
+  billing_method text,
+  billing_contact_masked text,
+  auto_collect_authorized boolean not null default false,
+  cancel_at_period_end boolean not null default false,
+  cancellation_requested_at timestamptz,
+  grace_period_end date,
+  payment_provider text,
+  provider_payment_reference text,
+  provider_payment_status text,
+  provider_checkout_url text,
+  provider_charge_id text,
+  provider_customer_id text,
+  provider_payment_method_id text,
+  provider_next_action text,
   created_at timestamptz not null default now()
 );
+
+alter table subscriptions add column if not exists billing_method text;
+alter table subscriptions add column if not exists billing_contact_masked text;
+alter table subscriptions add column if not exists auto_collect_authorized boolean not null default false;
+alter table subscriptions add column if not exists cancel_at_period_end boolean not null default false;
+alter table subscriptions add column if not exists cancellation_requested_at timestamptz;
+alter table subscriptions add column if not exists grace_period_end date;
+alter table subscriptions add column if not exists payment_provider text;
+alter table subscriptions add column if not exists provider_payment_reference text;
+alter table subscriptions add column if not exists provider_payment_status text;
+alter table subscriptions add column if not exists provider_checkout_url text;
+alter table subscriptions add column if not exists provider_charge_id text;
+alter table subscriptions add column if not exists provider_customer_id text;
+alter table subscriptions add column if not exists provider_payment_method_id text;
+alter table subscriptions add column if not exists provider_next_action text;
 
 create table if not exists properties (
   id text primary key,
@@ -67,8 +96,21 @@ create table if not exists tenants (
   rent_amount numeric(12, 2) not null default 0,
   deposit_paid numeric(12, 2) not null default 0,
   move_in_date date not null,
+  status text not null default 'active',
+  move_out_date date,
+  move_out_balance numeric(12, 2) not null default 0,
+  move_out_damages numeric(12, 2) not null default 0,
+  move_out_refund numeric(12, 2) not null default 0,
+  move_out_note text,
   created_at timestamptz not null default now()
 );
+
+alter table tenants add column if not exists status text not null default 'active';
+alter table tenants add column if not exists move_out_date date;
+alter table tenants add column if not exists move_out_balance numeric(12, 2) not null default 0;
+alter table tenants add column if not exists move_out_damages numeric(12, 2) not null default 0;
+alter table tenants add column if not exists move_out_refund numeric(12, 2) not null default 0;
+alter table tenants add column if not exists move_out_note text;
 
 create table if not exists payments (
   id text primary key,
@@ -79,10 +121,14 @@ create table if not exists payments (
   balance numeric(12, 2) not null default 0,
   reference text,
   receipt_number text,
+  payment_proof text,
+  verification_status text not null default 'Unverified',
   created_at timestamptz not null default now()
 );
 
 alter table payments add column if not exists receipt_number text;
+alter table payments add column if not exists payment_proof text;
+alter table payments add column if not exists verification_status text not null default 'Unverified';
 
 create table if not exists expenses (
   id text primary key,
@@ -121,6 +167,7 @@ create table if not exists app_settings (
 );
 
 create index if not exists idx_app_users_company_owner_id on app_users(company_owner_id);
+create index if not exists idx_subscriptions_provider_payment_reference on subscriptions(provider_payment_reference);
 create index if not exists idx_properties_owner_id on properties(owner_id);
 create index if not exists idx_units_property_id on units(property_id);
 create index if not exists idx_tenants_unit_id on tenants(unit_id);

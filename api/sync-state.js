@@ -1,5 +1,6 @@
 const {
   fail,
+  planLimitForPlan,
   readBody,
   requireProfile,
   send,
@@ -8,6 +9,7 @@ const {
 } = require("../server/supabase-admin");
 
 const STATE_TABLES = [
+  { stateKey: "subscriptions", table: "subscriptions" },
   { stateKey: "properties", table: "properties" },
   { stateKey: "units", table: "units" },
   { stateKey: "tenants", table: "tenants" },
@@ -17,7 +19,7 @@ const STATE_TABLES = [
   { stateKey: "notifications", table: "notifications" },
 ];
 
-const DELETE_ORDER = ["notifications", "supportTickets", "expenses", "payments", "tenants", "units", "properties"];
+const DELETE_ORDER = ["notifications", "supportTickets", "expenses", "payments", "tenants", "units", "properties", "subscriptions"];
 const SUPER_ADMIN_USER_ID = "user-saas-owner";
 
 module.exports = async function handler(request, response) {
@@ -30,6 +32,7 @@ module.exports = async function handler(request, response) {
     const body = await readBody(request);
     const snapshot = normalizeSnapshot(body.state || body);
     const context = await buildSyncContext(profile, snapshot);
+    await enforcePlanLimits(profile, context);
     const rowsByKey = new Map();
     const deletedRowsByKey = normalizeDeletedRowIds(snapshot.deletedRowIds);
 
@@ -57,10 +60,31 @@ module.exports = async function handler(request, response) {
   }
 };
 
+async function enforcePlanLimits(profile, context) {
+  if (profile.role !== "landlord") return;
+  const rows = await supabaseFetch(`/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(profile.id)}&select=plan`);
+  const limits = planLimitForPlan(rows[0]?.plan || "Trial");
+  if (context.propertyIds.size > limits.properties) {
+    const error = new Error(`Your plan allows ${limitLabel(limits.properties)} properties. Upgrade before adding more.`);
+    error.status = 403;
+    throw error;
+  }
+  if (context.unitIds.size > limits.units) {
+    const error = new Error(`Your plan allows ${limitLabel(limits.units)} units. Upgrade before adding more.`);
+    error.status = 403;
+    throw error;
+  }
+}
+
+function limitLabel(value) {
+  return Number.isFinite(value) ? String(value) : "unlimited";
+}
+
 function normalizeSnapshot(value) {
   const state = value && typeof value === "object" ? value : {};
   return {
     properties: Array.isArray(state.properties) ? state.properties : [],
+    subscriptions: Array.isArray(state.subscriptions) ? state.subscriptions : [],
     units: Array.isArray(state.units) ? state.units : [],
     tenants: Array.isArray(state.tenants) ? state.tenants : [],
     payments: Array.isArray(state.payments) ? state.payments : [],
@@ -105,6 +129,7 @@ function writableRowsForStateKey(stateKey, snapshot, profile, context) {
     return [];
   }
   if (profile.role === "saas-owner") {
+    if (stateKey === "subscriptions") return snapshot.subscriptions;
     if (stateKey === "supportTickets") return snapshot.supportTickets;
     if (stateKey === "notifications") return snapshot.notifications;
     return [];
@@ -150,6 +175,10 @@ async function remoteIdsForStateKey(table, stateKey, profile, context) {
     if (profile.role !== "landlord") return [];
     return selectIds(table, `owner_id=eq.${encodeURIComponent(profile.id)}`);
   }
+  if (stateKey === "subscriptions") {
+    if (profile.role === "saas-owner") return selectIds(table, "");
+    return [];
+  }
   if (stateKey === "units") {
     if (!context.propertyIds.size) return [];
     return selectIds(table, `property_id=in.(${listValues([...context.propertyIds])})`);
@@ -188,6 +217,33 @@ function isSuperAdminSupportNotification(row) {
 }
 
 function toSupabaseRow(stateKey, row, profile) {
+  if (stateKey === "subscriptions") {
+    return pick(row, [
+      "id",
+      "owner_id",
+      "plan",
+      "monthly_fee",
+      "status",
+      "last_payment_date",
+      "last_payment_method",
+      "last_payment_note",
+      "next_billing_date",
+      "billing_method",
+      "billing_contact_masked",
+      "auto_collect_authorized",
+      "cancel_at_period_end",
+      "cancellation_requested_at",
+      "grace_period_end",
+      "payment_provider",
+      "provider_payment_reference",
+      "provider_payment_status",
+      "provider_checkout_url",
+      "provider_charge_id",
+      "provider_customer_id",
+      "provider_payment_method_id",
+      "provider_next_action",
+    ]);
+  }
   if (stateKey === "properties") {
     return pick({ ...row, owner_id: profile.id }, ["id", "owner_id", "property_name", "location", "property_type"]);
   }
@@ -207,10 +263,36 @@ function toSupabaseRow(stateKey, row, profile) {
     ]);
   }
   if (stateKey === "tenants") {
-    return pick(row, ["id", "unit_id", "name", "phone", "national_id", "rent_amount", "deposit_paid", "move_in_date"]);
+    return pick(row, [
+      "id",
+      "unit_id",
+      "name",
+      "phone",
+      "national_id",
+      "rent_amount",
+      "deposit_paid",
+      "move_in_date",
+      "status",
+      "move_out_date",
+      "move_out_balance",
+      "move_out_damages",
+      "move_out_refund",
+      "move_out_note",
+    ]);
   }
   if (stateKey === "payments") {
-    return pick(row, ["id", "tenant_id", "amount", "payment_method", "payment_date", "balance", "reference", "receipt_number"]);
+    return pick(row, [
+      "id",
+      "tenant_id",
+      "amount",
+      "payment_method",
+      "payment_date",
+      "balance",
+      "reference",
+      "receipt_number",
+      "payment_proof",
+      "verification_status",
+    ]);
   }
   if (stateKey === "expenses") return pick(row, ["id", "property_id", "type", "amount", "date"]);
   if (stateKey === "supportTickets") return pick(row, ["id", "owner_id", "subject", "priority", "status", "note", "updated_at"]);
@@ -230,7 +312,13 @@ function listValues(values) {
 }
 
 function setCors(response) {
-  response.setHeader("Access-Control-Allow-Origin", process.env.API_CORS_ORIGIN || "*");
+  response.setHeader("Access-Control-Allow-Origin", apiCorsOrigin());
   response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+}
+
+function apiCorsOrigin() {
+  if (process.env.API_CORS_ORIGIN) return process.env.API_CORS_ORIGIN;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
 }
