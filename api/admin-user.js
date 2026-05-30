@@ -51,6 +51,7 @@ async function createDemoLandlord(response, adminProfile) {
   const occupiedUnitId = makeId("unit");
   const vacantUnitId = makeId("unit");
   const tenantId = makeId("tenant");
+  const paymentId = makeId("payment");
 
   try {
     await insertRows("app_users", [
@@ -109,13 +110,14 @@ async function createDemoLandlord(response, adminProfile) {
     ]);
     await insertRows("payments", [
       {
-        id: makeId("payment"),
+        id: paymentId,
         tenant_id: tenantId,
         amount: 650000,
         payment_method: "MTN MoMo",
         payment_date: today,
         balance: 0,
         reference: autoReference("MTN MoMo"),
+        receipt_number: generateReceiptNumber(today, paymentId),
       },
     ]);
     await insertRows("subscriptions", [
@@ -137,6 +139,13 @@ async function createDemoLandlord(response, adminProfile) {
   }
 
   return send(response, 200, { email, temporaryPassword: password });
+}
+
+function generateReceiptNumber(paymentDate, seed = "") {
+  const date = String(paymentDate || isoDate(new Date())).replace(/\D/g, "").slice(0, 8) || isoDate(new Date()).replace(/\D/g, "");
+  const suffixSource = String(seed || `${Date.now()}${Math.random()}`).replace(/\D/g, "");
+  const suffix = (suffixSource.slice(-6) || String(Math.floor(100000 + Math.random() * 900000))).padStart(6, "0");
+  return `RL-${date}-${suffix}`;
 }
 
 async function toggleStatus(response, userId) {

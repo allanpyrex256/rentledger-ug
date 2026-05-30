@@ -23,7 +23,7 @@
           </div>
           <div>
             <div class="brand-name">RentLedger UG</div>
-            <div class="brand-meta">Rent tracking for Ugandan landlords</div>
+            <div class="brand-meta">Where Great Properties Meet Great Tenants</div>
           </div>
         </div>
         <nav class="landing-links" aria-label="Landing navigation">
@@ -37,10 +37,10 @@
       <main>
         <section class="hero-section">
           <div class="hero-copy">
-            <span class="hero-kicker">Built for Uganda</span>
-            <h1>Manage rentals in Uganda without Excel.</h1>
+            <span class="hero-kicker">Where Great Properties Meet Great Tenants</span>
+            <h1>Track rent, tenants, and vacant rooms from your phone.</h1>
             <p>
-              Track rent, balances, tenants, vacant rooms, and WhatsApp reminders from your phone.
+              Know who paid rent, who did not, and which rooms need tenants without notebooks, Excel, or scattered WhatsApp chats.
             </p>
             <div class="hero-actions">
               <button class="primary-button" data-open-auth="signup" type="button">Start Free</button>
@@ -197,19 +197,19 @@
           <div class="section-heading">
             <span class="hero-kicker">Vacant units</span>
             <h2>Tenants can find free rooms, shops, and houses before they call.</h2>
-            <p>Landlords publish vacant units from the dashboard. Tenants search by location, price, and type, then call or send a WhatsApp inquiry.</p>
+            <p>Landlords publish vacant units from the dashboard. Tenants search by location, price, and type, review the landlord profile, then call or send a WhatsApp inquiry.</p>
           </div>
           <div class="listing-filters" aria-label="Rental listing filters">
             <label>
-              Location
-              <input id="listingLocationFilter" placeholder="Search by town or area" />
+              District / Area
+              <input id="listingLocationFilter" placeholder="e.g. Kampala, Wakiso, Mukono" />
             </label>
             <label>
-              Max Rent
-              <input id="listingPriceFilter" type="number" min="0" step="50000" placeholder="No maximum" />
+              Budget
+              <input id="listingPriceFilter" type="number" min="0" step="50000" placeholder="Max monthly rent" />
             </label>
             <label>
-              Type
+              Room Type
               <select id="listingTypeFilter">
                 <option value="all">All rentals</option>
                 <option value="room">Rooms</option>
@@ -228,6 +228,13 @@
             </label>
             <button id="listingSearchButton" class="primary-button listing-search-button" type="button">Search</button>
           </div>
+          <section id="featuredListingSection" class="featured-listing-section" aria-labelledby="featuredListingTitle">
+            <div class="section-heading compact-heading">
+              <span class="hero-kicker">Featured listings</span>
+              <h2 id="featuredListingTitle">Vacancies with photos and fast landlord contact.</h2>
+            </div>
+            <div id="featuredListingGrid" class="public-listing-grid featured-listing-grid"></div>
+          </section>
           <div id="publicListingGrid" class="public-listing-grid"></div>
         </section>
 
@@ -960,6 +967,7 @@
                     <th>Tenant</th>
                     <th>Amount</th>
                     <th>Method</th>
+                    <th>Receipt</th>
                     <th>Reference</th>
                     <th>Date</th>
                     <th>Balance</th>
@@ -1379,8 +1387,8 @@
         </div>
         <div id="receiptContent" class="receipt-content"></div>
         <div class="form-actions">
-          <a id="shareReceiptWhatsApp" class="text-button link-button hidden" href="#" target="_blank" rel="noreferrer">WhatsApp</a>
-          <button id="downloadReceipt" class="ghost-button" type="button">Download</button>
+          <a id="shareReceiptWhatsApp" class="text-button link-button hidden" href="#" target="_blank" rel="noreferrer">WhatsApp Receipt</a>
+          <button id="downloadReceipt" class="ghost-button" type="button">Download PDF</button>
           <button id="printReceipt" class="primary-button" type="button">Print Receipt</button>
         </div>
       </section>

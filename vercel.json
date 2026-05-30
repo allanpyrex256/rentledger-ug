@@ -3,6 +3,8 @@
   "outputDirectory": ".",
   "rewrites": [
     { "source": "/vacancies", "destination": "/vacancies.html" },
-    { "source": "/available-units", "destination": "/vacancies.html" }
+    { "source": "/available-units", "destination": "/vacancies.html" },
+    { "source": "/landlords/:id", "destination": "/landlord.html?id=:id" },
+    { "source": "/landlord/:id", "destination": "/landlord.html?id=:id" }
   ]
 }

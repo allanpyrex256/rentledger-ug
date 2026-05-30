@@ -197,7 +197,9 @@ function toSupabaseRow(stateKey, row, profile) {
   if (stateKey === "tenants") {
     return pick(row, ["id", "unit_id", "name", "phone", "national_id", "rent_amount", "deposit_paid", "move_in_date"]);
   }
-  if (stateKey === "payments") return pick(row, ["id", "tenant_id", "amount", "payment_method", "payment_date", "balance", "reference"]);
+  if (stateKey === "payments") {
+    return pick(row, ["id", "tenant_id", "amount", "payment_method", "payment_date", "balance", "reference", "receipt_number"]);
+  }
   if (stateKey === "expenses") return pick(row, ["id", "property_id", "type", "amount", "date"]);
   if (stateKey === "supportTickets") return pick(row, ["id", "owner_id", "subject", "priority", "status", "note", "updated_at"]);
   if (stateKey === "notifications") return pick(row, ["id", "user_id", "type", "title", "message", "read", "created_at"]);

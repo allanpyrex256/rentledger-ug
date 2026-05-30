@@ -8,11 +8,11 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 - Landlord daily dashboard with rent collected today, late tenants, and vacant rooms.
 - Landlord account signup/sign-in with required plan selection, billing method, and free-trial auto-collection authorization.
 - Property setup for rooms, shops, boys quarters, houses, and rent amounts.
-- Public rental listings at `/vacancies` and `/available-units`, connected to vacant rooms with WhatsApp inquiry buttons.
+- Public rental listings at `/vacancies` and `/available-units`, with district/budget/type search, featured listings, property photos, landlord profile pages, and WhatsApp inquiry buttons.
 - Landing page with local photo assets for apartments, mobile payments, and property handover moments.
 - Tenant management with phone, National ID, unit, rent, deposit, and move-in date.
 - Rent tracking with partial payments, balances, payment history, and MTN/Airtel reference fields.
-- Receipt generation, monthly rent report downloads, and expense report downloads.
+- Automatic receipt numbers, PDF receipt downloads, WhatsApp receipts, monthly rent report downloads, and expense report downloads.
 - WhatsApp reminder and receipt links for due, partial, and overdue rent.
 - Optional WhatsApp Cloud API route for sending tenant reminders and receipts directly from the app.
 - Notifications for payment, staff, expense, and overdue rent events.
@@ -37,7 +37,7 @@ WHATSAPP_GRAPH_VERSION=v25.0
 
 The app exposes `/api/supabase-config` so the browser can read only the public Supabase settings at runtime. The service role key is used only inside Vercel API routes and must never be exposed in browser code.
 
-WhatsApp sending uses `/api/whatsapp`. If the WhatsApp environment variables are not configured, landlords can still use the Open WhatsApp and Call buttons. For production messages outside WhatsApp's customer-service window, configure approved message templates in Meta Business Manager.
+WhatsApp sending uses `/api/whatsapp`. If the WhatsApp environment variables are not configured, landlords can still use the Open WhatsApp and Call buttons. Tenants can also open landlord profile pages at `/landlords/:id` from published vacancy cards. For production messages outside WhatsApp's customer-service window, configure approved message templates in Meta Business Manager.
 
 ## Demo Mode
 
@@ -102,7 +102,7 @@ subscriptions(id, owner_id, plan, monthly_fee, status, last_payment_date, next_b
 properties(id, property_name, location, property_type, owner_id)
 units(id, property_id, unit_number, rent_amount, status)
 tenants(id, unit_id, name, phone, national_id, rent_amount, deposit_paid, move_in_date)
-payments(id, tenant_id, amount, payment_method, payment_date, balance, reference)
+payments(id, tenant_id, amount, payment_method, payment_date, balance, reference, receipt_number)
 expenses(id, property_id, type, amount, date)
 support_tickets(id, owner_id, subject, priority, status, note, updated_at)
 notifications(id, user_id, type, title, message, read, created_at)

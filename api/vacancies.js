@@ -18,17 +18,28 @@ module.exports = async function handler(request, response) {
     const ownerIds = unique(properties.map((property) => property.owner_id));
     const owners = ownerIds.length
       ? await supabaseFetch(
-          `/rest/v1/app_users?id=in.(${ownerIds.map(encodeListValue).join(",")})&select=id,name,phone,email`
+          `/rest/v1/app_users?id=in.(${ownerIds.map(encodeListValue).join(",")})&select=id,name,phone,account_status,created_at`
+        )
+      : [];
+    const ownerProperties = ownerIds.length
+      ? await supabaseFetch(
+          `/rest/v1/properties?owner_id=in.(${ownerIds.map(encodeListValue).join(",")})&select=id,owner_id,property_name,location,property_type`
+        )
+      : [];
+    const ownerPropertyIds = unique(ownerProperties.map((property) => property.id));
+    const ownerUnits = ownerPropertyIds.length
+      ? await supabaseFetch(
+          `/rest/v1/units?property_id=in.(${ownerPropertyIds.map(encodeListValue).join(",")})&select=id,property_id,status,listing_published`
         )
       : [];
 
     const propertyById = new Map(properties.map((property) => [property.id, property]));
-    const ownerById = new Map(owners.map((owner) => [owner.id, owner]));
+    const ownerById = new Map(owners.map((owner) => [owner.id, publicLandlordProfile(owner, ownerProperties, ownerUnits)]));
     const listings = units
       .map((unit) => {
         const property = propertyById.get(unit.property_id);
         const owner = property ? ownerById.get(property.owner_id) : null;
-        return property && owner ? { unit, property, owner } : null;
+        return property && owner && profileIsPublic(owner) ? { unit, property, owner } : null;
       })
       .filter(Boolean);
 
@@ -44,6 +55,35 @@ function unique(values) {
 
 function encodeListValue(value) {
   return `"${String(value).replace(/"/g, '\\"')}"`;
+}
+
+function publicLandlordProfile(owner, properties, units) {
+  const ownedPropertyIds = new Set(properties.filter((property) => property.owner_id === owner.id).map((property) => property.id));
+  const ownedUnits = units.filter((unit) => ownedPropertyIds.has(unit.property_id));
+  const activeListings = ownedUnits.filter((unit) => isPublishedVacancy(unit)).length;
+  const verified = String(owner.account_status || "").toLowerCase() === "active";
+  return {
+    id: owner.id,
+    name: owner.name,
+    phone: owner.phone,
+    account_status: owner.account_status || "Trial",
+    created_at: owner.created_at || null,
+    verified,
+    verification_label: verified ? "Verified landlord" : "RentLedger profile",
+    profile_photo: "",
+    property_count: ownedPropertyIds.size,
+    occupied_units_count: ownedUnits.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,
+    published_vacancies_count: activeListings,
+  };
+}
+
+function isPublishedVacancy(unit) {
+  return String(unit.status || "").toLowerCase() === "vacant" && Boolean(unit.listing_published);
+}
+
+function profileIsPublic(owner) {
+  const status = String(owner.account_status || "").toLowerCase();
+  return status !== "suspended" && status !== "inactive";
 }
 
 function setCors(response) {

@@ -31,22 +31,22 @@
           <div class="section-heading">
             <span class="hero-kicker">Available units</span>
             <h1>Find vacant rentals in Uganda.</h1>
-            <p>Search rooms, shops, houses, and boys quarters published directly by landlords using RentLedger UG.</p>
+            <p>Search rooms, shops, houses, and boys quarters published directly by landlords using RentLedger UG, then check the landlord profile before you call.</p>
           </div>
         </section>
 
         <section class="landing-section public-listings-section">
           <div class="listing-filters" aria-label="Rental listing filters">
             <label>
-              Location
-              <input id="listingLocationFilter" placeholder="Search by town or area" />
+              District / Area
+              <input id="listingLocationFilter" placeholder="e.g. Kampala, Wakiso, Mukono" />
             </label>
             <label>
-              Max Rent
-              <input id="listingPriceFilter" type="number" min="0" step="50000" placeholder="No maximum" />
+              Budget
+              <input id="listingPriceFilter" type="number" min="0" step="50000" placeholder="Max monthly rent" />
             </label>
             <label>
-              Type
+              Room Type
               <select id="listingTypeFilter">
                 <option value="all">All rentals</option>
                 <option value="room">Rooms</option>
@@ -65,6 +65,13 @@
             </label>
             <button id="listingSearchButton" class="primary-button listing-search-button" type="button">Search</button>
           </div>
+          <section id="featuredListingSection" class="featured-listing-section" aria-labelledby="featuredListingTitle">
+            <div class="section-heading compact-heading">
+              <span class="hero-kicker">Featured listings</span>
+              <h2 id="featuredListingTitle">Vacancies with photos and fast landlord contact.</h2>
+            </div>
+            <div id="featuredListingGrid" class="public-listing-grid featured-listing-grid"></div>
+          </section>
           <p id="vacancyStatus" class="vacancy-status">Loading vacant units...</p>
           <div id="publicListingGrid" class="public-listing-grid"></div>
         </section>

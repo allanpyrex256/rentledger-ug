@@ -78,8 +78,11 @@ create table if not exists payments (
   payment_date date not null,
   balance numeric(12, 2) not null default 0,
   reference text,
+  receipt_number text,
   created_at timestamptz not null default now()
 );
+
+alter table payments add column if not exists receipt_number text;
 
 create table if not exists expenses (
   id text primary key,

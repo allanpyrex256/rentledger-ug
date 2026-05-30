@@ -6,6 +6,8 @@
   const ui = {
     status: document.getElementById("vacancyStatus"),
     grid: document.getElementById("publicListingGrid"),
+    featuredSection: document.getElementById("featuredListingSection"),
+    featuredGrid: document.getElementById("featuredListingGrid"),
     location: document.getElementById("listingLocationFilter"),
     price: document.getElementById("listingPriceFilter"),
     type: document.getElementById("listingTypeFilter"),
@@ -66,15 +68,38 @@
     ui.status.textContent = listings.length
       ? `${listings.length} vacant unit${listings.length === 1 ? "" : "s"} available`
       : "No vacant units match those filters.";
-    ui.grid.innerHTML = listings.map((item) => publicListingCard(item)).join("") || emptyBlock("Try another location or price range.");
+    const featuredListings = featuredListingItems(listings);
+    const featuredIds = new Set(featuredListings.map((item) => item.unit.id));
+    if (ui.featuredSection && ui.featuredGrid) {
+      ui.featuredSection.classList.toggle("hidden", !featuredListings.length);
+      ui.featuredGrid.innerHTML = featuredListings.map((item) => publicListingCard(item, { featured: true })).join("");
+    }
+    ui.grid.innerHTML =
+      listings.map((item) => publicListingCard(item, { featured: featuredIds.has(item.unit.id) })).join("") ||
+      emptyBlock("Try another district, budget, or room type.");
   }
 
-  function publicListingCard({ unit, property, owner }) {
+  function featuredListingItems(listings) {
+    return listings
+      .slice()
+      .sort((left, right) => featuredScore(right) - featuredScore(left) || Number(left.unit.rent_amount) - Number(right.unit.rent_amount))
+      .slice(0, Math.min(3, listings.length))
+      .filter((item) => featuredScore(item) > 0);
+  }
+
+  function featuredScore({ unit, owner }) {
+    return (unit.listing_photo ? 4 : 0) + (owner.verified ? 3 : 0) + (unit.listing_furnished ? 1 : 0);
+  }
+
+  function publicListingCard({ unit, property, owner }, options = {}) {
     const phone = normalizePhone(owner.phone || "");
     const message = `Hello ${owner.name}, I saw ${unit.unit_number} at ${property.property_name} in ${property.location} on RentLedger UG. Is it still available for viewing?`;
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
+    const profileUrl = landlordProfileUrl(owner.id);
+    const stats = landlordStats(owner);
     return `
-      <article class="public-listing-card">
+      <article class="public-listing-card${options.featured ? " featured" : ""}">
+        ${options.featured ? '<span class="listing-featured-ribbon">Featured</span>' : ""}
         <img src="${escapeHtml(unit.listing_photo || listingPhotoForProperty(property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
         <div class="public-listing-body">
           <div>
@@ -89,14 +114,80 @@
             <span>${unit.listing_furnished ? "Furnished" : "Unfurnished"}</span>
           </div>
           <p>${escapeHtml(unit.listing_note || "Vacant rental published directly from the landlord dashboard.")}</p>
+          <div class="listing-landlord">
+            ${profilePhotoMarkup(owner, "listing-landlord-photo")}
+            <div>
+              <a href="${escapeHtml(profileUrl)}">${escapeHtml(owner.name)}</a>
+              ${verificationBadge(owner)}
+              <small>${formatLandlordStats(stats)}</small>
+              <small>Phone: <a href="tel:+${escapeHtml(phone)}">${escapeHtml(displayPhone(owner.phone))}</a></small>
+            </div>
+          </div>
           <div class="button-row">
             <a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">WhatsApp Inquiry</a>
             <a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call Landlord</a>
+            <a class="ghost-button link-button" href="${escapeHtml(profileUrl)}">View Landlord</a>
             <a class="ghost-button link-button" href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Map</a>
           </div>
         </div>
       </article>
     `;
+  }
+
+  function landlordStats(owner) {
+    if (owner.property_count !== undefined || owner.occupied_units_count !== undefined) {
+      return {
+        propertyCount: Number(owner.property_count || 0),
+        occupiedUnits: Number(owner.occupied_units_count || 0),
+      };
+    }
+    const ownerListings = state.listings.filter((item) => item.owner?.id === owner.id);
+    return {
+      propertyCount: new Set(ownerListings.map((item) => item.property?.id).filter(Boolean)).size,
+      occupiedUnits: 0,
+    };
+  }
+
+  function formatLandlordStats(stats) {
+    return `${stats.propertyCount} ${stats.propertyCount === 1 ? "property" : "properties"} - ${stats.occupiedUnits} occupied ${stats.occupiedUnits === 1 ? "unit" : "units"}`;
+  }
+
+  function landlordProfileUrl(ownerId) {
+    return `landlord.html?id=${encodeURIComponent(ownerId)}`;
+  }
+
+  function profilePhotoMarkup(owner, className) {
+    const src = safeImageSrc(owner.profile_photo);
+    if (src) return `<img class="${escapeHtml(className)}" src="${escapeHtml(src)}" alt="${escapeHtml(owner.name)} profile photo" />`;
+    return `<span class="${escapeHtml(className)} profile-photo-fallback" aria-label="${escapeHtml(owner.name)} profile photo">${escapeHtml(initials(owner.name))}</span>`;
+  }
+
+  function verificationBadge(owner) {
+    const verified = Boolean(owner.verified) || String(owner.account_status || "").toLowerCase() === "active";
+    const label = owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile");
+    return `<span class="verification-badge${verified ? "" : " pending"}">${escapeHtml(label)}</span>`;
+  }
+
+  function safeImageSrc(value) {
+    const src = String(value || "").trim();
+    if (/^(https?:\/\/|data:image\/|assets\/)/i.test(src)) return src;
+    return "";
+  }
+
+  function initials(name) {
+    return (
+      String(name || "RL")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase() || "RL"
+    );
+  }
+
+  function displayPhone(phone) {
+    return String(phone || "Phone unavailable");
   }
 
   function listingTitle(unit, property) {

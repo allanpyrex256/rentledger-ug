@@ -48,6 +48,7 @@ async function recordPayment(request, response) {
   const paymentDate = normalizePaymentDate(body.payment_date || body.paymentDate);
   const reference = String(body.reference || body.transaction_reference || body.transactionReference || "").trim();
   const paymentId = String(body.id || body.payment_id || body.paymentId || "").trim() || makeId("payment");
+  const receiptNumber = String(body.receipt_number || body.receiptNumber || "").trim() || generateReceiptNumber(paymentDate, paymentId);
 
   if (!tenantId) return send(response, 400, { error: "tenant_id is required." });
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -64,6 +65,7 @@ async function recordPayment(request, response) {
     payment_date: paymentDate,
     balance,
     reference: reference || autoReference(paymentMethod),
+    receipt_number: receiptNumber,
   };
 
   const rows = await supabaseFetch("/rest/v1/payments", {
@@ -74,7 +76,7 @@ async function recordPayment(request, response) {
     body: [payment],
   });
 
-  await createPaymentNotification({ profile, tenant, amount, paymentMethod, authorization }).catch(() => null);
+  await createPaymentNotification({ profile, tenant, amount, paymentMethod, receiptNumber, authorization }).catch(() => null);
   return send(response, 201, { payment: rows[0] || payment });
 }
 
@@ -101,7 +103,7 @@ async function balanceAfterPayment(tenant, paymentDate, amount, authorization) {
   return Math.max(0, Number(tenant.rent_amount || 0) - existingPaid - amount);
 }
 
-async function createPaymentNotification({ profile, tenant, amount, paymentMethod, authorization }) {
+async function createPaymentNotification({ profile, tenant, amount, paymentMethod, receiptNumber, authorization }) {
   return supabaseFetch("/rest/v1/notifications", {
     method: "POST",
     service: false,
@@ -113,7 +115,7 @@ async function createPaymentNotification({ profile, tenant, amount, paymentMetho
         user_id: profile.id,
         type: "payment",
         title: "Payment recorded",
-        message: `${tenant.name} paid ${formatMoney(amount)} by ${paymentMethod}.`,
+        message: `${tenant.name} paid ${formatMoney(amount)} by ${paymentMethod}. Receipt ${receiptNumber}.`,
         read: false,
       },
     ],
@@ -162,6 +164,13 @@ function clamp(value, min, max) {
 
 function formatMoney(value) {
   return `USh ${Number(value || 0).toLocaleString("en-UG")}`;
+}
+
+function generateReceiptNumber(paymentDate, seed = "") {
+  const date = String(paymentDate || isoDate(new Date())).replace(/\D/g, "").slice(0, 8) || isoDate(new Date()).replace(/\D/g, "");
+  const suffixSource = String(seed || `${Date.now()}${Math.random()}`).replace(/\D/g, "");
+  const suffix = (suffixSource.slice(-6) || String(Math.floor(100000 + Math.random() * 900000))).padStart(6, "0");
+  return `RL-${date}-${suffix}`;
 }
 
 function setCors(response) {

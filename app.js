@@ -92,6 +92,8 @@
     listingFurnishedFilter: document.getElementById("listingFurnishedFilter"),
     listingSearchButton: document.getElementById("listingSearchButton"),
     publicListingGrid: document.getElementById("publicListingGrid"),
+    featuredListingSection: document.getElementById("featuredListingSection"),
+    featuredListingGrid: document.getElementById("featuredListingGrid"),
     logoutButton: document.getElementById("logoutButton"),
     sideNav: document.getElementById("sideNav"),
     mobileTabs: document.getElementById("mobileTabs"),
@@ -1245,8 +1247,15 @@
       return matchesLocation && matchesPrice && matchesType && matchesFurnished;
     });
 
+    const featuredListings = featuredListingItems(listings);
+    const featuredIds = new Set(featuredListings.map((item) => item.unit.id));
+    if (ui.featuredListingSection && ui.featuredListingGrid) {
+      ui.featuredListingSection.classList.toggle("hidden", !featuredListings.length);
+      ui.featuredListingGrid.innerHTML = featuredListings.map((item) => publicListingCard(item, { featured: true })).join("");
+    }
+
     ui.publicListingGrid.innerHTML =
-      listings.map((item) => publicListingCard(item)).join("") ||
+      listings.map((item) => publicListingCard(item, { featured: featuredIds.has(item.unit.id) })).join("") ||
       emptyBlock("No public vacancies match these filters.");
   }
 
@@ -1262,12 +1271,27 @@
       .sort((a, b) => Number(a.unit.rent_amount) - Number(b.unit.rent_amount));
   }
 
-  function publicListingCard({ unit, property, owner }) {
+  function featuredListingItems(listings) {
+    return listings
+      .slice()
+      .sort((left, right) => featuredScore(right) - featuredScore(left) || Number(left.unit.rent_amount) - Number(right.unit.rent_amount))
+      .slice(0, Math.min(3, listings.length))
+      .filter((item) => featuredScore(item) > 0);
+  }
+
+  function featuredScore({ unit, owner }) {
+    return (unit.listing_photo ? 4 : 0) + (owner.verified ? 3 : 0) + (unit.listing_furnished ? 1 : 0);
+  }
+
+  function publicListingCard({ unit, property, owner }, options = {}) {
     const phone = normalizePhone(owner.phone || "");
     const message = `Hello ${owner.name}, I saw ${unit.unit_number} at ${property.property_name} in ${property.location} on RentLedger UG. Is it still available for viewing?`;
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
+    const profileUrl = landlordProfileUrl(owner.id);
+    const stats = landlordStats(owner);
     return `
-      <article class="public-listing-card">
+      <article class="public-listing-card${options.featured ? " featured" : ""}">
+        ${options.featured ? '<span class="listing-featured-ribbon">Featured</span>' : ""}
         <img src="${escapeHtml(unit.listing_photo || listingPhotoForProperty(property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
         <div class="public-listing-body">
           <div>
@@ -1282,14 +1306,83 @@
             <span>${unit.listing_furnished ? "Furnished" : "Unfurnished"}</span>
           </div>
           <p>${escapeHtml(unit.listing_note || "Vacant rental published directly from the landlord dashboard.")}</p>
+          <div class="listing-landlord">
+            ${profilePhotoMarkup(owner, "listing-landlord-photo")}
+            <div>
+              <a href="${escapeHtml(profileUrl)}">${escapeHtml(owner.name)}</a>
+              ${verificationBadge(owner)}
+              <small>${formatLandlordStats(stats)}</small>
+              <small>Phone: <a href="tel:+${escapeHtml(phone)}">${escapeHtml(displayPhone(owner.phone))}</a></small>
+            </div>
+          </div>
           <div class="button-row">
             <a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">WhatsApp Inquiry</a>
             <a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call Landlord</a>
+            <a class="ghost-button link-button" href="${escapeHtml(profileUrl)}">View Landlord</a>
             <a class="ghost-button link-button" href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Map</a>
           </div>
         </div>
       </article>
     `;
+  }
+
+  function landlordStats(owner) {
+    if (owner.property_count !== undefined || owner.occupied_units_count !== undefined) {
+      return {
+        propertyCount: Number(owner.property_count || 0),
+        occupiedUnits: Number(owner.occupied_units_count || 0),
+      };
+    }
+    const properties = state.properties.filter((property) => property.owner_id === owner.id);
+    const propertyIds = new Set(properties.map((property) => property.id));
+    return {
+      propertyCount: properties.length,
+      occupiedUnits: state.units.filter(
+        (unit) => propertyIds.has(unit.property_id) && String(unit.status || "").toLowerCase() === "occupied"
+      ).length,
+    };
+  }
+
+  function formatLandlordStats(stats) {
+    return `${stats.propertyCount} ${stats.propertyCount === 1 ? "property" : "properties"} - ${stats.occupiedUnits} occupied ${stats.occupiedUnits === 1 ? "unit" : "units"}`;
+  }
+
+  function landlordProfileUrl(ownerId) {
+    return `landlord.html?id=${encodeURIComponent(ownerId)}`;
+  }
+
+  function profilePhotoMarkup(owner, className) {
+    const src = safeImageSrc(owner.profile_photo);
+    if (src) return `<img class="${escapeHtml(className)}" src="${escapeHtml(src)}" alt="${escapeHtml(owner.name)} profile photo" />`;
+    return `<span class="${escapeHtml(className)} profile-photo-fallback" aria-label="${escapeHtml(owner.name)} profile photo">${escapeHtml(initials(owner.name))}</span>`;
+  }
+
+  function verificationBadge(owner) {
+    const verified = Boolean(owner.verified) || String(owner.account_status || "").toLowerCase() === "active";
+    const label = owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile");
+    return `<span class="verification-badge${verified ? "" : " pending"}">${escapeHtml(label)}</span>`;
+  }
+
+  function safeImageSrc(value) {
+    const src = String(value || "").trim();
+    if (/^(https?:\/\/|data:image\/|assets\/)/i.test(src)) return src;
+    return "";
+  }
+
+  function initials(name) {
+    return (
+      String(name || "RL")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase() || "RL"
+    );
+  }
+
+  function displayPhone(phone) {
+    return String(phone || "Phone unavailable");
   }
 
   function listingTitle(unit, property) {
@@ -1769,6 +1862,7 @@
           ["Amount", formatMoney(payment.amount)],
           ["Balance after payment", formatMoney(payment.balance)],
           ["Method", payment.payment_method],
+          ["Receipt No.", receiptNumber(payment)],
           ["Reference", payment.reference || "-"],
           ["Date", formatDate(payment.payment_date)],
         ]),
@@ -2923,7 +3017,14 @@
       .filter((payment) => {
         const tenant = tenantById(payment.tenant_id);
         const unit = tenant ? unitById(tenant.unit_id) : null;
-        return matchesSearch([tenant ? tenant.name : "", unit ? unit.unit_number : "", payment.payment_method, payment.reference, payment.amount]);
+        return matchesSearch([
+          tenant ? tenant.name : "",
+          unit ? unit.unit_number : "",
+          payment.payment_method,
+          payment.reference,
+          receiptNumber(payment),
+          payment.amount,
+        ]);
       })
       .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date));
     ui.paymentCountLabel.textContent = `${payments.length} payments`;
@@ -2937,6 +3038,7 @@
               <td>${escapeHtml(tenant ? tenant.name : "Removed tenant")}</td>
               <td>${formatMoney(payment.amount)}</td>
               <td>${escapeHtml(payment.payment_method)}</td>
+              <td>${escapeHtml(receiptNumber(payment))}</td>
               <td>${escapeHtml(payment.reference || "-")}</td>
               <td>${formatDate(payment.payment_date)}</td>
               <td>${formatMoney(payment.balance)}</td>
@@ -2953,7 +3055,7 @@
             </tr>
           `;
         })
-        .join("") || emptyTableRow(7, "No payment history yet.");
+        .join("") || emptyTableRow(8, "No payment history yet.");
 
     updatePaymentPreview();
   }
@@ -3619,21 +3721,26 @@
     const balance = Math.max(0, Number(tenant.rent_amount) - existingPaid - amount);
     const method = ui.paymentMethod.value;
     const reference = ui.paymentReference.value.trim() || autoReference(method);
+    const paymentId = makeId("payment");
+    const receiptNumber = generateReceiptNumber(ui.paymentDate.value, paymentId);
 
-    state.payments.push({
-      id: makeId("payment"),
+    const payment = {
+      id: paymentId,
       tenant_id: tenant.id,
       amount,
       payment_method: method,
       payment_date: ui.paymentDate.value,
       balance,
       reference,
+      receipt_number: receiptNumber,
       created_at: new Date().toISOString(),
-    });
+    };
+
+    state.payments.push(payment);
     addNotification({
       type: "payment",
       title: "Payment recorded",
-      message: `${tenant.name} paid ${formatMoney(amount)} by ${method}.`,
+      message: `${tenant.name} paid ${formatMoney(amount)} by ${method}. Receipt ${receiptNumber}.`,
     });
 
     saveState();
@@ -3642,7 +3749,8 @@
     renderAll();
     ui.paymentStatusPill.textContent = method.includes("Money") || method.includes("MoMo") ? "MoMo confirmed" : "Recorded";
     ui.paymentStatusPill.className = "pill success";
-    showToast(`Payment recorded for ${tenant.name}.`);
+    openReceipt(payment.id);
+    showToast(`Receipt ${receiptNumber} generated for ${tenant.name}.`);
   }
 
   function saveExpense(event) {
@@ -3978,6 +4086,7 @@
       payment_date: today,
       balance: 0,
       reference: autoReference("MTN MoMo"),
+      receipt_number: generateReceiptNumber(today, paymentId),
       created_at: new Date().toISOString(),
     };
     const subscription = {
@@ -4202,32 +4311,31 @@
     const payment = state.payments.find((item) => item.id === paymentId);
     if (!payment) return;
     closeDashboardDetailModal();
-    const tenant = tenantById(payment.tenant_id);
-    const unit = tenant ? unitById(tenant.unit_id) : null;
-    const property = unit ? propertyById(unit.property_id) : null;
-    const owner = property ? userById(property.owner_id) : currentUser();
-    const receiptNo = payment.reference || payment.id;
-    const phone = tenant ? normalizePhone(tenant.phone) : "";
+    const details = receiptDetails(payment);
+    const phone = details.tenant ? normalizePhone(details.tenant.phone) : "";
     const receiptMessage = paymentReceiptMessage(payment);
     ui.receiptContent.innerHTML = `
       <div class="receipt-brand">
         <strong>RentLedger UG</strong>
-        <span>Receipt ${escapeHtml(receiptNo)}</span>
+        <span>Receipt ${escapeHtml(details.receiptNo)}</span>
       </div>
       <div class="receipt-grid">
-        <span>Landlord</span><strong>${escapeHtml(owner ? owner.name : "Landlord")}</strong>
-        <span>Tenant</span><strong>${escapeHtml(tenant ? tenant.name : "Removed tenant")}</strong>
-        <span>Property</span><strong>${escapeHtml(property ? property.property_name : "Unknown")}</strong>
-        <span>Room</span><strong>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</strong>
+        <span>Receipt No.</span><strong>${escapeHtml(details.receiptNo)}</strong>
+        <span>Landlord</span><strong>${escapeHtml(details.ownerName)}</strong>
+        <span>Tenant</span><strong>${escapeHtml(details.tenantName)}</strong>
+        <span>Property</span><strong>${escapeHtml(details.propertyName)}</strong>
+        <span>Room</span><strong>${escapeHtml(details.unitNumber)}</strong>
         <span>Amount Paid</span><strong>${formatMoney(payment.amount)}</strong>
         <span>Balance</span><strong>${formatMoney(payment.balance)}</strong>
         <span>Method</span><strong>${escapeHtml(payment.payment_method)}</strong>
+        <span>Payment Ref.</span><strong>${escapeHtml(payment.reference || "-")}</strong>
         <span>Date</span><strong>${formatDate(payment.payment_date)}</strong>
       </div>
       <p class="receipt-note">This receipt confirms rent payment captured in RentLedger UG.</p>
     `;
     ui.receiptModal.dataset.paymentId = paymentId;
-    if (tenant && phone) {
+    ui.receiptModal.dataset.receiptNumber = details.receiptNo;
+    if (details.tenant && phone) {
       ui.shareReceiptWhatsApp.href = `https://wa.me/${phone}?text=${encodeURIComponent(receiptMessage)}`;
       ui.shareReceiptWhatsApp.classList.remove("hidden");
     } else {
@@ -4246,9 +4354,101 @@
   }
 
   function downloadReceipt() {
-    const text = ui.receiptContent.innerText.trim();
-    if (!text) return;
-    downloadTextFile(`rentledger-receipt-${ui.receiptModal.dataset.paymentId || "payment"}.txt`, text);
+    const payment = state.payments.find((item) => item.id === ui.receiptModal.dataset.paymentId);
+    if (!payment) return;
+    const details = receiptDetails(payment);
+    const pdf = buildReceiptPdf(details);
+    downloadBlobFile(`rentledger-receipt-${details.receiptNo}.pdf`, pdf, "application/pdf");
+  }
+
+  function receiptDetails(payment) {
+    const tenant = tenantById(payment.tenant_id);
+    const unit = tenant ? unitById(tenant.unit_id) : null;
+    const property = unit ? propertyById(unit.property_id) : null;
+    const owner = property ? userById(property.owner_id) : currentUser();
+    return {
+      payment,
+      tenant,
+      unit,
+      property,
+      owner,
+      receiptNo: receiptNumber(payment),
+      ownerName: owner ? owner.name : "Landlord",
+      tenantName: tenant ? tenant.name : "Removed tenant",
+      propertyName: property ? property.property_name : "Unknown",
+      unitNumber: unit ? unit.unit_number : "Unassigned",
+    };
+  }
+
+  function buildReceiptPdf(details) {
+    const { payment } = details;
+    const lines = [
+      "RentLedger UG",
+      `Receipt ${details.receiptNo}`,
+      "",
+      `Landlord: ${details.ownerName}`,
+      `Tenant: ${details.tenantName}`,
+      `Property: ${details.propertyName}`,
+      `Room: ${details.unitNumber}`,
+      `Amount Paid: ${formatMoney(payment.amount)}`,
+      `Balance: ${formatMoney(payment.balance)}`,
+      `Method: ${payment.payment_method}`,
+      `Payment Ref.: ${payment.reference || "-"}`,
+      `Date: ${formatDate(payment.payment_date)}`,
+      "",
+      "This receipt confirms rent payment captured in RentLedger UG.",
+    ];
+    return simplePdfBlob(lines);
+  }
+
+  function simplePdfBlob(lines) {
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const content = [
+      "BT",
+      "/F1 18 Tf",
+      "50 790 Td",
+      ...pdfTextLines(lines, pageHeight),
+      "ET",
+    ].join("\n");
+    const objects = [
+      "<< /Type /Catalog /Pages 2 0 R >>",
+      "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>`,
+      "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+      `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+    ];
+    let pdf = "%PDF-1.4\n";
+    const offsets = [0];
+    objects.forEach((object, index) => {
+      offsets.push(pdf.length);
+      pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    });
+    const xrefOffset = pdf.length;
+    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    offsets.slice(1).forEach((offset) => {
+      pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+    });
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    return new Blob([pdf], { type: "application/pdf" });
+  }
+
+  function pdfTextLines(lines) {
+    return lines
+      .map((line, index) => {
+        const fontCommand = index === 0 ? "" : index === 1 ? "/F1 13 Tf\n" : index === 2 ? "/F1 11 Tf\n" : "";
+        const move = index === 0 ? "" : "0 -24 Td\n";
+        return `${fontCommand}${move}(${escapePdfText(line)}) Tj`;
+      })
+      .join("\n");
+  }
+
+  function escapePdfText(value) {
+    return String(value || "")
+      .replace(/[^\x20-\x7e]/g, "")
+      .replace(/\\/g, "\\\\")
+      .replace(/\(/g, "\\(")
+      .replace(/\)/g, "\\)");
   }
 
   function downloadMonthlyRentReport() {
@@ -4343,7 +4543,12 @@
 
   function downloadTextFile(filename, text) {
     const blob = new Blob([text], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
+    downloadBlobFile(filename, blob, "text/plain");
+  }
+
+  function downloadBlobFile(filename, blob, type = "application/octet-stream") {
+    const fileBlob = blob instanceof Blob ? blob : new Blob([blob], { type });
+    const url = URL.createObjectURL(fileBlob);
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = filename;
@@ -4850,11 +5055,12 @@
     const unit = tenant ? unitById(tenant.unit_id) : null;
     return [
       `Hello ${tenant ? tenant.name : "tenant"}, rent payment received.`,
+      `Receipt: ${receiptNumber(payment)}.`,
       `Amount: ${formatMoney(payment.amount)}.`,
       `Room: ${unit ? unit.unit_number : "Unassigned"}.`,
       `Date: ${formatDate(payment.payment_date)}.`,
       `Balance: ${formatMoney(payment.balance)}.`,
-      `Reference: ${payment.reference || payment.id}.`,
+      `Reference: ${payment.reference || "-"}.`,
       "Thank you.",
     ].join(" ");
   }
@@ -5017,11 +5223,11 @@
 
   function loadState() {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return seedState();
+    if (!saved) return migrateState(seedState());
     try {
       return migrateState(JSON.parse(saved));
     } catch (error) {
-      return seedState();
+      return migrateState(seedState());
     }
   }
 
@@ -5182,7 +5388,7 @@
       await Promise.all([
         client.from("units").select("*").eq("status", "vacant").eq("listing_published", true),
         client.from("properties").select("id,owner_id,property_name,location,property_type"),
-        client.from("app_users").select("id,name,phone,email"),
+        client.from("app_users").select("id,name,phone,email,account_status,created_at"),
       ]);
 
     if (unitsError) throw unitsError;
@@ -5255,12 +5461,18 @@
         email: row.email || "",
         creator_email: row.creator_email || "",
         platform_owner_id: row.platform_owner_id || undefined,
-        role: row.role,
+        role: row.role || "landlord",
         account_status: row.account_status || "Active",
         created_at: row.created_at || new Date().toISOString(),
         company_owner_id: row.company_owner_id || undefined,
         assigned_property_ids: row.assigned_property_ids || [],
         invitation_status: row.invitation_status || undefined,
+        profile_photo: row.profile_photo || "",
+        verified: Boolean(row.verified),
+        verification_label: row.verification_label || "",
+        property_count: row.property_count === undefined ? undefined : Number(row.property_count || 0),
+        occupied_units_count: row.occupied_units_count === undefined ? undefined : Number(row.occupied_units_count || 0),
+        published_vacancies_count: row.published_vacancies_count === undefined ? undefined : Number(row.published_vacancies_count || 0),
       };
     }
     if (stateKey === "units") {
@@ -5513,7 +5725,7 @@
       return pick(row, ["id", "unit_id", "name", "phone", "national_id", "rent_amount", "deposit_paid", "move_in_date"]);
     }
     if (stateKey === "payments") {
-      return pick(row, ["id", "tenant_id", "amount", "payment_method", "payment_date", "balance", "reference"]);
+      return pick(row, ["id", "tenant_id", "amount", "payment_method", "payment_date", "balance", "reference", "receipt_number"]);
     }
     if (stateKey === "expenses") return pick(row, ["id", "property_id", "type", "amount", "date"]);
     if (stateKey === "supportTickets") {
@@ -5657,6 +5869,10 @@
     });
     if (includeSeedRows) appendMissingSeedRows(migrated.tenants, seeded.tenants);
     if (includeSeedRows) appendMissingSeedRows(migrated.payments, seeded.payments);
+    migrated.payments = migrated.payments.map((payment) => ({
+      ...payment,
+      receipt_number: payment.receipt_number || generateReceiptNumber(payment.payment_date, payment.id || payment.reference),
+    }));
     if (includeSeedRows) appendMissingSeedRows(migrated.expenses, seeded.expenses);
     const occupiedUnitIds = new Set(migrated.tenants.map((tenant) => tenant.unit_id));
     migrated.units = migrated.units.map((unit) =>
@@ -6585,6 +6801,17 @@
   function autoReference(method) {
     const prefix = method.includes("Airtel") ? "AIRTEL" : method.includes("MTN") || method.includes("MoMo") ? "MOMO" : "PAY";
     return `${prefix}-${Math.floor(10000 + Math.random() * 89999)}`;
+  }
+
+  function receiptNumber(payment) {
+    return payment.receipt_number || generateReceiptNumber(payment.payment_date, payment.id || payment.reference || "");
+  }
+
+  function generateReceiptNumber(paymentDate, seed = "") {
+    const date = String(paymentDate || isoDate(new Date())).replace(/\D/g, "").slice(0, 8) || isoDate(new Date()).replace(/\D/g, "");
+    const suffixSource = String(seed || `${Date.now()}${Math.random()}`).replace(/\D/g, "");
+    const suffix = (suffixSource.slice(-6) || String(Math.floor(100000 + Math.random() * 900000))).padStart(6, "0");
+    return `RL-${date}-${suffix}`;
   }
 
   async function imageFileToDataUrl(file) {
