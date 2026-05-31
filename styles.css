@@ -1920,6 +1920,8 @@ h1 {
 .dashboard-action-card {
   color: var(--ink);
   text-align: left;
+  cursor: pointer;
+  font: inherit;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
@@ -2848,6 +2850,11 @@ div.empty-row::before {
   font-size: 20px;
 }
 
+button.owner-summary-item,
+button.admin-metric-card {
+  width: 100%;
+}
+
 .support-list {
   display: grid;
   gap: 12px;
@@ -2987,6 +2994,16 @@ div.empty-row::before {
 
 .detail-list-item b {
   white-space: nowrap;
+}
+
+.detail-static-item {
+  cursor: default;
+}
+
+.detail-static-item:hover {
+  border-color: #dbe3ec;
+  box-shadow: none;
+  transform: none;
 }
 
 .detail-actions {
