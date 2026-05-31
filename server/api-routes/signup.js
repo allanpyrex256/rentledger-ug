@@ -1,6 +1,6 @@
 const {
   PACKAGE_OPTIONS,
-  addMonths,
+  addDays,
   createAuthUser,
   deleteAuthUser,
   fail,
@@ -14,6 +14,7 @@ const {
 } = require("../supabase-admin");
 
 const SIGNUP_PAYMENT_METHODS = ["MTN MoMo", "Airtel Money", "Visa / Mastercard"];
+const TRIAL_DAYS = 7;
 
 module.exports = async function handler(request, response) {
   if (request.method !== "POST") {
@@ -31,12 +32,12 @@ module.exports = async function handler(request, response) {
     const selectedPlan = normalizeSignupPlan(body.plan || body.selectedPlan);
     const planOption = signupPlanOption(selectedPlan);
     if (!planOption) {
-      return send(response, 400, { error: "Choose Starter or Professional before starting the first free month." });
+      return send(response, 400, { error: "Choose Starter or Professional before starting the 7-day free trial." });
     }
 
     const paymentMethod = normalizeSignupPaymentMethod(body.payment_method || body.paymentMethod);
     if (!paymentMethod) {
-      return send(response, 400, { error: "Choose a payment method for automatic billing after the first free month." });
+      return send(response, 400, { error: "Choose a payment method for subscription billing after the 7-day free trial." });
     }
 
     const billingContact = String(body.billing_contact || body.billingContact || "").trim();
@@ -48,7 +49,7 @@ module.exports = async function handler(request, response) {
     }
 
     if (!billingAuthorizationAccepted(body.auto_collect_authorized || body.autoCollectAuthorized)) {
-      return send(response, 400, { error: "Terms and conditions must be accepted to start the first free month." });
+      return send(response, 400, { error: "Terms and conditions must be accepted to start the 7-day free trial." });
     }
 
     const email = normalizeEmail(body.email);
@@ -82,7 +83,7 @@ module.exports = async function handler(request, response) {
       };
 
       const today = isoDate(new Date());
-      const nextBillingDate = addMonths(today, 1);
+      const nextBillingDate = addDays(today, TRIAL_DAYS);
       const maskedBillingContact = maskBillingContact(billingContact);
 
       await insertRows("app_users", [user]);
@@ -95,13 +96,13 @@ module.exports = async function handler(request, response) {
           status: "Trial",
           last_payment_date: today,
           last_payment_method: paymentMethod,
-          last_payment_note: `First free month opened from public signup. Terms and conditions accepted for ${paymentMethod} subscription billing after the first month unless cancelled.`,
+          last_payment_note: `7-day free trial opened from public signup. Terms and conditions accepted for ${paymentMethod} subscription billing after the trial unless cancelled.`,
           next_billing_date: nextBillingDate,
           billing_method: paymentMethod,
           billing_contact_masked: maskedBillingContact,
           auto_collect_authorized: true,
           cancel_at_period_end: false,
-          grace_period_end: addMonths(nextBillingDate, 0),
+          grace_period_end: nextBillingDate,
           payment_provider: normalizeSignupPaymentProvider(process.env.PAYMENT_PROVIDER || "pesapal"),
           provider_payment_status: "Not started",
         },

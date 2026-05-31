@@ -96,6 +96,12 @@ function addMonths(dateString, count) {
   return isoDate(date);
 }
 
+function addDays(dateString, count) {
+  const date = new Date(`${dateString}T00:00:00`);
+  date.setDate(date.getDate() + count);
+  return isoDate(date);
+}
+
 function autoReference(method) {
   const prefix = String(method || "PAY")
     .replace(/[^A-Z0-9]/gi, "")
@@ -259,6 +265,7 @@ async function sendPasswordRecovery(email) {
 module.exports = {
   PACKAGE_OPTIONS,
   PLAN_LIMITS,
+  addDays,
   addMonths,
   autoReference,
   authUserFromRequest,

@@ -1,5 +1,6 @@
 const {
   PACKAGE_OPTIONS,
+  addDays,
   addMonths,
   autoReference,
   createAuthUser,
@@ -16,6 +17,8 @@ const {
   sendPasswordRecovery,
   supabaseFetch,
 } = require("../supabase-admin");
+
+const TRIAL_DAYS = 7;
 
 module.exports = async function handler(request, response) {
   if (request.method !== "POST") return send(response, 405, { error: "Method not allowed" });
@@ -133,7 +136,7 @@ async function createDemoLandlord(response, adminProfile) {
         last_payment_date: today,
         last_payment_method: "Trial",
         last_payment_note: "Demo trial account created by super admin",
-        next_billing_date: addMonths(today, 1),
+        next_billing_date: addDays(today, TRIAL_DAYS),
       },
     ]);
   } catch (error) {
@@ -171,13 +174,14 @@ async function cyclePackage(response, ownerId) {
   const nextPackage = PACKAGE_OPTIONS[(currentIndex + 1) % PACKAGE_OPTIONS.length];
   const nextStatus = nextPackage.status === "Trial" ? "Trial" : isPaidSubscription(subscription) ? "Active" : "Pending";
   const today = isoDate(new Date());
+  const nextBillingDate = nextPackage.status === "Trial" ? addDays(today, TRIAL_DAYS) : addMonths(today, 1);
 
   if (subscription) {
     await patchRows("subscriptions", `id=eq.${encodeURIComponent(subscription.id)}`, {
       plan: nextPackage.plan,
       monthly_fee: nextPackage.fee,
       status: nextStatus,
-      next_billing_date: subscription.next_billing_date || addMonths(today, 1),
+      next_billing_date: nextPackage.status === "Trial" ? nextBillingDate : subscription.next_billing_date || nextBillingDate,
     });
   } else {
     await insertRows("subscriptions", [
@@ -190,7 +194,7 @@ async function cyclePackage(response, ownerId) {
         last_payment_date: today,
         last_payment_method: "Manual",
         last_payment_note: "Package assigned by super admin",
-        next_billing_date: addMonths(today, 1),
+        next_billing_date: nextBillingDate,
       },
     ]);
   }

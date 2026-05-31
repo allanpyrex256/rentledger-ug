@@ -42,6 +42,7 @@
     { plan: "Professional", fee: 120000, status: "Active" },
     { plan: "Enterprise", fee: 250000, status: "Active" },
   ];
+  const TRIAL_DAYS = 7;
 
   const PLAN_LIMITS = {
     Trial: { properties: 1, units: 5, caretakers: 0 },
@@ -974,7 +975,7 @@
       return;
     }
     if (!selectedPlanOption) {
-      showToast("Choose Starter or Professional before starting the first free month.");
+      showToast("Choose Starter or Professional before starting the 7-day free trial.");
       return;
     }
     if (!paymentMethod) {
@@ -990,7 +991,7 @@
       return;
     }
     if (!ui.accountBillingConsent.checked) {
-      showToast("Accept the terms and conditions to start the first free month.");
+      showToast("Accept the terms and conditions to start the 7-day free trial.");
       return;
     }
 
@@ -1012,7 +1013,7 @@
       ui.createAccountForm.reset();
       updateSignupBillingSummary();
       setView("properties");
-      showToast(`${selectedPlanOption.plan} first free month opened.`);
+      showToast(`${selectedPlanOption.plan} 7-day free trial opened.`);
     } catch (error) {
       console.error("Account creation failed", error);
       showToast(error.message || "Could not create account.");
@@ -4212,23 +4213,23 @@
     if (!ui.accountTrialSummary) return;
     const planOption = signupPlanOption(ui.accountPlan?.value);
     const paymentMethod = ui.accountPaymentMethod?.value || "";
-    const nextBillingDate = addMonths(isoDate(new Date()), 1);
+    const nextBillingDate = addDays(isoDate(new Date()), TRIAL_DAYS);
 
     if (!planOption) {
       ui.accountTrialSummary.textContent =
-        "Terms and Conditions: select Starter or Professional, choose a payment method, and confirm your details before starting the first month free.";
+        "Terms and Conditions: select Starter or Professional, choose a payment method, and confirm your details before starting the 7-day free trial.";
       return;
     }
     if (!paymentMethod) {
       ui.accountTrialSummary.textContent =
-        `Terms and Conditions: ${planOption.plan} selected. Choose a payment method to confirm how subscription billing works after the free month.`;
+        `Terms and Conditions: ${planOption.plan} selected. Choose a payment method to confirm how subscription billing works after the 7-day trial.`;
       return;
     }
 
     const billingContact = ui.accountBillingContact?.value.trim();
     const contactLabel = billingContact ? ` from ${maskBillingContact(billingContact)}` : "";
     ui.accountTrialSummary.textContent =
-      `Terms and Conditions: ${planOption.plan} starts with a free first month. After ${formatDate(nextBillingDate)}, the subscription is ${formatMoney(planOption.fee)}/month by ${paymentMethod}${contactLabel} unless you cancel before renewal.`;
+      `Terms and Conditions: ${planOption.plan} starts with a 7-day free trial. After ${formatDate(nextBillingDate)}, the subscription is ${formatMoney(planOption.fee)}/month by ${paymentMethod}${contactLabel} unless you cancel before renewal.`;
   }
 
   function maskBillingContact(value) {
@@ -4430,7 +4431,7 @@
       last_payment_date: today,
       last_payment_method: "Trial",
       last_payment_note: "Demo trial account created by super admin",
-      next_billing_date: addMonths(today, 1),
+      next_billing_date: addDays(today, TRIAL_DAYS),
       billing_method: "Trial",
       billing_contact_masked: "",
       auto_collect_authorized: false,
@@ -4512,6 +4513,7 @@
     const currentIndex = Math.max(0, PACKAGE_OPTIONS.findIndex((option) => option.plan === subscription?.plan));
     const nextPackage = PACKAGE_OPTIONS[(currentIndex + 1) % PACKAGE_OPTIONS.length];
     const nextStatus = nextPackage.status === "Trial" ? "Trial" : isPaidSubscription(subscription) ? "Active" : "Pending";
+    const nextBillingDate = nextPackage.status === "Trial" ? addDays(today, TRIAL_DAYS) : addMonths(today, 1);
 
     if (subscription) {
       state.subscriptions = state.subscriptions.map((item) =>
@@ -4521,7 +4523,7 @@
               plan: nextPackage.plan,
               monthly_fee: nextPackage.fee,
               status: nextStatus,
-              next_billing_date: item.next_billing_date || addMonths(today, 1),
+              next_billing_date: nextPackage.status === "Trial" ? nextBillingDate : item.next_billing_date || nextBillingDate,
             }
           : item
       );
@@ -4535,7 +4537,7 @@
         last_payment_date: today,
         last_payment_method: "Manual",
         last_payment_note: "Package assigned by super admin",
-        next_billing_date: addMonths(today, 1),
+        next_billing_date: nextBillingDate,
       });
     }
 
@@ -7701,6 +7703,12 @@
   function addMonths(value, count) {
     const date = new Date(`${value}T00:00:00`);
     date.setMonth(date.getMonth() + count);
+    return isoDate(date);
+  }
+
+  function addDays(value, count) {
+    const date = new Date(`${value}T00:00:00`);
+    date.setDate(date.getDate() + count);
     return isoDate(date);
   }
 

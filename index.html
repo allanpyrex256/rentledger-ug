@@ -44,7 +44,7 @@
               Know who paid rent, who did not, and which rooms need tenants without notebooks, Excel, or scattered WhatsApp chats.
             </p>
             <div class="hero-actions">
-              <button class="primary-button" data-open-auth="signup" type="button">Start First Month Free</button>
+              <button class="primary-button" data-open-auth="signup" type="button">Start 7-Day Free Trial</button>
               <a class="ghost-button link-button" href="vacancies.html">View Vacant Units</a>
               <button class="ghost-button hidden" data-start-demo type="button">Real Dashboard Preview</button>
             </div>
@@ -279,7 +279,7 @@
                 <li>Rent, tenant, expense, and receipt tracking</li>
                 <li>Vacancy publishing for available units</li>
               </ul>
-              <button class="ghost-button" data-open-auth="signup" data-signup-plan="Starter" type="button">Start First Month Free</button>
+                <button class="ghost-button" data-open-auth="signup" data-signup-plan="Starter" type="button">Start 7-Day Free Trial</button>
             </article>
             <article class="price-card featured-price">
               <h3>Professional</h3>
@@ -291,7 +291,7 @@
                 <li>Portfolio dashboards and SaaS billing records</li>
                 <li>Monthly rent and expense report downloads</li>
               </ul>
-              <button class="primary-button" data-open-auth="signup" data-signup-plan="Professional" type="button">Start First Month Free</button>
+                <button class="primary-button" data-open-auth="signup" data-signup-plan="Professional" type="button">Start 7-Day Free Trial</button>
             </article>
             <article class="price-card">
               <h3>Enterprise</h3>
@@ -316,7 +316,7 @@
           <div class="policy-grid">
             <article class="policy-card">
               <h3>Accepted Payments</h3>
-              <p>Starter is USh 50,000/month and Professional is USh 120,000/month after the first free month. Payments can be collected by MTN MoMo, Airtel Money, or Visa / Mastercard through Pesapal checkout.</p>
+              <p>Starter is USh 50,000/month and Professional is USh 120,000/month after the 7-day free trial. Payments can be collected by MTN MoMo, Airtel Money, or Visa / Mastercard through Pesapal checkout.</p>
             </article>
             <article class="policy-card">
               <h3>Cancellation</h3>
@@ -440,11 +440,11 @@
             <input id="accountConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
           </label>
           <label>
-            First-Month Trial Plan
+            7-Day Trial Plan
             <select id="accountPlan" required>
               <option value="">Select a paid plan</option>
-              <option value="Starter">Starter - USh 50,000/month after first month</option>
-              <option value="Professional">Professional - USh 120,000/month after first month</option>
+              <option value="Starter">Starter - USh 50,000/month after 7-day trial</option>
+              <option value="Professional">Professional - USh 120,000/month after 7-day trial</option>
             </select>
           </label>
           <label>
@@ -459,14 +459,14 @@
           <label>
             Billing Phone / Authorization Reference
             <input id="accountBillingContact" autocomplete="tel" placeholder="e.g. 0772123456" required />
-            <small class="form-helper">Used after the first free month. Do not enter a full card number.</small>
+            <small class="form-helper">Used after the 7-day free trial. Do not enter a full card number.</small>
           </label>
           <label class="checkbox-consent">
             <input id="accountBillingConsent" type="checkbox" required />
             <span>I agree to the RentLedger UG Terms and Conditions.</span>
           </label>
-          <div id="accountTrialSummary" class="billing-summary-note">Terms and Conditions: select Starter or Professional, choose a payment method, and confirm your details before starting the first month free.</div>
-          <button class="primary-button" type="submit">Start First Month Free</button>
+          <div id="accountTrialSummary" class="billing-summary-note">Terms and Conditions: select Starter or Professional, choose a payment method, and confirm your details before starting the 7-day free trial.</div>
+          <button class="primary-button" type="submit">Start 7-Day Free Trial</button>
         </form>
 
         <form id="forgotPasswordForm" class="stacked-form auth-form hidden">
@@ -1513,6 +1513,6 @@
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script src="supabase-config.js?v=20260529-startup-gate"></script>
-    <script src="app.js?v=20260531-terms-copy"></script>
+    <script src="app.js?v=20260531-trial-7-days"></script>
   </body>
 </html>
