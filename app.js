@@ -502,6 +502,7 @@
       ["toggleAccountStatus", toggleLandlordAccountStatus],
       ["cyclePlan", cycleSubscriptionPackage],
       ["endOwnerTrial", endOwnerTrial],
+      ["deleteOwnerAccount", deleteOwnerAccount],
       ["subscriptionCollect", startSubscriptionCollection],
       ["subscriptionCancel", toggleSubscriptionCancellation],
       ["adminResetUser", createAdminPasswordReset],
@@ -2845,6 +2846,7 @@
                   <button class="text-button" data-cycle-plan="${user.id}" type="button">Package</button>
                   ${endTrialButton}
                   <button class="text-button" data-admin-reset-user="${user.id}" type="button">Send Reset OTP</button>
+                  <button class="danger-button" data-delete-owner-account="${user.id}" type="button">Delete</button>
                 </div>
               </td>
             </tr>
@@ -4633,6 +4635,87 @@
     saveState();
     renderAll();
     showToast(`${owner.name}'s trial ended. Subscription request sent.`);
+  }
+
+  async function deleteOwnerAccount(ownerId) {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can delete landlord accounts.");
+      return;
+    }
+
+    const owner = userById(ownerId);
+    if (!owner || owner.role !== "landlord") {
+      showToast("Landlord account was not found.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${owner.name}'s account? This permanently removes their login, properties, rooms, tenants, payments, expenses, support tickets, and notifications.`
+    );
+    if (!confirmed) return;
+
+    if (supabaseReady) {
+      try {
+        setAppLoading("Deleting account");
+        await apiRequest("/api/admin-user", { action: "delete-account", ownerId });
+        await refreshSupabaseState();
+        showToast(`${owner.name}'s account deleted.`);
+      } catch (error) {
+        console.error("Account deletion failed", error);
+        showToast(error.message || "Could not delete account.");
+      } finally {
+        clearAppLoading();
+      }
+      return;
+    }
+
+    removeOwnerAccountFromLocalState(ownerId);
+    saveState();
+    renderAll();
+    showToast(`${owner.name}'s account deleted.`);
+  }
+
+  function removeOwnerAccountFromLocalState(ownerId) {
+    const cascade = ownerAccountCascadeIds(ownerId);
+    state.payments = (state.payments || []).filter((payment) => !cascade.paymentIds.includes(payment.id));
+    state.expenses = (state.expenses || []).filter((expense) => !cascade.expenseIds.includes(expense.id));
+    state.tenants = (state.tenants || []).filter((tenant) => !cascade.tenantIds.includes(tenant.id));
+    state.units = (state.units || []).filter((unit) => !cascade.unitIds.includes(unit.id));
+    state.properties = (state.properties || []).filter((property) => !cascade.propertyIds.includes(property.id));
+    state.subscriptions = (state.subscriptions || []).filter((subscription) => !cascade.subscriptionIds.includes(subscription.id));
+    state.supportTickets = (state.supportTickets || []).filter((ticket) => !cascade.supportTicketIds.includes(ticket.id));
+    state.notifications = (state.notifications || []).filter((notification) => !cascade.notificationIds.includes(notification.id));
+    state.users = (state.users || []).filter((user) => !cascade.userIds.includes(user.id));
+    markRowsDeleted("payments", cascade.paymentIds);
+    markRowsDeleted("expenses", cascade.expenseIds);
+    markRowsDeleted("tenants", cascade.tenantIds);
+    markRowsDeleted("units", cascade.unitIds);
+    markRowsDeleted("properties", cascade.propertyIds);
+    markRowsDeleted("subscriptions", cascade.subscriptionIds);
+    markRowsDeleted("supportTickets", cascade.supportTicketIds);
+    markRowsDeleted("notifications", cascade.notificationIds);
+    markRowsDeleted("users", cascade.userIds);
+  }
+
+  function ownerAccountCascadeIds(ownerId) {
+    const staffUserIds = (state.users || [])
+      .filter((user) => user.company_owner_id === ownerId || user.platform_owner_id === ownerId)
+      .map((user) => user.id);
+    const userIds = [ownerId, ...staffUserIds];
+    const propertyIds = (state.properties || []).filter((property) => property.owner_id === ownerId).map((property) => property.id);
+    const unitIds = (state.units || []).filter((unit) => propertyIds.includes(unit.property_id)).map((unit) => unit.id);
+    const tenantIds = (state.tenants || []).filter((tenant) => unitIds.includes(tenant.unit_id)).map((tenant) => tenant.id);
+    return {
+      userIds,
+      propertyIds,
+      unitIds,
+      tenantIds,
+      paymentIds: (state.payments || []).filter((payment) => tenantIds.includes(payment.tenant_id)).map((payment) => payment.id),
+      expenseIds: (state.expenses || []).filter((expense) => propertyIds.includes(expense.property_id)).map((expense) => expense.id),
+      subscriptionIds: (state.subscriptions || []).filter((subscription) => subscription.owner_id === ownerId).map((subscription) => subscription.id),
+      supportTicketIds: (state.supportTickets || []).filter((ticket) => ticket.owner_id === ownerId).map((ticket) => ticket.id),
+      notificationIds: (state.notifications || []).filter((notification) => userIds.includes(notification.user_id)).map((notification) => notification.id),
+    };
   }
 
   async function startSubscriptionCollection(subscriptionId) {

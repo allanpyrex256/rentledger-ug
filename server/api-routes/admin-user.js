@@ -4,6 +4,7 @@ const {
   autoReference,
   createAuthUser,
   deleteAuthUser,
+  deleteRows,
   fail,
   insertRows,
   isoDate,
@@ -27,6 +28,7 @@ module.exports = async function handler(request, response) {
     if (body.action === "toggle-status") return await toggleStatus(response, body.userId);
     if (body.action === "cycle-package") return await cyclePackage(response, body.ownerId);
     if (body.action === "end-trial") return await endTrial(response, body.ownerId);
+    if (body.action === "delete-account") return await deleteAccount(response, body.ownerId);
     if (body.action === "password-reset") return await sendReset(response, body.userId);
 
     return send(response, 400, { error: "Unknown admin action." });
@@ -265,6 +267,43 @@ async function endTrial(response, ownerId) {
   return send(response, 200, { plan: paidPackage.plan, monthly_fee: paidPackage.fee, status: "Pending" });
 }
 
+async function deleteAccount(response, ownerId) {
+  if (!ownerId) return send(response, 400, { error: "Owner is required." });
+
+  const ownerRows = await supabaseFetch(`/rest/v1/app_users?id=eq.${encodeURIComponent(ownerId)}&select=id,role`);
+  const owner = ownerRows[0];
+  if (!owner || owner.role !== "landlord") return send(response, 404, { error: "Landlord not found." });
+
+  const staffRows = await supabaseFetch(
+    `/rest/v1/app_users?company_owner_id=eq.${encodeURIComponent(ownerId)}&role=eq.staff&select=id`
+  );
+  const staffIds = staffRows.map((row) => row.id).filter(Boolean);
+  const userIds = [ownerId, ...staffIds];
+
+  const propertyRows = await supabaseFetch(`/rest/v1/properties?owner_id=eq.${encodeURIComponent(ownerId)}&select=id`);
+  const propertyIds = propertyRows.map((row) => row.id).filter(Boolean);
+  const unitRows = propertyIds.length
+    ? await supabaseFetch(`/rest/v1/units?property_id=in.(${inList(propertyIds)})&select=id`)
+    : [];
+  const unitIds = unitRows.map((row) => row.id).filter(Boolean);
+  const tenantRows = unitIds.length ? await supabaseFetch(`/rest/v1/tenants?unit_id=in.(${inList(unitIds)})&select=id`) : [];
+  const tenantIds = tenantRows.map((row) => row.id).filter(Boolean);
+
+  if (tenantIds.length) await deleteRows("payments", `tenant_id=in.(${inList(tenantIds)})`);
+  if (propertyIds.length) await deleteRows("expenses", `property_id=in.(${inList(propertyIds)})`);
+  await deleteRows("support_tickets", `owner_id=eq.${encodeURIComponent(ownerId)}`);
+  if (userIds.length) await deleteRows("notifications", `user_id=in.(${inList(userIds)})`);
+  if (tenantIds.length) await deleteRows("tenants", `id=in.(${inList(tenantIds)})`);
+  if (unitIds.length) await deleteRows("units", `id=in.(${inList(unitIds)})`);
+  if (propertyIds.length) await deleteRows("properties", `id=in.(${inList(propertyIds)})`);
+  await deleteRows("subscriptions", `owner_id=eq.${encodeURIComponent(ownerId)}`);
+  if (staffIds.length) await deleteRows("app_users", `id=in.(${inList(staffIds)})`);
+  await deleteRows("app_users", `id=eq.${encodeURIComponent(ownerId)}`);
+
+  await Promise.all(userIds.map((id) => deleteAuthUser(id).catch(() => null)));
+  return send(response, 200, { ok: true, deleted_user_ids: userIds });
+}
+
 function paidPackageForEndedTrial(subscription) {
   return (
     PACKAGE_OPTIONS.find((option) => option.fee > 0 && option.plan === subscription?.plan) ||
@@ -275,6 +314,10 @@ function paidPackageForEndedTrial(subscription) {
 
 function formatCurrency(amount) {
   return `USh ${Number(amount || 0).toLocaleString("en-UG")}`;
+}
+
+function inList(values) {
+  return values.map((value) => encodeURIComponent(String(value))).join(",");
 }
 
 async function sendReset(response, userId) {
