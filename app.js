@@ -2198,12 +2198,10 @@
     const landlords = landlordUsers();
     const subscriptions = state.subscriptions || [];
     const tickets = state.supportTickets || [];
-    const activeAccounts = landlords.filter((user) => accountStatus(user) === "Active");
+    const activeAccounts = landlords.filter((user) => isPaidSubscription(subscriptionByOwner(user.id)));
     const newSignups = newLandlordSignups();
     const openTickets = tickets.filter((ticket) => ticket.status !== "Resolved");
-    const activeSubscriptions = subscriptions.filter(
-      (subscription) => effectiveSubscriptionStatus(subscription) === "Active" && !isSubscriptionExpired(subscription)
-    );
+    const activeSubscriptions = subscriptions.filter((subscription) => isPaidSubscription(subscription) && !isSubscriptionExpired(subscription));
     const monthlyRecurringRevenue = activeSubscriptions.reduce(
       (sum, subscription) => sum + Number(subscription.monthly_fee),
       0
@@ -2213,7 +2211,7 @@
     const expiringPlans = expiringSubscriptions().length;
 
     ui.adminMetricGrid.innerHTML = [
-      adminMetricCard("Total Landlords", landlords.length, `${activeAccounts.length} active accounts`, "teal"),
+      adminMetricCard("Total Landlords", landlords.length, `${activeAccounts.length} paid active accounts`, "teal"),
       adminMetricCard("Active Subscriptions", activeSubscriptions.length, `${pendingPayments} pending payments`, "blue"),
       adminMetricCard("Monthly Revenue", formatMoney(monthlyRecurringRevenue), "Subscription MRR", "green"),
       adminMetricCard("New Signups", newSignups.length, "This month", "amber"),
@@ -2231,7 +2229,7 @@
         .slice(0, 10)
         .map((subscription) => {
           const user = userById(subscription.owner_id);
-          const baseStatus = effectiveSubscriptionStatus(subscription);
+          const baseStatus = billingSubscriptionStatus(subscription);
           const status = isSubscriptionExpired(subscription)
             ? "Expired"
             : isSubscriptionExpiring(subscription) && baseStatus === "Active"
@@ -2503,7 +2501,7 @@
 
   function pendingSubscriptions() {
     return (state.subscriptions || []).filter((subscription) =>
-      ["Overdue", "Pending"].includes(effectiveSubscriptionStatus(subscription))
+      ["Overdue", "Pending"].includes(billingSubscriptionStatus(subscription))
     );
   }
 
@@ -2516,7 +2514,7 @@
   }
 
   function isSubscriptionExpired(subscription) {
-    const status = effectiveSubscriptionStatus(subscription);
+    const status = billingSubscriptionStatus(subscription);
     if (status === "Expired" || status === "Overdue" || status === "Cancelled") return true;
     if (!subscription.next_billing_date) return false;
     const today = new Date();
@@ -2530,7 +2528,7 @@
 
   function isSubscriptionExpiring(subscription) {
     if (!subscription.next_billing_date) return false;
-    const status = effectiveSubscriptionStatus(subscription);
+    const status = billingSubscriptionStatus(subscription);
     if (!["Active", "Cancelling"].includes(status)) return false;
     const today = new Date();
     const soon = new Date(today);
@@ -2550,6 +2548,32 @@
       if (nextBilling < today) return "Overdue";
     }
     return status;
+  }
+
+  function isPaidSubscription(subscription) {
+    if (!subscription || Number(subscription.monthly_fee || 0) <= 0) return false;
+    const status = effectiveSubscriptionStatus(subscription);
+    if (!["Active", "Cancelling"].includes(status)) return false;
+    const paymentStatus = String(subscription.provider_payment_status || "").trim().toLowerCase();
+    return ["successful", "manual", "paid", "completed"].includes(paymentStatus);
+  }
+
+  function billingSubscriptionStatus(subscription) {
+    const status = effectiveSubscriptionStatus(subscription);
+    if (["Active", "Cancelling"].includes(status) && Number(subscription?.monthly_fee || 0) > 0 && !isPaidSubscription(subscription)) {
+      return "Pending";
+    }
+    return status;
+  }
+
+  function platformAccountDisplayStatus(user, subscription = subscriptionByOwner(user?.id)) {
+    const accessStatus = accountStatus(user);
+    if (["Suspended", "Inactive"].includes(accessStatus)) return accessStatus;
+    if (isPaidSubscription(subscription)) return "Active";
+    if (isTrialAccount(user)) return "Trial";
+    const subscriptionStatus = billingSubscriptionStatus(subscription);
+    if (["Pending", "Overdue", "Expired", "Cancelled", "Paused", "Cancelling"].includes(subscriptionStatus)) return subscriptionStatus;
+    return accessStatus === "Active" ? "Pending" : accessStatus;
   }
 
   function isTrialAccount(user) {
@@ -2697,12 +2721,13 @@
     const packageTotals = PACKAGE_OPTIONS.map((option) => ({
       label: option.plan.slice(0, 5),
       total: subscriptions
-        .filter((subscription) => subscription.plan === option.plan)
+        .filter((subscription) => subscription.plan === option.plan && isPaidSubscription(subscription))
         .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0),
     }));
     const accountMix = [
-      { label: "Active", total: landlords.filter((user) => accountStatus(user) === "Active").length },
+      { label: "Paid", total: landlords.filter((user) => isPaidSubscription(subscriptionByOwner(user.id))).length },
       { label: "Trial", total: landlords.filter((user) => isTrialAccount(user)).length },
+      { label: "Pend", total: landlords.filter((user) => platformAccountDisplayStatus(user) === "Pending").length },
       { label: "Expired", total: expiredSubscriptions().length },
       { label: "Paused", total: landlords.filter((user) => accountStatus(user) === "Suspended").length },
     ];
@@ -2755,17 +2780,15 @@
     const landlords = landlordUsers();
     const subscriptions = state.subscriptions || [];
     const tickets = state.supportTickets || [];
-    const totalMrr = subscriptions
-      .filter((subscription) => !["Paused", "Trial", "Cancelled", "Overdue"].includes(effectiveSubscriptionStatus(subscription)))
-      .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
+    const totalMrr = subscriptions.filter(isPaidSubscription).reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
     const totalOpenTickets = tickets.filter((ticket) => ticket.status !== "Resolved").length;
-    const activeAccounts = landlords.filter((user) => accountStatus(user) === "Active").length;
+    const activeAccounts = landlords.filter((user) => isPaidSubscription(subscriptionByOwner(user.id))).length;
     const inactiveAccounts = landlords.filter((user) => accountStatus(user) === "Suspended" || accountStatus(user) === "Inactive").length;
     const trialAccounts = landlords.filter((user) => isTrialAccount(user)).length;
 
     ui.ownerLandlordCountLabel.textContent = `${landlords.length} landlords`;
     ui.ownerLandlordSummary.innerHTML = [
-      ownerSummaryItem("Active Accounts", activeAccounts),
+      ownerSummaryItem("Paid Active Accounts", activeAccounts),
       ownerSummaryItem("Inactive Accounts", inactiveAccounts),
       ownerSummaryItem("Trial Accounts", trialAccounts),
       ownerSummaryItem("Monthly SaaS Revenue", formatMoney(totalMrr)),
@@ -2782,7 +2805,7 @@
             user.name,
             user.phone,
             user.email,
-            accountStatus(user),
+            platformAccountDisplayStatus(user, subscription),
             platformOwnerText(user),
             subscription ? subscription.plan : "",
             subscription ? subscription.status : "",
@@ -2793,8 +2816,9 @@
           const portfolio = ownerPortfolio(user.id);
           const subscription = subscriptionByOwner(user.id);
           const openTicketCount = tickets.filter((ticket) => ticket.owner_id === user.id && ticket.status !== "Resolved").length;
-          const status = accountStatus(user);
-          const nextAction = status === "Suspended" || status === "Inactive" ? "Approve" : "Suspend";
+          const accessStatus = accountStatus(user);
+          const status = platformAccountDisplayStatus(user, subscription);
+          const nextAction = accessStatus === "Suspended" || accessStatus === "Inactive" ? "Approve" : "Suspend";
           const endTrialButton = canEndTrialAccount(user, subscription)
             ? `<button class="text-button" data-end-owner-trial="${escapeHtml(user.id)}" type="button">End Trial</button>`
             : "";
@@ -2807,7 +2831,7 @@
               </td>
               <td>
                 ${escapeHtml(subscription ? subscription.plan : "No plan")}
-                <small class="table-subtext">${subscription ? statusPill(effectiveSubscriptionStatus(subscription)) : ""}</small>
+                <small class="table-subtext">${subscription ? statusPill(billingSubscriptionStatus(subscription)) : ""}</small>
               </td>
               <td>${statusPill(status)}</td>
               <td>${portfolio.properties.length} properties / ${portfolio.units.length} rooms</td>
@@ -2832,14 +2856,12 @@
 
   function renderPlatformBilling() {
     const subscriptions = state.subscriptions || [];
-    const currentMrr = subscriptions
-      .filter((subscription) => !["Paused", "Cancelled"].includes(effectiveSubscriptionStatus(subscription)))
-      .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
+    const currentMrr = subscriptions.filter(isPaidSubscription).reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
     const paidThisMonth = subscriptions
-      .filter((subscription) => isCurrentMonth(subscription.last_payment_date))
+      .filter((subscription) => isPaidSubscription(subscription) && isCurrentMonth(subscription.last_payment_date))
       .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
     const expiring = expiringSubscriptions().length;
-    const trials = subscriptions.filter((subscription) => subscription.plan === "Trial" || effectiveSubscriptionStatus(subscription) === "Trial").length;
+    const trials = subscriptions.filter((subscription) => subscription.plan === "Trial" || billingSubscriptionStatus(subscription) === "Trial").length;
 
     ui.ownerBillingTotalLabel.textContent = formatMoney(currentMrr);
     ui.ownerBillingSummary.innerHTML = [
@@ -2848,7 +2870,7 @@
       ownerSummaryItem("Pending Payments", pendingSubscriptions().length),
       ownerSummaryItem("Expiring Plans", expiring),
       ownerSummaryItem("Trial Accounts", trials),
-      ownerSummaryItem("Active Plans", subscriptions.filter((subscription) => effectiveSubscriptionStatus(subscription) === "Active").length),
+      ownerSummaryItem("Paid Active Plans", subscriptions.filter(isPaidSubscription).length),
     ].join("");
 
     ui.ownerBillingTable.innerHTML =
@@ -2856,12 +2878,12 @@
         .slice()
         .filter((subscription) => {
           const user = userById(subscription.owner_id);
-          return matchesSearch([user ? user.name : "", subscription.plan, effectiveSubscriptionStatus(subscription), subscription.monthly_fee]);
+          return matchesSearch([user ? user.name : "", subscription.plan, billingSubscriptionStatus(subscription), subscription.monthly_fee]);
         })
         .sort((a, b) => new Date(a.next_billing_date) - new Date(b.next_billing_date))
         .map((subscription) => {
           const user = userById(subscription.owner_id);
-          const baseStatus = effectiveSubscriptionStatus(subscription);
+          const baseStatus = billingSubscriptionStatus(subscription);
           const status = isSubscriptionExpiring(subscription) && baseStatus === "Active" ? "Expiring" : baseStatus;
           const cancelLabel = subscription.cancel_at_period_end ? "Resume" : "Cancel";
           const providerNote = subscriptionProviderNote(subscription);
@@ -4167,7 +4189,7 @@
       ui.ownerPaymentMethod.value = "MTN MoMo";
     }
     if (ui.ownerPaymentStatus) {
-      ui.ownerPaymentStatus.value = effectiveSubscriptionStatus(subscription) === "Overdue" ? "Overdue" : subscription.status || "Active";
+      ui.ownerPaymentStatus.value = billingSubscriptionStatus(subscription) === "Overdue" ? "Overdue" : subscription.status || "Active";
     }
   }
 
@@ -4487,6 +4509,7 @@
     const today = isoDate(new Date());
     const currentIndex = Math.max(0, PACKAGE_OPTIONS.findIndex((option) => option.plan === subscription?.plan));
     const nextPackage = PACKAGE_OPTIONS[(currentIndex + 1) % PACKAGE_OPTIONS.length];
+    const nextStatus = nextPackage.status === "Trial" ? "Trial" : isPaidSubscription(subscription) ? "Active" : "Pending";
 
     if (subscription) {
       state.subscriptions = state.subscriptions.map((item) =>
@@ -4495,7 +4518,7 @@
               ...item,
               plan: nextPackage.plan,
               monthly_fee: nextPackage.fee,
-              status: nextPackage.status,
+              status: nextStatus,
               next_billing_date: item.next_billing_date || addMonths(today, 1),
             }
           : item
@@ -4506,7 +4529,7 @@
         owner_id: ownerId,
         plan: nextPackage.plan,
         monthly_fee: nextPackage.fee,
-        status: nextPackage.status,
+        status: nextStatus,
         last_payment_date: today,
         last_payment_method: "Manual",
         last_payment_note: "Package assigned by super admin",
@@ -4516,7 +4539,7 @@
 
     state.users = state.users.map((item) =>
       item.id === ownerId
-        ? { ...item, account_status: nextPackage.status === "Trial" ? "Trial" : "Active" }
+        ? { ...item, account_status: nextStatus === "Trial" ? "Trial" : nextStatus === "Active" ? "Active" : "Pending" }
         : item
     );
     saveState();

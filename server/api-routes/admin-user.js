@@ -167,13 +167,14 @@ async function cyclePackage(response, ownerId) {
   const subscription = rows[0];
   const currentIndex = Math.max(0, PACKAGE_OPTIONS.findIndex((option) => option.plan === subscription?.plan));
   const nextPackage = PACKAGE_OPTIONS[(currentIndex + 1) % PACKAGE_OPTIONS.length];
+  const nextStatus = nextPackage.status === "Trial" ? "Trial" : isPaidSubscription(subscription) ? "Active" : "Pending";
   const today = isoDate(new Date());
 
   if (subscription) {
     await patchRows("subscriptions", `id=eq.${encodeURIComponent(subscription.id)}`, {
       plan: nextPackage.plan,
       monthly_fee: nextPackage.fee,
-      status: nextPackage.status,
+      status: nextStatus,
       next_billing_date: subscription.next_billing_date || addMonths(today, 1),
     });
   } else {
@@ -183,7 +184,7 @@ async function cyclePackage(response, ownerId) {
         owner_id: ownerId,
         plan: nextPackage.plan,
         monthly_fee: nextPackage.fee,
-        status: nextPackage.status,
+        status: nextStatus,
         last_payment_date: today,
         last_payment_method: "Manual",
         last_payment_note: "Package assigned by super admin",
@@ -193,9 +194,17 @@ async function cyclePackage(response, ownerId) {
   }
 
   await patchRows("app_users", `id=eq.${encodeURIComponent(ownerId)}`, {
-    account_status: nextPackage.status === "Trial" ? "Trial" : "Active",
+    account_status: nextStatus === "Trial" ? "Trial" : nextStatus === "Active" ? "Active" : "Pending",
   });
   return send(response, 200, { plan: nextPackage.plan });
+}
+
+function isPaidSubscription(subscription) {
+  if (!subscription || Number(subscription.monthly_fee || 0) <= 0) return false;
+  const status = String(subscription.status || "").trim();
+  if (!["Active", "Cancelling"].includes(status)) return false;
+  const paymentStatus = String(subscription.provider_payment_status || "").trim().toLowerCase();
+  return ["successful", "manual", "paid", "completed"].includes(paymentStatus);
 }
 
 async function endTrial(response, ownerId) {
