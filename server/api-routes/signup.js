@@ -11,7 +11,7 @@ const {
   readBody,
   requireFields,
   send,
-} = require("../server/supabase-admin");
+} = require("../supabase-admin");
 
 const SIGNUP_PAYMENT_METHODS = ["MTN MoMo", "Airtel Money", "Visa / Mastercard"];
 
@@ -48,7 +48,7 @@ module.exports = async function handler(request, response) {
     }
 
     if (!billingAuthorizationAccepted(body.auto_collect_authorized || body.autoCollectAuthorized)) {
-      return send(response, 400, { error: "Automatic collection authorization is required to start the first free month." });
+      return send(response, 400, { error: "Terms and conditions must be accepted to start the first free month." });
     }
 
     const email = normalizeEmail(body.email);
@@ -95,7 +95,7 @@ module.exports = async function handler(request, response) {
           status: "Trial",
           last_payment_date: today,
           last_payment_method: paymentMethod,
-          last_payment_note: `First free month opened from public signup. Auto-collect authorized for ${paymentMethod} after the first month unless cancelled.`,
+          last_payment_note: `First free month opened from public signup. Terms and conditions accepted for ${paymentMethod} subscription billing after the first month unless cancelled.`,
           next_billing_date: nextBillingDate,
           billing_method: paymentMethod,
           billing_contact_masked: maskedBillingContact,

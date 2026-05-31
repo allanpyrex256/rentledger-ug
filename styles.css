@@ -1188,6 +1188,85 @@ button {
   align-self: end;
 }
 
+.payment-details-section {
+  display: grid;
+  gap: 24px;
+}
+
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.policy-card {
+  display: grid;
+  gap: 10px;
+  min-height: 220px;
+  border: 1px solid #cbd9d8;
+  border-radius: 8px;
+  background: #fffdf8;
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.policy-card h3,
+.policy-card p {
+  margin: 0;
+}
+
+.policy-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.support-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid #b8d8ca;
+  border-radius: 8px;
+  background: #eef8f7;
+  padding: 18px;
+}
+
+.support-strip div {
+  display: grid;
+  gap: 4px;
+}
+
+.support-strip span {
+  color: var(--muted);
+}
+
+.landing-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 28px clamp(18px, 5vw, 72px);
+  background: #07111f;
+  color: #f8fafc;
+}
+
+.landing-footer div,
+.landing-footer nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.landing-footer span,
+.landing-footer a {
+  color: #d7e1ec;
+}
+
+.landing-footer a {
+  font-weight: 750;
+  text-decoration: none;
+}
+
 .price-card .link-button {
   align-self: end;
   justify-self: start;
@@ -3021,6 +3100,10 @@ div.empty-row::before {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .policy-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .landlord-profile-hero {
     grid-template-columns: 1fr;
   }
@@ -3107,6 +3190,7 @@ div.empty-row::before {
   .trust-bar,
   .photo-story,
   .feature-grid,
+  .policy-grid,
   .listing-filters,
   .public-listing-grid,
   .landlord-profile-main,
@@ -3148,6 +3232,14 @@ div.empty-row::before {
   .pricing-section {
     margin-inline: 0;
     padding-inline: 16px;
+  }
+
+  .support-strip,
+  .landing-footer,
+  .landing-footer div,
+  .landing-footer nav {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .steps-section {

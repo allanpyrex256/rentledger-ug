@@ -60,6 +60,8 @@ WhatsApp sending uses `/api/whatsapp`. If the WhatsApp environment variables are
 
 Subscription billing uses `/api/subscription-payment` to start a landlord subscription collection, `/api/subscription-callback` for checkout redirects, and `/api/subscription-webhook` for final payment status updates. For Pesapal, register `https://your-domain.com/api/subscription-webhook` as an API 3.0 IPN URL with notification type `GET`, then put the returned IPN ID in `PESAPAL_IPN_ID`. Pesapal uses `PESAPAL_CONSUMER_KEY` and `PESAPAL_CONSUMER_SECRET` to generate a short-lived token before creating checkout orders. If `PAYMENT_PROVIDER=flutterwave`, the same billing flow uses the Flutterwave helper and signed webhooks instead.
 
+For Pesapal merchant review, the public landing page includes pricing, payment methods, cancellation, refund/dispute handling, privacy language, and support contact details in the `#paymentDetails` section. Keep the production domain live, make sure checkout uses the same domain registered for the IPN URL, and confirm `PESAPAL_ENV=live` before collecting real payments.
+
 ## Demo Mode
 
 When Supabase is not configured, the app runs with local browser demo data for development. When Supabase is configured, public demo buttons are hidden, signup/sign-in uses Supabase Auth, and data is protected by RLS.

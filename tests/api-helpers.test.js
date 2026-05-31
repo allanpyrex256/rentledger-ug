@@ -4,8 +4,8 @@ const assert = require("node:assert/strict");
 const { planLimitForPlan } = require("../server/supabase-admin");
 const flutterwave = require("../server/flutterwave");
 const pesapal = require("../server/pesapal");
-const payments = require("../api/payments");
-const signup = require("../api/signup");
+const payments = require("../server/api-routes/payments");
+const signup = require("../server/api-routes/signup");
 
 test("plan limits match public package promises", () => {
   assert.deepEqual(planLimitForPlan("Starter"), { properties: 1, units: 20, caretakers: 1 });
@@ -69,4 +69,15 @@ test("pesapal environment defaults to sandbox", () => {
   assert.equal(pesapal.pesapalConfig().env, "sandbox");
   assert.equal(pesapal.normalizePesapalStatus("FAILED"), "Failed");
   assert.equal(pesapal.normalizePesapalPaymentMethod("Airtel"), "Airtel Money");
+});
+
+test("pesapal errors expose useful review-safe details", () => {
+  const payload = {
+    error: { message: "Merchant account is not enabled" },
+    consumer_secret: "secret-value",
+    request_id: "abc-123",
+  };
+  assert.equal(pesapal._internal.extractPesapalErrorMessage(payload), "Merchant account is not enabled");
+  assert.match(pesapal._internal.extractPesapalErrorDetails(payload), /abc-123/);
+  assert.doesNotMatch(pesapal._internal.extractPesapalErrorDetails(payload), /secret-value/);
 });

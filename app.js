@@ -82,6 +82,7 @@
     accountPhone: document.getElementById("accountPhone"),
     accountEmail: document.getElementById("accountEmail"),
     accountPassword: document.getElementById("accountPassword"),
+    accountConfirmPassword: document.getElementById("accountConfirmPassword"),
     accountPlan: document.getElementById("accountPlan"),
     accountPaymentMethod: document.getElementById("accountPaymentMethod"),
     accountBillingContact: document.getElementById("accountBillingContact"),
@@ -500,6 +501,7 @@
       ["openActivity", openActivity],
       ["toggleAccountStatus", toggleLandlordAccountStatus],
       ["cyclePlan", cycleSubscriptionPackage],
+      ["endOwnerTrial", endOwnerTrial],
       ["subscriptionCollect", startSubscriptionCollection],
       ["subscriptionCancel", toggleSubscriptionCancellation],
       ["adminResetUser", createAdminPasswordReset],
@@ -762,7 +764,11 @@
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(payload.error || "Request failed");
+      const details = [payload.error, payload.details].filter(Boolean).join(" ");
+      const error = new Error(details || "Request failed");
+      error.status = response.status;
+      error.payload = payload;
+      throw error;
     }
     return payload;
   }
@@ -938,6 +944,8 @@
     }
     const phone = ui.accountPhone.value.trim();
     const email = ui.accountEmail.value.trim();
+    const password = ui.accountPassword.value;
+    const confirmPassword = ui.accountConfirmPassword.value;
     const selectedPlan = ui.accountPlan.value;
     const selectedPlanOption = signupPlanOption(selectedPlan);
     const paymentMethod = ui.accountPaymentMethod.value;
@@ -960,12 +968,16 @@
       showToast("That email address already has an account.");
       return;
     }
+    if (password !== confirmPassword) {
+      showToast("Passwords do not match.");
+      return;
+    }
     if (!selectedPlanOption) {
       showToast("Choose Starter or Professional before starting the first free month.");
       return;
     }
     if (!paymentMethod) {
-      showToast("Choose a payment method for automatic billing after the first free month.");
+      showToast("Choose a payment method before accepting the terms and conditions.");
       return;
     }
     if (!billingContact) {
@@ -977,7 +989,7 @@
       return;
     }
     if (!ui.accountBillingConsent.checked) {
-      showToast("Confirm automatic collection after the first free month.");
+      showToast("Accept the terms and conditions to start the first free month.");
       return;
     }
 
@@ -987,13 +999,13 @@
         name: ui.accountName.value.trim(),
         phone,
         email,
-        password: ui.accountPassword.value,
+        password,
         plan: selectedPlan,
         payment_method: paymentMethod,
         billing_contact: billingContact,
         auto_collect_authorized: true,
       });
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: ui.accountPassword.value });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
       await openUserSession(data.user.id);
       ui.createAccountForm.reset();
@@ -2545,6 +2557,18 @@
     return accountStatus(user) === "Trial" || subscription?.plan === "Trial" || effectiveSubscriptionStatus(subscription) === "Trial";
   }
 
+  function canEndTrialAccount(user, subscription = subscriptionByOwner(user?.id)) {
+    return Boolean(user?.role === "landlord" && isTrialAccount(user) && effectiveSubscriptionStatus(subscription) !== "Pending");
+  }
+
+  function paidPlanForEndedTrial(subscription) {
+    return (
+      PACKAGE_OPTIONS.find((option) => option.fee > 0 && option.plan === subscription?.plan) ||
+      PACKAGE_OPTIONS.find((option) => option.plan === "Starter") ||
+      PACKAGE_OPTIONS.find((option) => option.fee > 0)
+    );
+  }
+
   function systemHealthLabel() {
     if (!supabaseReady) return "Local";
     const storage = estimateStorageUsage();
@@ -2771,6 +2795,9 @@
           const openTicketCount = tickets.filter((ticket) => ticket.owner_id === user.id && ticket.status !== "Resolved").length;
           const status = accountStatus(user);
           const nextAction = status === "Suspended" || status === "Inactive" ? "Approve" : "Suspend";
+          const endTrialButton = canEndTrialAccount(user, subscription)
+            ? `<button class="text-button" data-end-owner-trial="${escapeHtml(user.id)}" type="button">End Trial</button>`
+            : "";
           return `
             <tr>
               <td>
@@ -2792,6 +2819,7 @@
                 <div class="button-row">
                   <button class="text-button" data-toggle-account-status="${user.id}" type="button">${nextAction}</button>
                   <button class="text-button" data-cycle-plan="${user.id}" type="button">Package</button>
+                  ${endTrialButton}
                   <button class="text-button" data-admin-reset-user="${user.id}" type="button">Send Reset OTP</button>
                 </div>
               </td>
@@ -2837,6 +2865,10 @@
           const status = isSubscriptionExpiring(subscription) && baseStatus === "Active" ? "Expiring" : baseStatus;
           const cancelLabel = subscription.cancel_at_period_end ? "Resume" : "Cancel";
           const providerNote = subscriptionProviderNote(subscription);
+          const endTrialButton =
+            user && canEndTrialAccount(user, subscription)
+              ? `<button class="text-button" data-end-owner-trial="${escapeHtml(user.id)}" type="button">End Trial</button>`
+              : "";
           return `
             <tr>
               <td>${escapeHtml(user ? user.name : "Unknown landlord")}</td>
@@ -2850,6 +2882,7 @@
               </td>
               <td>
                 <div class="button-row">
+                  ${endTrialButton}
                   <button class="text-button" data-subscription-collect="${escapeHtml(subscription.id)}" type="button">Collect</button>
                   <button class="text-button" data-subscription-cancel="${escapeHtml(subscription.id)}" type="button">${cancelLabel}</button>
                 </div>
@@ -4158,18 +4191,20 @@
     const nextBillingDate = addMonths(isoDate(new Date()), 1);
 
     if (!planOption) {
-      ui.accountTrialSummary.textContent = "Select Starter or Professional and a payment method to start the first month free.";
+      ui.accountTrialSummary.textContent =
+        "Terms and Conditions: select Starter or Professional, choose a payment method, and confirm your details before starting the first month free.";
       return;
     }
     if (!paymentMethod) {
-      ui.accountTrialSummary.textContent = `${planOption.plan} selected. Choose how billing will be collected after the first free month.`;
+      ui.accountTrialSummary.textContent =
+        `Terms and Conditions: ${planOption.plan} selected. Choose a payment method to confirm how subscription billing works after the free month.`;
       return;
     }
 
     const billingContact = ui.accountBillingContact?.value.trim();
     const contactLabel = billingContact ? ` from ${maskBillingContact(billingContact)}` : "";
     ui.accountTrialSummary.textContent =
-      `${planOption.plan} first month is free. Secure checkout will collect ${formatMoney(planOption.fee)}/month by ${paymentMethod}${contactLabel} from ${formatDate(nextBillingDate)} unless cancelled.`;
+      `Terms and Conditions: ${planOption.plan} starts with a free first month. After ${formatDate(nextBillingDate)}, the subscription is ${formatMoney(planOption.fee)}/month by ${paymentMethod}${contactLabel} unless you cancel before renewal.`;
   }
 
   function maskBillingContact(value) {
@@ -4487,6 +4522,94 @@
     saveState();
     renderAll();
     showToast(`Package changed to ${nextPackage.plan}.`);
+  }
+
+  async function endOwnerTrial(ownerId) {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can end trials.");
+      return;
+    }
+
+    const owner = userById(ownerId);
+    if (!owner || owner.role !== "landlord") {
+      showToast("Landlord account was not found.");
+      return;
+    }
+
+    const subscription = subscriptionByOwner(ownerId);
+    const paidPlan = paidPlanForEndedTrial(subscription);
+    if (!paidPlan) {
+      showToast("No paid package is available.");
+      return;
+    }
+
+    if (supabaseReady) {
+      try {
+        setAppLoading("Ending trial");
+        const result = await apiRequest("/api/admin-user", { action: "end-trial", ownerId });
+        await refreshSupabaseState();
+        showToast(`${owner.name}'s trial ended. ${result.plan || paidPlan.plan} subscription request sent.`);
+      } catch (error) {
+        console.error("End trial failed", error);
+        showToast(error.message || "Could not end trial.");
+      } finally {
+        clearAppLoading();
+      }
+      return;
+    }
+
+    const today = isoDate(new Date());
+    const promptMessage = `Your free trial has ended. Subscribe to ${paidPlan.plan} at ${formatMoney(paidPlan.fee)}/month to keep using RentLedger UG.`;
+
+    if (subscription) {
+      state.subscriptions = state.subscriptions.map((item) =>
+        item.id === subscription.id
+          ? {
+              ...item,
+              plan: paidPlan.plan,
+              monthly_fee: paidPlan.fee,
+              status: "Pending",
+              next_billing_date: today,
+              grace_period_end: today,
+              cancel_at_period_end: false,
+              cancellation_requested_at: null,
+              payment_provider: item.payment_provider || "pesapal",
+              provider_payment_status: "Subscription required",
+              provider_next_action: "Trial ended. Subscribe to continue using RentLedger UG.",
+              last_payment_method: item.last_payment_method || item.billing_method || "Trial",
+              last_payment_note: "Trial ended by super admin. Subscription required.",
+            }
+          : item
+      );
+    } else {
+      state.subscriptions = state.subscriptions || [];
+      state.subscriptions.push({
+        id: makeId("subscription"),
+        owner_id: ownerId,
+        plan: paidPlan.plan,
+        monthly_fee: paidPlan.fee,
+        status: "Pending",
+        last_payment_date: today,
+        last_payment_method: "Trial",
+        last_payment_note: "Trial ended by super admin. Subscription required.",
+        next_billing_date: today,
+        grace_period_end: today,
+        payment_provider: "pesapal",
+        provider_payment_status: "Subscription required",
+        provider_next_action: "Trial ended. Subscribe to continue using RentLedger UG.",
+      });
+    }
+
+    state.users = state.users.map((item) => (item.id === ownerId ? { ...item, account_status: "Pending" } : item));
+    addNotification({
+      user_id: ownerId,
+      type: "billing",
+      title: "Trial ended - subscription required",
+      message: promptMessage,
+    });
+    saveState();
+    renderAll();
+    showToast(`${owner.name}'s trial ended. Subscription request sent.`);
   }
 
   async function startSubscriptionCollection(subscriptionId) {

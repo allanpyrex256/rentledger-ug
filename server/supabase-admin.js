@@ -47,7 +47,11 @@ function send(response, status, payload) {
 }
 
 function fail(response, error) {
-  send(response, error.status || 500, { error: error.message || "Server error" });
+  const payload = { error: error.message || "Server error" };
+  if (error.provider) payload.provider = error.provider;
+  if (error.code) payload.code = error.code;
+  if (error.details) payload.details = error.details;
+  send(response, error.status || 500, payload);
 }
 
 function requireFields(body, fields) {

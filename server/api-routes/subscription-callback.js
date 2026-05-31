@@ -1,7 +1,7 @@
-const { fail, send } = require("../server/supabase-admin");
-const { extractPaymentEvent, publicBaseUrl } = require("../server/flutterwave");
-const { extractPesapalPaymentEvent, isPesapalEvent } = require("../server/pesapal");
-const { settleSubscriptionPayment } = require("../server/subscription-billing");
+const { fail, send } = require("../supabase-admin");
+const { extractPaymentEvent, publicBaseUrl } = require("../flutterwave");
+const { extractPesapalPaymentEvent, isPesapalEvent } = require("../pesapal");
+const { settleSubscriptionPayment } = require("../subscription-billing");
 
 module.exports = async function handler(request, response) {
   if (request.method !== "GET") return send(response, 405, { error: "Method not allowed" });

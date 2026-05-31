@@ -4,7 +4,7 @@ const {
   requireProfile,
   send,
   supabaseFetch,
-} = require("../server/supabase-admin");
+} = require("../supabase-admin");
 
 module.exports = async function handler(request, response) {
   setCors(response);

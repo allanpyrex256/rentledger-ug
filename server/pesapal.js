@@ -78,8 +78,10 @@ async function createPesapalSubscriptionPayment({
   });
 
   if (payload?.error?.message) {
-    const error = new Error(payload.error.message);
+    const error = new Error(extractPesapalErrorMessage(payload) || "Pesapal rejected the checkout request.");
     error.status = 502;
+    error.provider = "pesapal";
+    error.details = extractPesapalErrorDetails(payload);
     throw error;
   }
 
@@ -228,14 +230,56 @@ async function getPesapalToken(config = pesapalConfig()) {
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, options);
   const text = await response.text();
-  const payload = text ? JSON.parse(text) : {};
+  const payload = parseJsonResponse(text);
   if (!response.ok) {
-    const error = new Error(payload?.error?.message || payload?.message || "Pesapal request failed.");
+    const error = new Error(extractPesapalErrorMessage(payload) || "Pesapal request failed.");
     error.status = response.status >= 500 ? 502 : response.status;
+    error.provider = "pesapal";
+    error.code = response.status;
+    error.details = extractPesapalErrorDetails(payload, text);
     error.payload = payload;
     throw error;
   }
   return payload;
+}
+
+function parseJsonResponse(text) {
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return { raw_response: text };
+  }
+}
+
+function extractPesapalErrorMessage(payload = {}) {
+  const values = [
+    payload?.error?.message,
+    payload?.error_description,
+    payload?.message,
+    payload?.error,
+    payload?.data?.message,
+    Array.isArray(payload?.errors) ? payload.errors.map((item) => item.message || item.detail || item).join("; ") : "",
+  ];
+  return values.map((value) => String(value || "").trim()).find(Boolean) || "";
+}
+
+function extractPesapalErrorDetails(payload = {}, rawText = "") {
+  const sanitized = redactSensitivePayload(payload);
+  const details = sanitized && Object.keys(sanitized).length ? JSON.stringify(sanitized) : String(rawText || "").trim();
+  return details.length > 700 ? `${details.slice(0, 697)}...` : details;
+}
+
+function redactSensitivePayload(value) {
+  if (Array.isArray(value)) return value.map(redactSensitivePayload);
+  if (!value || typeof value !== "object") return value;
+  return Object.entries(value).reduce((result, [key, child]) => {
+    const normalizedKey = key.toLowerCase();
+    result[key] = /secret|token|authorization|consumer_key|consumer_secret/.test(normalizedKey)
+      ? "[redacted]"
+      : redactSensitivePayload(child);
+    return result;
+  }, {});
 }
 
 function normalizePhone(value) {
@@ -271,6 +315,8 @@ module.exports = {
   pesapalConfig,
   verifyPesapalPayment,
   _internal: {
+    extractPesapalErrorDetails,
+    extractPesapalErrorMessage,
     normalizePhone,
     splitName,
   },

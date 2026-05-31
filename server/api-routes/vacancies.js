@@ -1,4 +1,4 @@
-const { fail, send, supabaseFetch } = require("../server/supabase-admin");
+const { fail, send, supabaseFetch } = require("../supabase-admin");
 
 module.exports = async function handler(request, response) {
   setCors(response);

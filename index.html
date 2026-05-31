@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>RentLedger UG</title>
     <link rel="icon" type="image/png" href="assets/rentledger-logo-icon.png" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260531-pesapal-details" />
   </head>
   <body class="app-booting">
     <div id="bootScreen" class="boot-screen" role="status" aria-live="polite">
@@ -30,6 +30,7 @@
           <a href="vacancies.html">Vacant Units</a>
           <a href="#howItWorks">How It Works</a>
           <a href="#pricing">Pricing</a>
+          <a href="#paymentDetails">Payment Details</a>
           <button class="ghost-button" data-open-auth="signin" type="button">Sign In</button>
         </nav>
       </header>
@@ -305,6 +306,51 @@
             </article>
           </div>
         </section>
+
+        <section id="paymentDetails" class="landing-section payment-details-section">
+          <div class="section-heading">
+            <span class="hero-kicker">Payment details</span>
+            <h2>Subscription, support, and policy information.</h2>
+            <p>RentLedger UG sells monthly landlord software subscriptions in Uganda Shillings for property, tenant, rent, receipt, expense, staff, and vacancy management.</p>
+          </div>
+          <div class="policy-grid">
+            <article class="policy-card">
+              <h3>Accepted Payments</h3>
+              <p>Starter is USh 50,000/month and Professional is USh 120,000/month after the first free month. Payments can be collected by MTN MoMo, Airtel Money, or Visa / Mastercard through Pesapal checkout.</p>
+            </article>
+            <article class="policy-card">
+              <h3>Cancellation</h3>
+              <p>Landlords can request cancellation before the next billing date from in-app support or by email. Cancelled subscriptions remain usable until the end of the paid billing period.</p>
+            </article>
+            <article class="policy-card">
+              <h3>Refunds & Disputes</h3>
+              <p>Duplicate charges, failed collections, and incorrect subscription charges are reviewed when reported with the payment reference. Approved refunds are returned to the original payment method.</p>
+            </article>
+            <article class="policy-card">
+              <h3>Data Privacy</h3>
+              <p>Landlord, tenant, property, and payment records are used to operate the account, provide support, and secure access. RentLedger UG does not sell landlord or tenant records.</p>
+            </article>
+          </div>
+          <div class="support-strip">
+            <div>
+              <strong>Business contact</strong>
+              <span>RentLedger UG, Kampala, Uganda</span>
+            </div>
+            <a class="primary-button link-button" href="mailto:allanpyrex5@gmail.com?subject=RentLedger%20UG%20Support">Email Support</a>
+          </div>
+        </section>
+
+        <footer class="landing-footer">
+          <div>
+            <strong>RentLedger UG</strong>
+            <span>Landlord management software for Uganda.</span>
+          </div>
+          <nav aria-label="Policy links">
+            <a href="#pricing">Pricing</a>
+            <a href="#paymentDetails">Payment, Refunds & Privacy</a>
+            <a href="mailto:allanpyrex5@gmail.com">Support</a>
+          </nav>
+        </footer>
       </main>
     </section>
 
@@ -390,6 +436,10 @@
             <input id="accountPassword" type="password" autocomplete="new-password" minlength="8" required />
           </label>
           <label>
+            Confirm Password
+            <input id="accountConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <label>
             First-Month Trial Plan
             <select id="accountPlan" required>
               <option value="">Select a paid plan</option>
@@ -413,9 +463,9 @@
           </label>
           <label class="checkbox-consent">
             <input id="accountBillingConsent" type="checkbox" required />
-            <span>I authorize automatic monthly collection after my first free month unless I cancel.</span>
+            <span>I agree to the RentLedger UG Terms and Conditions.</span>
           </label>
-          <div id="accountTrialSummary" class="billing-summary-note">Select Starter or Professional and a payment method to start the first month free.</div>
+          <div id="accountTrialSummary" class="billing-summary-note">Terms and Conditions: select Starter or Professional, choose a payment method, and confirm your details before starting the first month free.</div>
           <button class="primary-button" type="submit">Start First Month Free</button>
         </form>
 
@@ -1463,6 +1513,6 @@
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script src="supabase-config.js?v=20260529-startup-gate"></script>
-    <script src="app.js?v=20260529-startup-gate"></script>
+    <script src="app.js?v=20260531-terms-copy"></script>
   </body>
 </html>

@@ -5,7 +5,7 @@ const {
   readBody,
   send,
   sendPasswordRecovery,
-} = require("../server/supabase-admin");
+} = require("../supabase-admin");
 
 module.exports = async function handler(request, response) {
   if (request.method !== "POST") return send(response, 405, { error: "Method not allowed" });

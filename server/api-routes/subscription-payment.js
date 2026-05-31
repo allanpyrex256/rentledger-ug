@@ -1,5 +1,5 @@
-const { fail, readBody, requireProfile, send } = require("../server/supabase-admin");
-const { startSubscriptionCollection } = require("../server/subscription-billing");
+const { fail, readBody, requireProfile, send } = require("../supabase-admin");
+const { startSubscriptionCollection } = require("../subscription-billing");
 
 module.exports = async function handler(request, response) {
   setCors(response);

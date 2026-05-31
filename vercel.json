@@ -2,6 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".",
   "rewrites": [
+    { "source": "/api/:route", "destination": "/api/[...route]?route=:route" },
     { "source": "/vacancies", "destination": "/vacancies.html" },
     { "source": "/available-units", "destination": "/vacancies.html" },
     { "source": "/landlords/:id", "destination": "/landlord.html?id=:id" },

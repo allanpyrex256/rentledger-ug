@@ -6,7 +6,7 @@ const {
   send,
   supabaseFetch,
   upsertRows,
-} = require("../server/supabase-admin");
+} = require("../supabase-admin");
 
 const STATE_TABLES = [
   { stateKey: "subscriptions", table: "subscriptions" },

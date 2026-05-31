@@ -6,7 +6,7 @@ const {
   send,
   supabaseFetch,
   upsertRows,
-} = require("../server/supabase-admin");
+} = require("../supabase-admin");
 
 const DEFAULT_PLATFORM_OWNER_EMAIL = "allanpyrex5@gmail.com";
 

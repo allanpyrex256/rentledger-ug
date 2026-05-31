@@ -1,7 +1,7 @@
-const { fail, send } = require("../server/supabase-admin");
-const { extractPaymentEvent, readRawBody, verifyFlutterwaveWebhook } = require("../server/flutterwave");
-const { extractPesapalPaymentEvent, isPesapalEvent } = require("../server/pesapal");
-const { settleSubscriptionPayment } = require("../server/subscription-billing");
+const { fail, send } = require("../supabase-admin");
+const { extractPaymentEvent, readRawBody, verifyFlutterwaveWebhook } = require("../flutterwave");
+const { extractPesapalPaymentEvent, isPesapalEvent } = require("../pesapal");
+const { settleSubscriptionPayment } = require("../subscription-billing");
 
 async function handler(request, response) {
   if (!["GET", "POST"].includes(request.method)) return send(response, 405, { error: "Method not allowed" });
@@ -11,6 +11,14 @@ async function handler(request, response) {
     const body = rawBody ? JSON.parse(rawBody) : {};
     const query = request.query || {};
     const combined = { ...query, ...body };
+
+    if (request.method === "GET" && Object.keys(combined).length === 0) {
+      return send(response, 200, {
+        ok: true,
+        provider: "pesapal",
+        message: "Subscription webhook is ready.",
+      });
+    }
 
     if (isPesapalEvent(combined)) {
       const event = extractPesapalPaymentEvent(combined);

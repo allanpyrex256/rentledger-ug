@@ -14,7 +14,7 @@ const {
   send,
   sendPasswordRecovery,
   supabaseFetch,
-} = require("../server/supabase-admin");
+} = require("../supabase-admin");
 
 module.exports = async function handler(request, response) {
   if (request.method !== "POST") return send(response, 405, { error: "Method not allowed" });
@@ -26,6 +26,7 @@ module.exports = async function handler(request, response) {
     if (body.action === "create-demo-landlord") return await createDemoLandlord(response, profile);
     if (body.action === "toggle-status") return await toggleStatus(response, body.userId);
     if (body.action === "cycle-package") return await cyclePackage(response, body.ownerId);
+    if (body.action === "end-trial") return await endTrial(response, body.ownerId);
     if (body.action === "password-reset") return await sendReset(response, body.userId);
 
     return send(response, 400, { error: "Unknown admin action." });
@@ -195,6 +196,76 @@ async function cyclePackage(response, ownerId) {
     account_status: nextPackage.status === "Trial" ? "Trial" : "Active",
   });
   return send(response, 200, { plan: nextPackage.plan });
+}
+
+async function endTrial(response, ownerId) {
+  if (!ownerId) return send(response, 400, { error: "Owner is required." });
+
+  const ownerRows = await supabaseFetch(`/rest/v1/app_users?id=eq.${encodeURIComponent(ownerId)}&select=*`);
+  const owner = ownerRows[0];
+  if (!owner || owner.role !== "landlord") return send(response, 404, { error: "Landlord not found." });
+
+  const rows = await supabaseFetch(`/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(ownerId)}&select=*`);
+  const subscription = rows[0];
+  const paidPackage = paidPackageForEndedTrial(subscription);
+  const today = isoDate(new Date());
+  const promptMessage = `Your free trial has ended. Subscribe to ${paidPackage.plan} at ${formatCurrency(
+    paidPackage.fee
+  )}/month to keep using RentLedger UG.`;
+  const subscriptionPatch = {
+    plan: paidPackage.plan,
+    monthly_fee: paidPackage.fee,
+    status: "Pending",
+    next_billing_date: today,
+    grace_period_end: today,
+    cancel_at_period_end: false,
+    cancellation_requested_at: null,
+    payment_provider: subscription?.payment_provider || process.env.PAYMENT_PROVIDER || "pesapal",
+    provider_payment_status: "Subscription required",
+    provider_next_action: "Trial ended. Subscribe to continue using RentLedger UG.",
+    last_payment_method: subscription?.last_payment_method || subscription?.billing_method || "Trial",
+    last_payment_note: "Trial ended by super admin. Subscription required.",
+  };
+
+  if (subscription) {
+    await patchRows("subscriptions", `id=eq.${encodeURIComponent(subscription.id)}`, subscriptionPatch);
+  } else {
+    await insertRows("subscriptions", [
+      {
+        id: makeId("subscription"),
+        owner_id: ownerId,
+        last_payment_date: today,
+        ...subscriptionPatch,
+      },
+    ]);
+  }
+
+  await patchRows("app_users", `id=eq.${encodeURIComponent(ownerId)}`, { account_status: "Pending" });
+  await insertRows("notifications", [
+    {
+      id: makeId("notification"),
+      user_id: ownerId,
+      type: "billing",
+      title: "Trial ended - subscription required",
+      message: promptMessage,
+      read: false,
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
+  return send(response, 200, { plan: paidPackage.plan, monthly_fee: paidPackage.fee, status: "Pending" });
+}
+
+function paidPackageForEndedTrial(subscription) {
+  return (
+    PACKAGE_OPTIONS.find((option) => option.fee > 0 && option.plan === subscription?.plan) ||
+    PACKAGE_OPTIONS.find((option) => option.plan === "Starter") ||
+    PACKAGE_OPTIONS.find((option) => option.fee > 0)
+  );
+}
+
+function formatCurrency(amount) {
+  return `USh ${Number(amount || 0).toLocaleString("en-UG")}`;
 }
 
 async function sendReset(response, userId) {
