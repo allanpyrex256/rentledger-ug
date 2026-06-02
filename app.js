@@ -1325,7 +1325,7 @@
   function renderPublicListings() {
     if (!ui.publicListingGrid) return;
     if (!currentUser() && !supabaseReady) {
-      ui.publicListingGrid.innerHTML = emptyBlock("Vacancy listings will appear here once the Supabase database is connected.");
+      ui.publicListingGrid.innerHTML = emptyBlock("Rental listings will appear here once the Supabase database is connected.");
       return;
     }
     const locationFilter = String(ui.listingLocationFilter?.value || "").trim().toLowerCase();
@@ -1355,9 +1355,10 @@
       ui.featuredListingGrid.innerHTML = featuredListings.map((item) => publicListingCard(item, { featured: true })).join("");
     }
 
+    const regularListings = listings.filter((item) => !featuredIds.has(item.unit.id));
     ui.publicListingGrid.innerHTML =
-      listings.map((item) => publicListingCard(item, { featured: featuredIds.has(item.unit.id) })).join("") ||
-      emptyBlock("No public vacancies match these filters.");
+      regularListings.map((item) => publicListingCard(item)).join("") ||
+      (featuredListings.length ? "" : emptyBlock("No rentals match these filters."));
   }
 
   function publicListingItems() {
@@ -1383,11 +1384,20 @@
   function publicListingSort(left, right) {
     const verifiedDelta = Number(ownerHasVerifiedBadge(right.owner)) - Number(ownerHasVerifiedBadge(left.owner));
     if (verifiedDelta) return verifiedDelta;
+    const freshDelta =
+      Number(isToday(right.unit.created_at || right.unit.updated_at)) -
+      Number(isToday(left.unit.created_at || left.unit.updated_at));
+    if (freshDelta) return freshDelta;
     return Number(left.unit.rent_amount) - Number(right.unit.rent_amount);
   }
 
   function featuredScore({ unit, owner }) {
-    return (ownerHasVerifiedBadge(owner) ? 10 : 0) + (unit.listing_photo ? 4 : 0) + (unit.listing_furnished ? 1 : 0);
+    return (
+      (ownerHasVerifiedBadge(owner) ? 10 : 0) +
+      (isToday(unit.created_at || unit.updated_at) ? 3 : 0) +
+      (unit.listing_photo ? 4 : 0) +
+      (unit.listing_furnished ? 1 : 0)
+    );
   }
 
   function publicListingCard({ unit, property, owner }, options = {}) {
@@ -1396,13 +1406,22 @@
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
     const profileUrl = landlordProfileUrl(owner.id);
     const stats = landlordStats(owner);
+    const postedBadge = listingPostedBadge(unit);
     return `
       <article class="public-listing-card${options.featured ? " featured" : ""}">
-        ${options.featured ? '<span class="listing-featured-ribbon">Featured</span>' : ""}
-        <img src="${escapeHtml(unit.listing_photo || listingPhotoForProperty(property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
+        <div class="listing-media">
+          <img src="${escapeHtml(unit.listing_photo || listingPhotoForProperty(property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
+          <div class="listing-badge-stack">
+            ${options.featured ? '<span class="listing-featured-ribbon">Featured</span>' : ""}
+            ${postedBadge}
+          </div>
+        </div>
         <div class="public-listing-body">
           <div>
-            <span class="listing-status">Available now</span>
+            <div class="listing-card-meta">
+              <span class="listing-status">Available now</span>
+              <span>${escapeHtml(listingDistrict(property))}</span>
+            </div>
             <h3>${escapeHtml(listingTitle(unit, property))}</h3>
             <p>${escapeHtml(property.property_name)} - ${escapeHtml(property.location)}</p>
           </div>
@@ -1423,7 +1442,7 @@
             </div>
           </div>
           <div class="button-row">
-            <a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">WhatsApp Inquiry</a>
+            <a class="primary-button link-button whatsapp-listing-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">WhatsApp Landlord</a>
             <a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call Landlord</a>
             <a class="ghost-button link-button" href="${escapeHtml(profileUrl)}">View Landlord</a>
             <a class="ghost-button link-button" href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Map</a>
@@ -1431,6 +1450,19 @@
         </div>
       </article>
     `;
+  }
+
+  function listingPostedBadge(unit) {
+    const postedAt = unit.listing_published_at || unit.created_at || unit.updated_at;
+    if (!postedAt || !isToday(postedAt)) return "";
+    return '<span class="listing-posted-badge">Posted today</span>';
+  }
+
+  function listingDistrict(property) {
+    return String(property.location || "")
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)[0] || "Uganda";
   }
 
   function landlordStats(owner) {
@@ -4085,6 +4117,7 @@
       unit_number: ui.unitNumber.value.trim(),
       rent_amount: Number(ui.unitRent.value),
       status: "vacant",
+      created_at: new Date().toISOString(),
       listing_published: false,
       listing_bedrooms: 1,
       listing_bathrooms: 1,
@@ -7402,6 +7435,7 @@
         listing_furnished: Boolean(unit.listing_furnished ?? seedUnit.listing_furnished ?? false),
         listing_photo: unit.listing_photo || seedUnit.listing_photo || "",
         listing_note: unit.listing_note || seedUnit.listing_note || "",
+        created_at: unit.created_at || seedUnit.created_at || "",
       };
     });
     if (includeSeedRows) appendMissingSeedRows(migrated.tenants, seeded.tenants);
@@ -7629,6 +7663,7 @@
           unit_number: "N2",
           rent_amount: 380000,
           status: "vacant",
+          created_at: new Date().toISOString(),
           listing_published: true,
           listing_bedrooms: 1,
           listing_bathrooms: 1,
@@ -7662,6 +7697,7 @@
           unit_number: "K5",
           rent_amount: 850000,
           status: "vacant",
+          created_at: new Date().toISOString(),
           listing_published: true,
           listing_bedrooms: 1,
           listing_bathrooms: 1,
@@ -7698,6 +7734,7 @@
           unit_number: "G6",
           rent_amount: 820000,
           status: "vacant",
+          created_at: new Date().toISOString(),
           listing_published: true,
           listing_bedrooms: 1,
           listing_bathrooms: 1,

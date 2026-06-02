@@ -27,9 +27,10 @@
           </div>
         </div>
         <nav class="landing-links" aria-label="Landing navigation">
-          <a href="vacancies.html">Vacant Units</a>
+          <a href="vacancies.html">Rental Marketplace</a>
           <a href="#howItWorks">How It Works</a>
           <a href="#pricing">Pricing</a>
+          <a href="company.html">Company</a>
           <a href="#paymentDetails">Payment Details</a>
           <button class="ghost-button" data-open-auth="signin" type="button">Sign In</button>
         </nav>
@@ -45,8 +46,7 @@
             </p>
             <div class="hero-actions">
               <button class="primary-button" data-open-auth="signup" type="button">Start 7-Day Free Trial</button>
-              <a class="ghost-button link-button" href="vacancies.html">View Vacant Units</a>
-              <button class="ghost-button hidden" data-start-demo type="button">Real Dashboard Preview</button>
+              <a class="ghost-button link-button" href="vacancies.html">Browse Rentals</a>
             </div>
             <div class="hero-proof">
               <span>Know who paid and who has not</span>
@@ -54,7 +54,34 @@
               <span>Works with notebooks, WhatsApp, and MoMo records</span>
             </div>
           </div>
-
+          <div class="hero-visual" aria-label="RentLedger dashboard screenshot preview">
+            <div class="dashboard-screen hero-dashboard-shot">
+              <div class="dashboard-shot-topbar">
+                <span></span><span></span><span></span>
+                <strong>RentLedger UG Dashboard</strong>
+              </div>
+              <div class="dashboard-shot-grid">
+                <article class="shot-metric success"><span>Collected</span><strong>USh 8.4M</strong><small>May rent</small></article>
+                <article class="shot-metric warning"><span>Outstanding</span><strong>USh 1.2M</strong><small>6 tenants due</small></article>
+                <article class="shot-metric info"><span>Occupancy</span><strong>92%</strong><small>3 vacant rooms</small></article>
+              </div>
+              <div class="dashboard-shot-body">
+                <section class="dashboard-shot-panel">
+                  <div class="shot-panel-header"><strong>Recent Payments</strong><span>Live</span></div>
+                  <div class="shot-payment-row"><span>Sarah A.</span><strong>USh 450,000</strong></div>
+                  <div class="shot-payment-row"><span>Moses K.</span><strong>USh 260,000</strong></div>
+                  <div class="shot-payment-row"><span>Ruth N.</span><strong>USh 380,000</strong></div>
+                </section>
+                <section class="dashboard-shot-panel">
+                  <div class="shot-panel-header"><strong>Unit Status</strong><span>24 units</span></div>
+                  <div class="shot-unit-grid">
+                    <span class="occupied">A1</span><span class="occupied">A2</span><span class="vacant">B1</span>
+                    <span class="occupied">B2</span><span class="occupied">N1</span><span class="vacant">N2</span>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section class="trust-bar" aria-label="Platform metrics">
@@ -95,32 +122,44 @@
           </div>
           <div class="feature-grid">
             <article class="feature-card">
-              <span class="feature-icon">RT</span>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 19h16"></path><path d="M7 16V8"></path><path d="M12 16V5"></path><path d="M17 16v-3"></path></svg>
+              </span>
               <h3>Rent Tracking</h3>
               <p>See paid, partial, overdue, advance, and carried-forward balances.</p>
             </article>
             <article class="feature-card">
-              <span class="feature-icon">TM</span>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              </span>
               <h3>Tenant Management</h3>
               <p>Store tenant details, room allocation, deposits, and payment history.</p>
             </article>
             <article class="feature-card">
-              <span class="feature-icon">VM</span>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3 21h18"></path><path d="M5 21V7l8-4v18"></path><path d="M19 21V11l-6-4"></path><path d="M9 9h1"></path><path d="M9 13h1"></path><path d="M9 17h1"></path></svg>
+              </span>
               <h3>Vacant Units</h3>
               <p>Publish vacant single rooms, double rooms, shops, and houses for tenants to find.</p>
             </article>
             <article class="feature-card">
-              <span class="feature-icon">EX</span>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 2h10"></path><path d="M5 6h14"></path><path d="M6 6l1 16h10l1-16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+              </span>
               <h3>Expense Tracking</h3>
               <p>Monitor repairs, utilities, salaries, and maintenance costs.</p>
             </article>
             <article class="feature-card">
-              <span class="feature-icon">PR</span>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"></path><path d="M14 2v6h6"></path><path d="M9 13h6"></path><path d="M9 17h6"></path></svg>
+              </span>
               <h3>Receipts & Reports</h3>
               <p>Print receipts and download monthly rent or expense reports.</p>
             </article>
             <article class="feature-card">
-              <span class="feature-icon">WA</span>
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.8 7.35L3 21l2.15-5.2A8.5 8.5 0 1 1 21 11.5Z"></path><path d="M9.5 8.5c.5 2 2 3.5 4 4l1.2-1.2c.3-.3.8-.4 1.2-.2l1.5.7"></path></svg>
+              </span>
               <h3>WhatsApp Reminders</h3>
               <p>Send rent reminders, balances, and receipt messages on WhatsApp.</p>
             </article>
@@ -151,12 +190,89 @@
           </div>
         </section>
 
+        <section id="onboardingDemo" class="landing-section onboarding-demo-section">
+          <div class="onboarding-demo-copy">
+            <div class="section-heading">
+              <span class="hero-kicker">Landlord onboarding demo</span>
+              <h2>See the full rent flow before you create an account.</h2>
+              <p>A simple walkthrough for landlords who want to see exactly where properties, tenants, rent payments, reminders, and public listings fit.</p>
+            </div>
+            <div class="demo-actions">
+              <button class="primary-button" data-start-demo="user-1" type="button">Open Interactive Demo</button>
+              <button class="ghost-button" data-scroll-target="dashboardPreview" type="button">View Dashboard Preview</button>
+            </div>
+            <div class="demo-login-note">
+              <strong>Demo account</strong>
+              <span>Landlord Demo - 0772123456</span>
+            </div>
+          </div>
+
+          <div class="walkthrough-video-card" aria-label="2-minute RentLedger walkthrough">
+            <div class="walkthrough-video-topbar">
+              <span>2-minute video walkthrough</span>
+              <strong>02:00</strong>
+            </div>
+            <div class="walkthrough-stage">
+              <div class="walkthrough-play" aria-hidden="true">
+                <span></span>
+              </div>
+              <div class="walkthrough-screen screen-one">
+                <span>Add Property</span>
+                <strong>Kira Road Apartments</strong>
+                <small>Rooms, shops, houses</small>
+              </div>
+              <div class="walkthrough-screen screen-two">
+                <span>Register Tenant</span>
+                <strong>Sarah A. - Room A1</strong>
+                <small>Phone, deposit, rent</small>
+              </div>
+              <div class="walkthrough-screen screen-three">
+                <span>Record Payment</span>
+                <strong>USh 450,000 received</strong>
+                <small>Receipt ready</small>
+              </div>
+              <div class="walkthrough-screen screen-four">
+                <span>Send Reminder</span>
+                <strong>WhatsApp balance sent</strong>
+                <small>Tenant updated</small>
+              </div>
+            </div>
+            <div class="walkthrough-timeline" aria-hidden="true">
+              <span></span>
+            </div>
+          </div>
+
+          <div class="workflow-animation" aria-label="How RentLedger works animation">
+            <div class="workflow-node">
+              <span>1</span>
+              <strong>Add property</strong>
+              <small>Set rent per room</small>
+            </div>
+            <div class="workflow-node">
+              <span>2</span>
+              <strong>Add tenant</strong>
+              <small>Assign room</small>
+            </div>
+            <div class="workflow-node">
+              <span>3</span>
+              <strong>Record rent</strong>
+              <small>Track balance</small>
+            </div>
+            <div class="workflow-node">
+              <span>4</span>
+              <strong>Share update</strong>
+              <small>Receipt or listing</small>
+            </div>
+            <div class="workflow-pulse" aria-hidden="true"></div>
+          </div>
+        </section>
+
         <section id="dashboardPreview" class="dashboard-preview landing-section">
           <div class="section-heading">
             <span class="hero-kicker">Dashboard preview</span>
             <h2>Know who has paid, who has not, and which rooms are free.</h2>
           </div>
-          <div class="preview-shell">
+          <div class="preview-shell dashboard-screen">
             <div class="preview-sidebar">
               <strong>RentLedger UG</strong>
               <span>Dashboard</span>
@@ -165,11 +281,18 @@
               <span>Rent</span>
             </div>
             <div class="preview-main">
+              <div class="preview-header-row">
+                <div>
+                  <span>Owner Dashboard</span>
+                  <strong>Kira Road Apartments</strong>
+                </div>
+                <span class="preview-date-pill">May 2026</span>
+              </div>
               <div class="preview-metrics">
-                <article><span>Step 1</span><strong>Add Property</strong></article>
-                <article><span>Step 2</span><strong>Add Unit</strong></article>
-                <article><span>Step 3</span><strong>Add Tenant</strong></article>
-                <article><span>Step 4</span><strong>Record Payment</strong></article>
+                <article><span>Collected</span><strong>USh 8.4M</strong><small>18 receipts</small></article>
+                <article><span>Outstanding</span><strong>USh 1.2M</strong><small>6 tenants due</small></article>
+                <article><span>Vacant Units</span><strong>3</strong><small>2 public listings</small></article>
+                <article><span>Expenses</span><strong>USh 620K</strong><small>Repairs and utilities</small></article>
               </div>
               <div class="preview-panels">
                 <div class="preview-panel">
@@ -188,6 +311,7 @@
                   <div class="payment-row"><span>Sarah A.</span><strong>USh 450,000</strong></div>
                   <div class="payment-row"><span>Moses K.</span><strong>USh 260,000</strong></div>
                   <div class="payment-row"><span>Ruth N.</span><strong>USh 380,000</strong></div>
+                  <div class="payment-row"><span>Daniel O.</span><strong>USh 520,000</strong></div>
                 </div>
               </div>
             </div>
@@ -196,17 +320,22 @@
 
         <section id="publicListings" class="landing-section public-listings-section">
           <div class="section-heading">
-            <span class="hero-kicker">Vacant units</span>
-            <h2>Tenants can find free rooms, shops, and houses before they call.</h2>
-            <p>Landlords publish vacant units from the dashboard. Tenants search by location, price, and type, review the landlord profile, then call or send a WhatsApp inquiry.</p>
+            <span class="hero-kicker">Rental marketplace</span>
+            <h2>Search rentals by district, price, and direct landlord contact.</h2>
+            <p>Featured listings rise to the top with photos, posted-today badges, landlord profiles, and WhatsApp buttons so tenants can move from search to viewing faster.</p>
+          </div>
+          <div class="marketplace-highlights" aria-label="Rental marketplace highlights">
+            <span>Featured listings</span>
+            <span>Posted today badges</span>
+            <span>WhatsApp landlord</span>
           </div>
           <div class="listing-filters" aria-label="Rental listing filters">
             <label>
-              District / Area
-              <input id="listingLocationFilter" placeholder="e.g. Kampala, Wakiso, Mukono" />
+              Search by district
+              <input id="listingLocationFilter" placeholder="e.g. Kira, Ntinda, Mukono" />
             </label>
             <label>
-              Budget
+              Rent price
               <input id="listingPriceFilter" type="number" min="0" step="50000" placeholder="Max monthly rent" />
             </label>
             <label>
@@ -232,7 +361,7 @@
           <section id="featuredListingSection" class="featured-listing-section" aria-labelledby="featuredListingTitle">
             <div class="section-heading compact-heading">
               <span class="hero-kicker">Featured listings</span>
-              <h2 id="featuredListingTitle">Vacancies with photos and fast landlord contact.</h2>
+              <h2 id="featuredListingTitle">Fresh rentals with photos and WhatsApp-ready landlord contact.</h2>
             </div>
             <div id="featuredListingGrid" class="public-listing-grid featured-listing-grid"></div>
           </section>
@@ -348,8 +477,11 @@
           </div>
           <nav aria-label="Policy links">
             <a href="#pricing">Pricing</a>
-            <a href="#paymentDetails">Payment, Refunds & Privacy</a>
-            <a href="mailto:allanpyrex5@gmail.com">Support</a>
+            <a href="company.html#about">About Us</a>
+            <a href="company.html#contact">Contact Us</a>
+            <a href="company.html#privacy">Privacy Policy</a>
+            <a href="company.html#terms">Terms</a>
+            <a href="company.html#support">Support Center</a>
           </nav>
         </footer>
       </main>
@@ -464,7 +596,7 @@
           </label>
           <label class="checkbox-consent">
             <input id="accountBillingConsent" type="checkbox" required />
-            <span>I agree to the RentLedger UG Terms and Conditions.</span>
+            <span>I agree to the RentLedger UG <a href="company.html#terms">Terms and Conditions</a>.</span>
           </label>
           <div id="accountTrialSummary" class="billing-summary-note">Terms and Conditions: select Starter or Professional, choose a payment method, and confirm your details before starting the 7-day free trial.</div>
           <button class="primary-button" type="submit">Start 7-Day Free Trial</button>

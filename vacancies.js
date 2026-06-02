@@ -27,12 +27,12 @@
     if (ui.search) ui.search.addEventListener("click", renderListings);
 
     try {
-      ui.status.textContent = "Loading vacant units...";
+      ui.status.textContent = "Loading rental marketplace...";
       state.listings = await fetchListings();
       renderListings();
     } catch (error) {
       console.error("Could not load vacancies", error);
-      ui.status.textContent = "Could not load vacant units right now.";
+      ui.status.textContent = "Could not load rentals right now.";
       ui.grid.innerHTML = emptyBlock("Please try again later or contact the landlord directly.");
     }
   }
@@ -66,17 +66,18 @@
     });
 
     ui.status.textContent = listings.length
-      ? `${listings.length} vacant unit${listings.length === 1 ? "" : "s"} available`
-      : "No vacant units match those filters.";
+      ? `${listings.length} rental${listings.length === 1 ? "" : "s"} available`
+      : "No rentals match those filters.";
     const featuredListings = featuredListingItems(listings);
     const featuredIds = new Set(featuredListings.map((item) => item.unit.id));
     if (ui.featuredSection && ui.featuredGrid) {
       ui.featuredSection.classList.toggle("hidden", !featuredListings.length);
       ui.featuredGrid.innerHTML = featuredListings.map((item) => publicListingCard(item, { featured: true })).join("");
     }
+    const regularListings = listings.filter((item) => !featuredIds.has(item.unit.id));
     ui.grid.innerHTML =
-      listings.map((item) => publicListingCard(item, { featured: featuredIds.has(item.unit.id) })).join("") ||
-      emptyBlock("Try another district, budget, or room type.");
+      regularListings.map((item) => publicListingCard(item)).join("") ||
+      (featuredListings.length ? "" : emptyBlock("Try another district, budget, or room type."));
   }
 
   function featuredListingItems(listings) {
@@ -90,11 +91,20 @@
   function publicListingSort(left, right) {
     const verifiedDelta = Number(ownerHasVerifiedBadge(right.owner)) - Number(ownerHasVerifiedBadge(left.owner));
     if (verifiedDelta) return verifiedDelta;
+    const freshDelta =
+      Number(isToday(right.unit.created_at || right.unit.updated_at)) -
+      Number(isToday(left.unit.created_at || left.unit.updated_at));
+    if (freshDelta) return freshDelta;
     return Number(left.unit.rent_amount) - Number(right.unit.rent_amount);
   }
 
   function featuredScore({ unit, owner }) {
-    return (ownerHasVerifiedBadge(owner) ? 10 : 0) + (unit.listing_photo ? 4 : 0) + (unit.listing_furnished ? 1 : 0);
+    return (
+      (ownerHasVerifiedBadge(owner) ? 10 : 0) +
+      (isToday(unit.created_at || unit.updated_at) ? 3 : 0) +
+      (unit.listing_photo ? 4 : 0) +
+      (unit.listing_furnished ? 1 : 0)
+    );
   }
 
   function publicListingCard({ unit, property, owner }, options = {}) {
@@ -103,13 +113,22 @@
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
     const profileUrl = landlordProfileUrl(owner.id);
     const stats = landlordStats(owner);
+    const postedBadge = listingPostedBadge(unit);
     return `
       <article class="public-listing-card${options.featured ? " featured" : ""}">
-        ${options.featured ? '<span class="listing-featured-ribbon">Featured</span>' : ""}
-        <img src="${escapeHtml(unit.listing_photo || listingPhotoForProperty(property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
+        <div class="listing-media">
+          <img src="${escapeHtml(unit.listing_photo || listingPhotoForProperty(property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
+          <div class="listing-badge-stack">
+            ${options.featured ? '<span class="listing-featured-ribbon">Featured</span>' : ""}
+            ${postedBadge}
+          </div>
+        </div>
         <div class="public-listing-body">
           <div>
-            <span class="listing-status">Available now</span>
+            <div class="listing-card-meta">
+              <span class="listing-status">Available now</span>
+              <span>${escapeHtml(listingDistrict(property))}</span>
+            </div>
             <h3>${escapeHtml(listingTitle(unit, property))}</h3>
             <p>${escapeHtml(property.property_name)} - ${escapeHtml(property.location)}</p>
           </div>
@@ -130,7 +149,7 @@
             </div>
           </div>
           <div class="button-row">
-            <a class="primary-button link-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">WhatsApp Inquiry</a>
+            <a class="primary-button link-button whatsapp-listing-button" href="https://wa.me/${phone}?text=${encodeURIComponent(message)}" target="_blank" rel="noreferrer">WhatsApp Landlord</a>
             <a class="text-button link-button" href="tel:${escapeHtml(phone)}">Call Landlord</a>
             <a class="ghost-button link-button" href="${escapeHtml(profileUrl)}">View Landlord</a>
             <a class="ghost-button link-button" href="${escapeHtml(mapUrl)}" target="_blank" rel="noreferrer">Map</a>
@@ -138,6 +157,19 @@
         </div>
       </article>
     `;
+  }
+
+  function listingPostedBadge(unit) {
+    const postedAt = unit.listing_published_at || unit.created_at || unit.updated_at;
+    if (!postedAt || !isToday(postedAt)) return "";
+    return '<span class="listing-posted-badge">Posted today</span>';
+  }
+
+  function listingDistrict(property) {
+    return String(property.location || "")
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)[0] || "Uganda";
   }
 
   function landlordStats(owner) {
@@ -220,6 +252,17 @@
 
   function formatMoney(value) {
     return `USh ${Number(value || 0).toLocaleString("en-UG", { maximumFractionDigits: 0 })}`;
+  }
+
+  function isToday(value) {
+    if (!value) return false;
+    const date = typeof value === "string" && value.includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
+    const today = new Date();
+    return (
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    );
   }
 
   function escapeHtml(value) {

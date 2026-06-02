@@ -94,7 +94,22 @@ function publicLandlordProfile(owner, properties, units, subscription = null) {
 function publicListingSort(left, right) {
   const verifiedDelta = Number(Boolean(right.owner?.verified_badge)) - Number(Boolean(left.owner?.verified_badge));
   if (verifiedDelta) return verifiedDelta;
+  const freshDelta =
+    Number(isToday(right.unit?.created_at || right.unit?.updated_at)) -
+    Number(isToday(left.unit?.created_at || left.unit?.updated_at));
+  if (freshDelta) return freshDelta;
   return Number(left.unit.rent_amount) - Number(right.unit.rent_amount);
+}
+
+function isToday(value) {
+  if (!value) return false;
+  const date = typeof value === "string" && value.includes("T") ? new Date(value) : new Date(`${value}T00:00:00`);
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
 }
 
 function isPublishedVacancy(unit) {

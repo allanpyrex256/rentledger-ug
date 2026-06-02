@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Vacant Units | RentLedger UG</title>
+    <title>Rental Marketplace | RentLedger UG</title>
     <link rel="icon" type="image/png" href="assets/rentledger-logo-icon.png" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -22,6 +22,7 @@
         <nav class="landing-links" aria-label="Vacancy navigation">
           <a href="index.html">Home</a>
           <a href="index.html#features">For Landlords</a>
+          <a href="company.html">Company</a>
           <button class="ghost-button" type="button" onclick="location.href='index.html#authScreen'">Landlord Sign In</button>
         </nav>
       </header>
@@ -29,20 +30,25 @@
       <main>
         <section class="vacancy-hero landing-section">
           <div class="section-heading">
-            <span class="hero-kicker">Available units</span>
-            <h1>Find vacant rentals in Uganda.</h1>
-            <p>Search rooms, shops, houses, and boys quarters published directly by landlords using RentLedger UG, then check the landlord profile before you call.</p>
+            <span class="hero-kicker">Rental marketplace</span>
+            <h1>Find rentals by district, rent price, and direct landlord contact.</h1>
+            <p>Search rooms, shops, houses, and boys quarters published directly by landlords using RentLedger UG. Featured listings show photos, posted-today badges, profiles, and WhatsApp buttons for faster viewings.</p>
+          </div>
+          <div class="marketplace-highlights" aria-label="Rental marketplace highlights">
+            <span>Search by district</span>
+            <span>Posted today badges</span>
+            <span>WhatsApp landlord</span>
           </div>
         </section>
 
         <section class="landing-section public-listings-section">
           <div class="listing-filters" aria-label="Rental listing filters">
             <label>
-              District / Area
-              <input id="listingLocationFilter" placeholder="e.g. Kampala, Wakiso, Mukono" />
+              Search by district
+              <input id="listingLocationFilter" placeholder="e.g. Kira, Ntinda, Mukono" />
             </label>
             <label>
-              Budget
+              Rent price
               <input id="listingPriceFilter" type="number" min="0" step="50000" placeholder="Max monthly rent" />
             </label>
             <label>
@@ -68,11 +74,11 @@
           <section id="featuredListingSection" class="featured-listing-section" aria-labelledby="featuredListingTitle">
             <div class="section-heading compact-heading">
               <span class="hero-kicker">Featured listings</span>
-              <h2 id="featuredListingTitle">Vacancies with photos and fast landlord contact.</h2>
+              <h2 id="featuredListingTitle">Fresh rentals with photos and WhatsApp-ready landlord contact.</h2>
             </div>
             <div id="featuredListingGrid" class="public-listing-grid featured-listing-grid"></div>
           </section>
-          <p id="vacancyStatus" class="vacancy-status">Loading vacant units...</p>
+          <p id="vacancyStatus" class="vacancy-status">Loading rental marketplace...</p>
           <div id="publicListingGrid" class="public-listing-grid"></div>
         </section>
       </main>
