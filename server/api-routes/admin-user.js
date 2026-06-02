@@ -180,7 +180,7 @@ async function toggleVerifiedBadge(response, userId) {
   }
   await patchRows("app_users", `id=eq.${encodeURIComponent(userId)}`, {
     verified_badge: nextVerified,
-    verification_label: nextVerified ? "Verified landlord" : null,
+    verification_label: nextVerified ? "Verified" : null,
   });
   if (nextVerified) {
     await Promise.all(

@@ -69,8 +69,8 @@
       account_status: "Active",
       property_count: 5,
       occupied_units_count: 19,
-      verified_badge: true,
-      verification_label: "Verified landlord",
+      verified_badge: false,
+      verification_label: "RentLedger profile",
     };
     return [
       {
@@ -309,8 +309,11 @@
 
   function verificationBadge(owner) {
     const verified = ownerHasVerifiedBadge(owner);
-    const label = owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile");
-    return `<span class="verification-badge${verified ? "" : " pending"}">${escapeHtml(label)}</span>`;
+    if (verified) {
+      return '<span class="verification-badge verified"><span class="verification-tick" aria-hidden="true">&#10003;</span><span>Verified</span></span>';
+    }
+    const label = owner.verification_label || "RentLedger profile";
+    return `<span class="verification-badge pending">${escapeHtml(label)}</span>`;
   }
 
   function ownerHasVerifiedBadge(owner) {

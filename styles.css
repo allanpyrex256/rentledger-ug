@@ -1334,14 +1334,31 @@ button {
   min-height: 24px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid #bde7cb;
+  gap: 6px;
+  border: 1px solid #93c5fd;
   border-radius: 999px;
-  background: #e8f6ee;
-  color: var(--success);
+  background: #eff6ff;
+  color: #1d4ed8;
   padding: 0 8px;
   font-size: 11px;
   font-weight: 850;
   text-transform: uppercase;
+}
+
+.verification-badge.verified {
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+}
+
+.verification-tick {
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1;
 }
 
 .verification-badge.pending {

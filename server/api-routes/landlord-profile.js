@@ -69,7 +69,7 @@ function publicLandlordProfile(owner, properties, units, subscription = null) {
     subscription_plan: plan,
     verified,
     verified_badge: verified,
-    verification_label: owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile"),
+    verification_label: owner.verification_label || (verified ? "Verified" : "RentLedger profile"),
     profile_photo: "",
     property_count: properties.length,
     occupied_units_count: units.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,

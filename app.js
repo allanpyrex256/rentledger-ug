@@ -1490,8 +1490,11 @@
 
   function verificationBadge(owner) {
     const verified = ownerHasVerifiedBadge(owner);
-    const label = owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile");
-    return `<span class="verification-badge${verified ? "" : " pending"}">${escapeHtml(label)}</span>`;
+    if (verified) {
+      return '<span class="verification-badge verified"><span class="verification-tick" aria-hidden="true">&#10003;</span><span>Verified</span></span>';
+    }
+    const label = owner.verification_label || "RentLedger profile";
+    return `<span class="verification-badge pending">${escapeHtml(label)}</span>`;
   }
 
   function safeImageSrc(value) {
@@ -5122,7 +5125,7 @@
             ...item,
             verified_badge: nextVerified,
             verified: nextVerified,
-            verification_label: nextVerified ? "Verified landlord" : "",
+            verification_label: nextVerified ? "Verified" : "",
           }
         : item
     );

@@ -172,7 +172,7 @@
       subscription_plan: plan,
       verified,
       verified_badge: verified,
-      verification_label: owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile"),
+      verification_label: owner.verification_label || (verified ? "Verified" : "RentLedger profile"),
       property_count: ownerProperties.length,
       occupied_units_count: ownerUnits.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,
       published_vacancies_count: publicUnits.length,
@@ -217,8 +217,11 @@
 
   function verificationBadge(profile) {
     const verified = Boolean(profile.verified_badge) || Boolean(profile.verified);
-    const label = profile.verification_label || (verified ? "Verified landlord" : "RentLedger profile");
-    return `<span class="verification-badge${verified ? "" : " pending"}">${escapeHtml(label)}</span>`;
+    if (verified) {
+      return '<span class="verification-badge verified"><span class="verification-tick" aria-hidden="true">&#10003;</span><span>Verified</span></span>';
+    }
+    const label = profile.verification_label || "RentLedger profile";
+    return `<span class="verification-badge pending">${escapeHtml(label)}</span>`;
   }
 
   function planCanPublishPublicListings(plan) {
