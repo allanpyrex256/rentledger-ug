@@ -20,6 +20,8 @@ create table if not exists app_users (
 );
 
 alter table app_users drop column if exists password;
+alter table app_users add column if not exists verified_badge boolean not null default false;
+alter table app_users add column if not exists verification_label text;
 
 create table if not exists subscriptions (
   id text primary key,

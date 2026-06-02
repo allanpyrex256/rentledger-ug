@@ -19,6 +19,7 @@ const {
 } = require("../supabase-admin");
 
 const TRIAL_DAYS = 7;
+const VERIFIED_BADGE_REQUEST_SUBJECT = "Verified badge request";
 
 module.exports = async function handler(request, response) {
   if (request.method !== "POST") return send(response, 405, { error: "Method not allowed" });
@@ -29,6 +30,7 @@ module.exports = async function handler(request, response) {
 
     if (body.action === "create-demo-landlord") return await createDemoLandlord(response, profile);
     if (body.action === "toggle-status") return await toggleStatus(response, body.userId);
+    if (body.action === "toggle-verified-badge") return await toggleVerifiedBadge(response, body.userId);
     if (body.action === "cycle-package") return await cyclePackage(response, body.ownerId);
     if (body.action === "end-trial") return await endTrial(response, body.ownerId);
     if (body.action === "delete-account") return await deleteAccount(response, body.ownerId);
@@ -94,12 +96,12 @@ async function createDemoLandlord(response, adminProfile) {
         unit_number: "A2",
         rent_amount: 650000,
         status: "vacant",
-        listing_published: true,
+        listing_published: false,
         listing_bedrooms: 1,
         listing_bathrooms: 1,
         listing_furnished: false,
         listing_photo: "assets/apartment-exterior.jpg",
-        listing_note: "Demo vacancy published from the owner dashboard.",
+        listing_note: "Demo vacancy ready to publish after upgrading to Professional.",
       },
     ]);
     await insertRows("tenants", [
@@ -163,6 +165,53 @@ async function toggleStatus(response, userId) {
   const nextStatus = user.account_status === "Suspended" || user.account_status === "Inactive" ? "Active" : "Suspended";
   await patchRows(`app_users`, `id=eq.${encodeURIComponent(userId)}`, { account_status: nextStatus });
   return send(response, 200, { account_status: nextStatus });
+}
+
+async function toggleVerifiedBadge(response, userId) {
+  if (!userId) return send(response, 400, { error: "User is required." });
+  const rows = await supabaseFetch(`/rest/v1/app_users?id=eq.${encodeURIComponent(userId)}&select=*`);
+  const user = rows[0];
+  if (!user || user.role !== "landlord") return send(response, 404, { error: "Landlord not found." });
+
+  const nextVerified = !Boolean(user.verified_badge);
+  const requests = await verifiedBadgeRequestsForOwner(userId);
+  if (nextVerified && !requests.length) {
+    return send(response, 400, { error: "This landlord must send a verified badge request before approval." });
+  }
+  await patchRows("app_users", `id=eq.${encodeURIComponent(userId)}`, {
+    verified_badge: nextVerified,
+    verification_label: nextVerified ? "Verified landlord" : null,
+  });
+  if (nextVerified) {
+    await Promise.all(
+      requests.map((request) =>
+        patchRows("support_tickets", `id=eq.${encodeURIComponent(request.id)}`, {
+          status: "Resolved",
+          updated_at: isoDate(new Date()),
+        })
+      )
+    );
+    await insertRows("notifications", [
+      {
+        id: makeId("notification"),
+        user_id: userId,
+        type: "support",
+        title: "Verified badge approved",
+        message: "The super admin approved your verified landlord badge.",
+        read: false,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+  }
+  return send(response, 200, { verified_badge: nextVerified });
+}
+
+async function verifiedBadgeRequestsForOwner(ownerId) {
+  return await supabaseFetch(
+    `/rest/v1/support_tickets?owner_id=eq.${encodeURIComponent(ownerId)}&subject=eq.${encodeURIComponent(
+      VERIFIED_BADGE_REQUEST_SUBJECT
+    )}&status=neq.Resolved&select=id`
+  );
 }
 
 async function cyclePackage(response, ownerId) {

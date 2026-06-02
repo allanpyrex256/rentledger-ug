@@ -41,7 +41,7 @@
     const response = await fetch("/api/vacancies", { cache: "no-store" });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "Could not load vacancies.");
-    return (payload.listings || []).sort((a, b) => Number(a.unit.rent_amount) - Number(b.unit.rent_amount));
+    return (payload.listings || []).sort(publicListingSort);
   }
 
   function renderListings() {
@@ -87,8 +87,14 @@
       .filter((item) => featuredScore(item) > 0);
   }
 
+  function publicListingSort(left, right) {
+    const verifiedDelta = Number(ownerHasVerifiedBadge(right.owner)) - Number(ownerHasVerifiedBadge(left.owner));
+    if (verifiedDelta) return verifiedDelta;
+    return Number(left.unit.rent_amount) - Number(right.unit.rent_amount);
+  }
+
   function featuredScore({ unit, owner }) {
-    return (unit.listing_photo ? 4 : 0) + (owner.verified ? 3 : 0) + (unit.listing_furnished ? 1 : 0);
+    return (ownerHasVerifiedBadge(owner) ? 10 : 0) + (unit.listing_photo ? 4 : 0) + (unit.listing_furnished ? 1 : 0);
   }
 
   function publicListingCard({ unit, property, owner }, options = {}) {
@@ -163,9 +169,13 @@
   }
 
   function verificationBadge(owner) {
-    const verified = Boolean(owner.verified) || String(owner.account_status || "").toLowerCase() === "active";
+    const verified = ownerHasVerifiedBadge(owner);
     const label = owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile");
     return `<span class="verification-badge${verified ? "" : " pending"}">${escapeHtml(label)}</span>`;
+  }
+
+  function ownerHasVerifiedBadge(owner) {
+    return Boolean(owner?.verified_badge) || Boolean(owner?.verified);
   }
 
   function safeImageSrc(value) {

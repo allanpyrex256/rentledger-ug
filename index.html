@@ -275,9 +275,9 @@
               <p>For single-property landlords moving rent records from notebooks to a phone.</p>
               <ul>
                 <li>Up to 1 property and 20 units</li>
-                <li>1 caretaker account</li>
+                <li>1 caretaker account only</li>
                 <li>Rent, tenant, expense, and receipt tracking</li>
-                <li>Vacancy publishing for available units</li>
+                <li>Private vacancy tracking; public listings unlock on Professional</li>
               </ul>
                 <button class="ghost-button" data-open-auth="signup" data-signup-plan="Starter" type="button">Start 7-Day Free Trial</button>
             </article>
@@ -287,8 +287,8 @@
               <p>For landlords managing multiple properties with staff collecting rent.</p>
               <ul>
                 <li>Up to 5 properties and 100 units</li>
-                <li>Up to 5 caretaker accounts</li>
-                <li>Portfolio dashboards and SaaS billing records</li>
+                <li>Up to 10 caretaker accounts</li>
+                <li>Publish houses, rooms, and shops for rent to public listings</li>
                 <li>Monthly rent and expense report downloads</li>
               </ul>
                 <button class="primary-button" data-open-auth="signup" data-signup-plan="Professional" type="button">Start 7-Day Free Trial</button>
@@ -298,9 +298,10 @@
               <strong>From USh 250,000<span>/month</span></strong>
               <p>For agencies, estates, and larger portfolios that need setup support.</p>
               <ul>
-                <li>Custom property, unit, and staff limits</li>
-                <li>Custom onboarding for larger portfolios</li>
-                <li>Advanced support and account setup help</li>
+                <li>Everything in Professional</li>
+                <li>Unlimited caretaker accounts</li>
+                <li>Backend team support and account setup help</li>
+                <li>Verified landlord badge by super admin approval</li>
               </ul>
               <a class="ghost-button link-button" href="mailto:allanpyrex5@gmail.com?subject=RentLedger%20UG%20Enterprise%20plan">Talk to Sales</a>
             </article>
@@ -587,6 +588,18 @@
         </nav>
 
         <section id="superAdminDashboard" class="view super-admin-dashboard" aria-labelledby="viewTitle">
+          <section class="admin-month-strip" aria-label="Current admin reporting month">
+            <div class="admin-month-main">
+              <span>Current Admin Month</span>
+              <strong id="adminDashboardMonthLabel"></strong>
+              <small id="adminDashboardDateLabel"></small>
+            </div>
+            <div class="admin-month-dates">
+              <span><b>Month starts</b><strong id="adminDashboardMonthStart"></strong></span>
+              <span><b>Next month</b><strong id="adminDashboardNextMonth"></strong></span>
+            </div>
+          </section>
+
           <div id="adminMetricGrid" class="admin-metric-grid"></div>
 
           <div class="admin-dashboard-grid admin-dashboard-grid-main">
@@ -652,6 +665,18 @@
             <div id="onboardingChecklist" class="onboarding-checklist"></div>
           </section>
           <div id="dailyOpsGrid" class="daily-ops-grid"></div>
+
+          <section class="panel dashboard-calendar-panel" aria-labelledby="dashboardCalendarTitle">
+            <div class="panel-header">
+              <div>
+                <h2 id="dashboardCalendarTitle">Month Calendar</h2>
+                <p id="dashboardCalendarMonth" class="panel-subtitle"></p>
+              </div>
+              <span id="dashboardCalendarStatus" class="pill info"></span>
+            </div>
+            <div id="dashboardCalendarSummary" class="dashboard-calendar-summary"></div>
+            <div id="dashboardCalendarGrid" class="dashboard-calendar-grid" aria-label="Dashboard month calendar"></div>
+          </section>
 
           <div class="content-grid two-columns">
             <section class="panel">
@@ -1087,6 +1112,13 @@
               <div class="panel-header">
                 <h2>Request Help</h2>
                 <span class="pill neutral">Super admin</span>
+              </div>
+              <div class="verification-request-box">
+                <div>
+                  <strong>Verified landlord badge</strong>
+                  <span id="verifiedBadgeRequestStatus">Request super admin review for your public profile.</span>
+                </div>
+                <button id="requestVerifiedBadgeButton" class="ghost-button" type="button">Request Badge</button>
               </div>
               <form id="landlordSupportForm" class="stacked-form">
                 <label>

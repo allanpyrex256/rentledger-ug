@@ -11,6 +11,7 @@
   let authVisible = false;
   let highlightedUnitId = null;
   let unitPhotoPreviewUrl = null;
+  let activeDashboardMonthKey = monthKey(new Date());
 
   const SUPABASE_TABLES = [
     { stateKey: "users", table: "app_users" },
@@ -43,12 +44,20 @@
     { plan: "Enterprise", fee: 250000, status: "Active" },
   ];
   const TRIAL_DAYS = 7;
+  const VERIFIED_BADGE_REQUEST_SUBJECT = "Verified badge request";
+  const VERIFIED_BADGE_REQUEST_NOTE =
+    "Please review my landlord account and public rental listings for a verified landlord badge.";
 
   const PLAN_LIMITS = {
-    Trial: { properties: 1, units: 5, caretakers: 0 },
-    Starter: { properties: 1, units: 20, caretakers: 1 },
-    Professional: { properties: 5, units: 100, caretakers: 5 },
-    Enterprise: { properties: Number.POSITIVE_INFINITY, units: Number.POSITIVE_INFINITY, caretakers: Number.POSITIVE_INFINITY },
+    Trial: { properties: 1, units: 5, caretakers: 0, publicListings: false },
+    Starter: { properties: 1, units: 20, caretakers: 1, publicListings: false },
+    Professional: { properties: 5, units: 100, caretakers: 10, publicListings: true },
+    Enterprise: {
+      properties: Number.POSITIVE_INFINITY,
+      units: Number.POSITIVE_INFINITY,
+      caretakers: Number.POSITIVE_INFINITY,
+      publicListings: true,
+    },
   };
 
   const SUPER_ADMIN_USER_ID = "user-saas-owner";
@@ -127,6 +136,10 @@
     moveOutNote: document.getElementById("moveOutNote"),
     cancelMoveOut: document.getElementById("cancelMoveOut"),
     roleSelect: document.getElementById("roleSelect"),
+    adminDashboardMonthLabel: document.getElementById("adminDashboardMonthLabel"),
+    adminDashboardDateLabel: document.getElementById("adminDashboardDateLabel"),
+    adminDashboardMonthStart: document.getElementById("adminDashboardMonthStart"),
+    adminDashboardNextMonth: document.getElementById("adminDashboardNextMonth"),
     adminMetricGrid: document.getElementById("adminMetricGrid"),
     adminAnalyticsChart: document.getElementById("adminAnalyticsChart"),
     adminActivityCountLabel: document.getElementById("adminActivityCountLabel"),
@@ -153,6 +166,10 @@
     dashboardActivityTitle: document.getElementById("dashboardActivityTitle"),
     activityCountLabel: document.getElementById("activityCountLabel"),
     activityList: document.getElementById("activityList"),
+    dashboardCalendarMonth: document.getElementById("dashboardCalendarMonth"),
+    dashboardCalendarStatus: document.getElementById("dashboardCalendarStatus"),
+    dashboardCalendarSummary: document.getElementById("dashboardCalendarSummary"),
+    dashboardCalendarGrid: document.getElementById("dashboardCalendarGrid"),
     onboardingPanel: document.getElementById("onboardingPanel"),
     onboardingProgressLabel: document.getElementById("onboardingProgressLabel"),
     onboardingChecklist: document.getElementById("onboardingChecklist"),
@@ -221,6 +238,8 @@
     landlordSupportSubject: document.getElementById("landlordSupportSubject"),
     landlordSupportPriority: document.getElementById("landlordSupportPriority"),
     landlordSupportNote: document.getElementById("landlordSupportNote"),
+    verifiedBadgeRequestStatus: document.getElementById("verifiedBadgeRequestStatus"),
+    requestVerifiedBadgeButton: document.getElementById("requestVerifiedBadgeButton"),
     landlordSupportCount: document.getElementById("landlordSupportCount"),
     landlordSupportList: document.getElementById("landlordSupportList"),
     expenseForm: document.getElementById("expenseForm"),
@@ -342,6 +361,7 @@
       bindAuthRecovery();
       setTodayDefaults();
       bindEvents();
+      startMonthRolloverWatcher();
       renderPublicListings();
       renderSession();
     } catch (error) {
@@ -355,6 +375,19 @@
   function finishAppBoot() {
     document.body.classList.remove("app-booting");
     if (ui.bootScreen) ui.bootScreen.classList.add("hidden");
+  }
+
+  function startMonthRolloverWatcher() {
+    window.setInterval(() => {
+      const currentMonthKey = monthKey(new Date());
+      if (currentMonthKey === activeDashboardMonthKey) return;
+      activeDashboardMonthKey = currentMonthKey;
+      setTodayDefaults();
+      if (currentUser()) {
+        renderAll();
+        showToast(`Dashboard moved to ${monthName(new Date())}.`);
+      }
+    }, 60000);
   }
 
   function bindEvents() {
@@ -473,6 +506,7 @@
     ui.paymentTenant.addEventListener("change", updatePaymentPreview);
     ui.paymentAmount.addEventListener("input", updatePaymentPreview);
     if (ui.landlordSupportForm) ui.landlordSupportForm.addEventListener("submit", saveLandlordSupportTicket);
+    if (ui.requestVerifiedBadgeButton) ui.requestVerifiedBadgeButton.addEventListener("click", requestVerifiedBadge);
     ui.downloadRentReport.addEventListener("click", downloadMonthlyRentReport);
     ui.expenseForm.addEventListener("submit", saveExpense);
     ui.downloadExpenseReport.addEventListener("click", downloadExpenseReport);
@@ -502,6 +536,7 @@
       ["openActivity", openActivity],
       ["toggleAccountStatus", toggleLandlordAccountStatus],
       ["cyclePlan", cycleSubscriptionPackage],
+      ["toggleVerifiedBadge", toggleVerifiedBadge],
       ["endOwnerTrial", endOwnerTrial],
       ["deleteOwnerAccount", deleteOwnerAccount],
       ["subscriptionCollect", startSubscriptionCollection],
@@ -1331,10 +1366,10 @@
       .map((unit) => {
         const property = propertyById(unit.property_id);
         const owner = property ? userById(property.owner_id) : null;
-        return property && owner ? { unit, property, owner } : null;
+        return property && owner && ownerCanPublishPublicListings(owner.id, owner) ? { unit, property, owner } : null;
       })
       .filter(Boolean)
-      .sort((a, b) => Number(a.unit.rent_amount) - Number(b.unit.rent_amount));
+      .sort(publicListingSort);
   }
 
   function featuredListingItems(listings) {
@@ -1345,8 +1380,14 @@
       .filter((item) => featuredScore(item) > 0);
   }
 
+  function publicListingSort(left, right) {
+    const verifiedDelta = Number(ownerHasVerifiedBadge(right.owner)) - Number(ownerHasVerifiedBadge(left.owner));
+    if (verifiedDelta) return verifiedDelta;
+    return Number(left.unit.rent_amount) - Number(right.unit.rent_amount);
+  }
+
   function featuredScore({ unit, owner }) {
-    return (unit.listing_photo ? 4 : 0) + (owner.verified ? 3 : 0) + (unit.listing_furnished ? 1 : 0);
+    return (ownerHasVerifiedBadge(owner) ? 10 : 0) + (unit.listing_photo ? 4 : 0) + (unit.listing_furnished ? 1 : 0);
   }
 
   function publicListingCard({ unit, property, owner }, options = {}) {
@@ -1424,7 +1465,7 @@
   }
 
   function verificationBadge(owner) {
-    const verified = Boolean(owner.verified) || String(owner.account_status || "").toLowerCase() === "active";
+    const verified = ownerHasVerifiedBadge(owner);
     const label = owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile");
     return `<span class="verification-badge${verified ? "" : " pending"}">${escapeHtml(label)}</span>`;
   }
@@ -1584,6 +1625,7 @@
     ui.occupancyLabel.textContent = `${vacant} vacant`;
     ui.dueSoonLabel.textContent = `${overdueCount} late`;
     ui.monthLabel.textContent = monthName(new Date());
+    renderDashboardCalendar(scope, rentRows);
 
     ui.unitStatusGrid.innerHTML =
       vacantUnits
@@ -1698,6 +1740,7 @@
     ui.occupancyLabel.textContent = `${vacantUnits.length} vacant`;
     ui.dueSoonLabel.textContent = `${overdueRows.length} late`;
     ui.monthLabel.textContent = monthName(new Date());
+    renderDashboardCalendar(scope, rentRows);
 
     ui.unitStatusGrid.innerHTML =
       vacantUnits
@@ -2501,6 +2544,7 @@
     const pendingPayments = pendingSubscriptions().length;
     const expiredAccounts = expiredSubscriptions();
     const expiringPlans = expiringSubscriptions().length;
+    renderAdminMonthStrip();
 
     ui.adminMetricGrid.innerHTML = [
       adminMetricCard("Total Landlords", landlords.length, `${activeAccounts.length} paid active accounts`, "teal", "adminTotalLandlords"),
@@ -2570,6 +2614,16 @@
     ui.adminActivityList.innerHTML = activityFeedMarkup(activityItems);
   }
 
+  function renderAdminMonthStrip() {
+    const today = stripTime(new Date());
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    if (ui.adminDashboardMonthLabel) ui.adminDashboardMonthLabel.textContent = monthName(today);
+    if (ui.adminDashboardDateLabel) ui.adminDashboardDateLabel.textContent = `Today: ${formatDate(isoDate(today))}`;
+    if (ui.adminDashboardMonthStart) ui.adminDashboardMonthStart.textContent = formatDate(isoDate(monthStart));
+    if (ui.adminDashboardNextMonth) ui.adminDashboardNextMonth.textContent = formatDate(isoDate(nextMonthStart));
+  }
+
   function renderPlatformViews() {
     if (!isSaasOwner()) return;
     renderPlatformLandlords();
@@ -2585,8 +2639,21 @@
       .filter((ticket) => ticket.owner_id === user.id)
       .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
     const openTickets = tickets.filter((ticket) => ticket.status !== "Resolved");
+    const badgeRequest = verifiedBadgeRequestForOwner(user.id);
+    const hasBadge = ownerHasVerifiedBadge(user);
 
     ui.landlordSupportCount.textContent = `${openTickets.length} open`;
+    if (ui.verifiedBadgeRequestStatus) {
+      ui.verifiedBadgeRequestStatus.textContent = hasBadge
+        ? "Your public profile has a verified landlord badge."
+        : badgeRequest
+          ? "Your verified badge request is waiting for super admin review."
+          : "Request super admin review for your public profile.";
+    }
+    if (ui.requestVerifiedBadgeButton) {
+      ui.requestVerifiedBadgeButton.disabled = hasBadge || Boolean(badgeRequest);
+      ui.requestVerifiedBadgeButton.textContent = hasBadge ? "Badge Active" : badgeRequest ? "Request Sent" : "Request Badge";
+    }
     ui.landlordSupportList.innerHTML =
       tickets
         .map(
@@ -2607,6 +2674,24 @@
           `
         )
         .join("") || emptyBlock("No support requests yet.");
+  }
+
+  function verifiedBadgeRequestForOwner(ownerId) {
+    return (state.supportTickets || [])
+      .filter((ticket) => ticket.owner_id === ownerId && isVerifiedBadgeRequest(ticket) && ticket.status !== "Resolved")
+      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0] || null;
+  }
+
+  function isVerifiedBadgeRequest(ticket) {
+    return String(ticket?.subject || "").trim().toLowerCase() === VERIFIED_BADGE_REQUEST_SUBJECT.toLowerCase();
+  }
+
+  function resolveVerifiedBadgeRequests(ownerId) {
+    state.supportTickets = (state.supportTickets || []).map((ticket) =>
+      ticket.owner_id === ownerId && isVerifiedBadgeRequest(ticket) && ticket.status !== "Resolved"
+        ? { ...ticket, status: "Resolved", updated_at: isoDate(new Date()) }
+        : ticket
+    );
   }
 
   function renderActivityFeed(items) {
@@ -2974,6 +3059,110 @@
     `;
   }
 
+  function renderDashboardCalendar(scope, rentRows) {
+    if (!ui.dashboardCalendarGrid || !ui.dashboardCalendarSummary) return;
+
+    const today = stripTime(new Date());
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const firstWeekday = new Date(year, month, 1).getDay();
+    const nextMonthStart = stripTime(new Date(year, month + 1, 1));
+    const daysUntilNextMonth = Math.max(0, Math.round((nextMonthStart - today) / 86400000));
+    const currentPayments = getCurrentMonthPayments(scope.payments || []);
+    const currentExpenses = getCurrentMonthExpenses(scope.expenses || []);
+    const paymentByDay = dayCountMap(currentPayments, "payment_date");
+    const expenseByDay = dayCountMap(currentExpenses, "date");
+    const dueByDay = rentRows.reduce((summary, row) => {
+      if (!row.dueDate || row.balance <= 0) return summary;
+      if (row.dueDate.getFullYear() === year && row.dueDate.getMonth() === month) {
+        incrementMap(summary, row.dueDate.getDate());
+      }
+      return summary;
+    }, new Map());
+    const collected = currentPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const expenses = currentExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+    const unpaidDueCount = Array.from(dueByDay.values()).reduce((sum, count) => sum + count, 0);
+
+    if (ui.dashboardCalendarMonth) {
+      ui.dashboardCalendarMonth.textContent = `Tracking ${monthName(today)}. ${monthName(nextMonthStart)} starts ${formatDate(isoDate(nextMonthStart))}.`;
+    }
+    if (ui.dashboardCalendarStatus) {
+      ui.dashboardCalendarStatus.textContent = daysUntilNextMonth === 1 ? "1 day left" : `${daysUntilNextMonth} days left`;
+    }
+    ui.dashboardCalendarSummary.innerHTML = [
+      dashboardCalendarStat("Collected", formatMoney(collected), countLabel(currentPayments.length, "payment"), "paid"),
+      dashboardCalendarStat("Unpaid Due", unpaidDueCount, countLabel(dueByDay.size, "marked day"), "due"),
+      dashboardCalendarStat("Expenses", formatMoney(expenses), countLabel(currentExpenses.length, "record"), "expense"),
+      dashboardCalendarStat("Next Month", monthName(nextMonthStart), formatDate(isoDate(nextMonthStart)), "next"),
+    ].join("");
+
+    const weekdayHeader = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+      .map((day) => `<span class="calendar-weekday">${escapeHtml(day)}</span>`)
+      .join("");
+    const emptyCells = Array.from({ length: firstWeekday }, () => `<span class="calendar-day is-empty" aria-hidden="true"></span>`).join("");
+    const dayCells = Array.from({ length: lastDay }, (_, index) => {
+      const day = index + 1;
+      const date = stripTime(new Date(year, month, day));
+      const payments = paymentByDay.get(day) || 0;
+      const due = dueByDay.get(day) || 0;
+      const dayExpenses = expenseByDay.get(day) || 0;
+      const classes = ["calendar-day"];
+      if (date < today) classes.push("is-past");
+      if (date.getTime() === today.getTime()) classes.push("is-today");
+      if (payments) classes.push("has-payment");
+      if (due) classes.push("has-due");
+      if (dayExpenses) classes.push("has-expense");
+      const markers = [
+        payments ? `<span class="calendar-dot paid" title="${payments} rent ${payments === 1 ? "payment" : "payments"}"></span>` : "",
+        due ? `<span class="calendar-dot due" title="${due} unpaid ${due === 1 ? "tenant" : "tenants"} due"></span>` : "",
+        dayExpenses ? `<span class="calendar-dot expense" title="${dayExpenses} ${dayExpenses === 1 ? "expense" : "expenses"}"></span>` : "",
+      ].join("");
+      const descriptions = [
+        date.getTime() === today.getTime() ? "today" : "",
+        payments ? countLabel(payments, "rent payment") : "",
+        due ? `${countLabel(due, "unpaid tenant")} due` : "",
+        dayExpenses ? countLabel(dayExpenses, "expense") : "",
+      ].filter(Boolean);
+      return `
+        <span class="${classes.join(" ")}" aria-label="${escapeHtml(`${formatDate(isoDate(date))}${descriptions.length ? `, ${descriptions.join(", ")}` : ""}`)}">
+          <strong>${day}</strong>
+          ${markers ? `<span class="calendar-markers" aria-hidden="true">${markers}</span>` : ""}
+        </span>
+      `;
+    }).join("");
+
+    ui.dashboardCalendarGrid.innerHTML = `${weekdayHeader}${emptyCells}${dayCells}`;
+  }
+
+  function dashboardCalendarStat(label, value, note, tone) {
+    return `
+      <article class="dashboard-calendar-stat ${escapeHtml(tone)}">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(String(value))}</strong>
+        <small>${escapeHtml(note)}</small>
+      </article>
+    `;
+  }
+
+  function dayCountMap(records, dateKey) {
+    return records.reduce((summary, record) => {
+      const value = record[dateKey];
+      if (!value || !isCurrentMonth(value)) return summary;
+      const date = new Date(`${value}T00:00:00`);
+      incrementMap(summary, date.getDate());
+      return summary;
+    }, new Map());
+  }
+
+  function incrementMap(map, key) {
+    map.set(key, (map.get(key) || 0) + 1);
+  }
+
+  function countLabel(count, singular, plural = `${singular}s`) {
+    return `${count} ${count === 1 ? singular : plural}`;
+  }
+
   function currentMonthDayRanges() {
     const now = new Date();
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -3143,6 +3332,10 @@
           const accessStatus = accountStatus(user);
           const status = platformAccountDisplayStatus(user, subscription);
           const nextAction = accessStatus === "Suspended" || accessStatus === "Inactive" ? "Approve" : "Suspend";
+          const hasVerifiedBadge = ownerHasVerifiedBadge(user);
+          const badgeRequest = verifiedBadgeRequestForOwner(user.id);
+          const badgeAction = hasVerifiedBadge ? "Remove Badge" : badgeRequest ? "Approve Badge" : "No Request";
+          const badgeActionDisabled = !hasVerifiedBadge && !badgeRequest ? "disabled" : "";
           const endTrialButton = canEndTrialAccount(user, subscription)
             ? `<button class="text-button" data-end-owner-trial="${escapeHtml(user.id)}" type="button">End Trial</button>`
             : "";
@@ -3152,6 +3345,7 @@
                 <strong>${escapeHtml(user.name)}</strong>
                 <small class="table-subtext">${escapeHtml(userContactLabel(user))}</small>
                 <small class="table-subtext">${escapeHtml(platformOwnerText(user))}</small>
+                <small class="table-subtext">${statusPill(hasVerifiedBadge ? "Verified" : badgeRequest ? "Pending" : "Unverified")}</small>
               </td>
               <td>
                 ${escapeHtml(subscription ? subscription.plan : "No plan")}
@@ -3167,6 +3361,7 @@
                 <div class="button-row">
                   <button class="text-button" data-toggle-account-status="${user.id}" type="button">${nextAction}</button>
                   <button class="text-button" data-cycle-plan="${user.id}" type="button">Package</button>
+                  <button class="text-button" data-toggle-verified-badge="${user.id}" ${badgeActionDisabled} type="button">${badgeAction}</button>
                   ${endTrialButton}
                   <button class="text-button" data-admin-reset-user="${user.id}" type="button">Send Reset OTP</button>
                   <button class="danger-button" data-delete-owner-account="${user.id}" type="button">Delete</button>
@@ -3403,8 +3598,16 @@
           const property = propertyById(unit.property_id);
           const hasTenant = Boolean(state.tenants.find((tenant) => tenant.unit_id === unit.id && isActiveTenant(tenant)));
           const isVacant = unit.status === "vacant";
-          const canPublish = isVacant && !removeDisabled;
-          const listingAction = unit.listing_published ? "Unpublish" : "Publish Vacancy";
+          const owner = property ? userById(property.owner_id) : null;
+          const canUsePublicListings = ownerCanPublishPublicListings(property?.owner_id, owner);
+          const canPublish = isVacant && !removeDisabled && (unit.listing_published || canUsePublicListings);
+          const listingAction = unit.listing_published ? "Unpublish" : canUsePublicListings ? "Publish Vacancy" : "Upgrade to Publish";
+          const listingVisible = unit.listing_published && isVacant && canUsePublicListings;
+          const listingNote = !isVacant
+            ? "Occupied rooms are hidden"
+            : canUsePublicListings
+              ? "Landlord controls public search visibility"
+              : "Professional required for public listings";
           return `
             <tr data-unit-row="${escapeHtml(unit.id)}" class="${unit.id === highlightedUnitId ? "row-highlight" : ""}">
               <td>${escapeHtml(unit.unit_number)}</td>
@@ -3412,8 +3615,8 @@
               <td>${formatMoney(unit.rent_amount)}</td>
               <td>${statusPill(capitalize(unit.status))}</td>
               <td>
-                ${statusPill(unit.listing_published && isVacant ? "Published" : "Private")}
-                <small class="table-subtext">${isVacant ? "Landlord controls public search visibility" : "Occupied rooms are hidden"}</small>
+                ${statusPill(listingVisible ? "Published" : "Private")}
+                <small class="table-subtext">${listingNote}</small>
               </td>
               <td>
                 <div class="button-row">
@@ -3893,13 +4096,14 @@
     state.searchTerm = "";
     ui.globalSearch.value = "";
     highlightedUnitId = unitId;
+    const canPublishPublicly = ownerCanPublishPublicListings(property.owner_id);
 
     saveState();
     ui.unitForm.reset();
     clearUnitPhotoPreview();
     renderAll();
     revealUnitRow(unitId);
-    showToast("Room / shop added. Publish it when you want it public.");
+    showToast(canPublishPublicly ? "Room / shop added. Publish it when you want it public." : "Room / shop added. Upgrade to Professional to publish it publicly.");
   }
 
   function previewNewUnitPhoto() {
@@ -4016,6 +4220,12 @@
       return;
     }
     const nextPublished = !unit.listing_published;
+    const property = propertyById(unit.property_id);
+    if (!property) return;
+    if (nextPublished && !ownerCanPublishPublicListings(property.owner_id, userById(property.owner_id))) {
+      showToast("Public listings are available on Professional and Enterprise plans. Upgrade to publish vacancies.");
+      return;
+    }
     state.units = state.units.map((item) =>
       item.id === unitId
         ? {
@@ -4024,7 +4234,7 @@
             listing_bedrooms: item.listing_bedrooms || 1,
             listing_bathrooms: item.listing_bathrooms || 1,
             listing_furnished: Boolean(item.listing_furnished),
-            listing_photo: item.listing_photo || listingPhotoForProperty(propertyById(item.property_id)),
+            listing_photo: item.listing_photo || listingPhotoForProperty(property),
             listing_note: item.listing_note || "Vacant and ready for viewing. Contact the landlord on WhatsApp.",
           }
         : item
@@ -4573,6 +4783,7 @@
       return;
     }
 
+    state.supportTickets = state.supportTickets || [];
     state.supportTickets.push({
       id: makeId("ticket"),
       owner_id: ownerId,
@@ -4638,6 +4849,7 @@
       updated_at: isoDate(new Date()),
     };
 
+    state.supportTickets = state.supportTickets || [];
     state.supportTickets.push(ticket);
     addNotification({
       user_id: SUPER_ADMIN_USER_ID,
@@ -4651,6 +4863,44 @@
     ui.landlordSupportPriority.value = "Medium";
     renderAll();
     showToast("Support request sent to the super admin.");
+  }
+
+  function requestVerifiedBadge() {
+    const user = currentUser();
+    if (!user || user.role !== "landlord") {
+      showToast("Only landlord accounts can request a verified badge.");
+      return;
+    }
+    if (ownerHasVerifiedBadge(user)) {
+      showToast("Your account already has a verified landlord badge.");
+      return;
+    }
+    if (verifiedBadgeRequestForOwner(user.id)) {
+      showToast("Your verified badge request is already waiting for super admin review.");
+      return;
+    }
+
+    const ticket = {
+      id: makeId("ticket"),
+      owner_id: user.id,
+      subject: VERIFIED_BADGE_REQUEST_SUBJECT,
+      priority: "High",
+      status: "Open",
+      note: VERIFIED_BADGE_REQUEST_NOTE,
+      updated_at: isoDate(new Date()),
+    };
+    state.supportTickets = state.supportTickets || [];
+    state.supportTickets.push(ticket);
+    addNotification({
+      user_id: SUPER_ADMIN_USER_ID,
+      type: "support",
+      title: `Verified badge request from ${user.name}`,
+      message: `${user.name} requested super admin review for a verified landlord badge.`,
+    });
+
+    saveState();
+    renderAll();
+    showToast("Verified badge request sent to the super admin.");
   }
 
   async function createDemoLandlordAccount() {
@@ -4809,6 +5059,60 @@
     saveState();
     renderAll();
     showToast(`${user.name} ${nextStatus === "Active" ? "approved" : "suspended"}.`);
+  }
+
+  async function toggleVerifiedBadge(userId) {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can manage verified badges.");
+      return;
+    }
+
+    const user = userById(userId);
+    if (!user || user.role !== "landlord") {
+      showToast("Landlord account was not found.");
+      return;
+    }
+    const request = verifiedBadgeRequestForOwner(userId);
+    const nextVerified = !ownerHasVerifiedBadge(user);
+    if (nextVerified && !request) {
+      showToast("This landlord must send a verified badge request before approval.");
+      return;
+    }
+
+    if (supabaseReady) {
+      try {
+        const result = await apiRequest("/api/admin-user", { action: "toggle-verified-badge", userId });
+        await refreshSupabaseState();
+        showToast(`${user.name} ${result.verified_badge ? "now has" : "no longer has"} a verified badge.`);
+      } catch (error) {
+        console.error("Verified badge update failed", error);
+        showToast(error.message || "Could not update verified badge.");
+      }
+      return;
+    }
+
+    state.users = state.users.map((item) =>
+      item.id === userId
+        ? {
+            ...item,
+            verified_badge: nextVerified,
+            verified: nextVerified,
+            verification_label: nextVerified ? "Verified landlord" : "",
+          }
+        : item
+    );
+    if (nextVerified) {
+      resolveVerifiedBadgeRequests(userId);
+      addNotification({
+        user_id: userId,
+        type: "support",
+        title: "Verified badge approved",
+        message: "The super admin approved your verified landlord badge.",
+      });
+    }
+    saveState();
+    renderAll();
+    showToast(`${user.name} ${nextVerified ? "now has" : "no longer has"} a verified badge.`);
   }
 
   async function cycleSubscriptionPackage(ownerId) {
@@ -5718,13 +6022,26 @@
     return (state.subscriptions || []).find((subscription) => subscription.owner_id === ownerId) || null;
   }
 
-  function planLimitForOwner(ownerId) {
+  function planLimitForOwner(ownerId, owner = null) {
     const subscription = subscriptionByOwner(ownerId);
-    const plan = subscription?.plan || "Trial";
+    const plan = subscription?.plan || owner?.subscription_plan || owner?.plan || "Trial";
     return {
       plan,
       ...(PLAN_LIMITS[plan] || PLAN_LIMITS.Trial),
     };
+  }
+
+  function planAllowsPublicListings(plan) {
+    return Boolean((PLAN_LIMITS[plan] || PLAN_LIMITS.Trial).publicListings);
+  }
+
+  function ownerCanPublishPublicListings(ownerId, owner = null) {
+    return planAllowsPublicListings(planLimitForOwner(ownerId, owner).plan);
+  }
+
+  function ownerHasVerifiedBadge(owner) {
+    if (!owner) return false;
+    return Boolean(owner.verified_badge) || Boolean(owner.verified);
   }
 
   function limitLabel(value) {
@@ -5751,7 +6068,9 @@
       portfolio.units.length >= limit.units ||
       caretakers >= limit.caretakers;
     ui.planLimitNotice.className = `plan-limit-note setup-limit-note ${atLimit ? "warning" : ""}`;
-    ui.planLimitNotice.textContent = `${limit.plan} plan usage: ${usage.join(" - ")}.`;
+    ui.planLimitNotice.textContent = `${limit.plan} plan usage: ${usage.join(" - ")}. ${
+      limit.publicListings ? "Public listings included." : "Public listings unlock on Professional."
+    }`;
     ui.planLimitNotice.classList.remove("hidden");
   }
 
@@ -6487,21 +6806,29 @@
     const apiState = await fetchPublicListingsFromApi();
     if (apiState) return apiState;
 
-    const [{ data: units, error: unitsError }, { data: properties, error: propertiesError }, { data: users, error: usersError }] =
+    const [
+      { data: units, error: unitsError },
+      { data: properties, error: propertiesError },
+      { data: users, error: usersError },
+      { data: subscriptions, error: subscriptionsError },
+    ] =
       await Promise.all([
         client.from("units").select("*").eq("status", "vacant").eq("listing_published", true),
         client.from("properties").select("id,owner_id,property_name,location,property_type"),
-        client.from("app_users").select("id,name,phone,email,account_status,created_at"),
+        client.from("app_users").select("id,name,phone,email,account_status,created_at,verified_badge,verification_label"),
+        client.from("subscriptions").select("id,owner_id,plan,status,monthly_fee"),
       ]);
 
     if (unitsError) throw unitsError;
     if (propertiesError) throw propertiesError;
     if (usersError) throw usersError;
+    if (subscriptionsError) throw subscriptionsError;
 
     return {
       users: (users || []).map((row) => fromSupabaseRow("users", row)),
       properties: (properties || []).map((row) => fromSupabaseRow("properties", row)),
       units: (units || []).map((row) => fromSupabaseRow("units", row)),
+      subscriptions: (subscriptions || []).map((row) => fromSupabaseRow("subscriptions", row)),
       dismissedNotificationIds: state.dismissedNotificationIds || [],
       passwordReset: state.passwordReset || null,
       deletedRowIds: state.deletedRowIds || {},
@@ -6520,6 +6847,7 @@
           fromSupabaseRow("properties", row)
         ),
         units: listings.map((item) => fromSupabaseRow("units", item.unit)),
+        subscriptions: [],
         dismissedNotificationIds: state.dismissedNotificationIds || [],
         passwordReset: state.passwordReset || null,
         deletedRowIds: state.deletedRowIds || {},
@@ -6559,6 +6887,7 @@
       users: mergeRowsPreservingLocal(state.users, remote.users),
       properties: mergeRowsPreservingLocal(state.properties, remote.properties),
       units: mergeRowsPreservingLocal(state.units, remote.units),
+      subscriptions: mergeRowsPreservingLocal(state.subscriptions, remote.subscriptions),
       dismissedNotificationIds: state.dismissedNotificationIds || remote.dismissedNotificationIds || [],
       passwordReset: state.passwordReset || remote.passwordReset || null,
       deletedRowIds: state.deletedRowIds || remote.deletedRowIds || {},
@@ -6598,6 +6927,8 @@
         invitation_status: row.invitation_status || undefined,
         profile_photo: row.profile_photo || "",
         verified: Boolean(row.verified),
+        verified_badge: Boolean(row.verified_badge),
+        subscription_plan: row.subscription_plan || row.plan || "",
         verification_label: row.verification_label || "",
         property_count: row.property_count === undefined ? undefined : Number(row.property_count || 0),
         occupied_units_count: row.occupied_units_count === undefined ? undefined : Number(row.occupied_units_count || 0),
@@ -6852,6 +7183,8 @@
         company_owner_id: row.company_owner_id || null,
         assigned_property_ids: row.assigned_property_ids || [],
         invitation_status: row.invitation_status || null,
+        verified_badge: Boolean(row.verified_badge || row.verified),
+        verification_label: row.verification_label || null,
       };
     }
     if (stateKey === "subscriptions") {
@@ -7312,12 +7645,12 @@
           unit_number: "House 2",
           rent_amount: 600000,
           status: "vacant",
-          listing_published: true,
+          listing_published: false,
           listing_bedrooms: 2,
           listing_bathrooms: 1,
           listing_furnished: false,
           listing_photo: "assets/property-keys.jpg",
-          listing_note: "Standalone house with compound space in Mukono.",
+          listing_note: "Standalone house with compound space in Mukono. Public listing unlocks on Professional.",
         },
         { id: "unit-11", property_id: "property-4", unit_number: "K1", rent_amount: 950000, status: "occupied" },
         { id: "unit-12", property_id: "property-4", unit_number: "K2", rent_amount: 950000, status: "occupied" },
@@ -8000,6 +8333,11 @@
 
   function monthName(value) {
     return value.toLocaleDateString("en-UG", { month: "long", year: "numeric" });
+  }
+
+  function monthKey(value) {
+    const date = value instanceof Date ? value : new Date(`${value}T00:00:00`);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
   }
 
   function paymentTimeLabel(payment) {

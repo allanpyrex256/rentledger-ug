@@ -1,4 +1,4 @@
-const { fail, send, supabaseFetch } = require("../supabase-admin");
+const { fail, planCanPublishPublicListings, send, supabaseFetch } = require("../supabase-admin");
 
 module.exports = async function handler(request, response) {
   setCors(response);
@@ -18,7 +18,7 @@ module.exports = async function handler(request, response) {
     const ownerIds = unique(properties.map((property) => property.owner_id));
     const owners = ownerIds.length
       ? await supabaseFetch(
-          `/rest/v1/app_users?id=in.(${ownerIds.map(encodeListValue).join(",")})&select=id,name,phone,account_status,created_at`
+          `/rest/v1/app_users?id=in.(${ownerIds.map(encodeListValue).join(",")})&select=id,name,phone,account_status,created_at,verified_badge,verification_label`
         )
       : [];
     const ownerProperties = ownerIds.length
@@ -32,16 +32,27 @@ module.exports = async function handler(request, response) {
           `/rest/v1/units?property_id=in.(${ownerPropertyIds.map(encodeListValue).join(",")})&select=id,property_id,status,listing_published`
         )
       : [];
+    const subscriptions = ownerIds.length
+      ? await supabaseFetch(
+          `/rest/v1/subscriptions?owner_id=in.(${ownerIds.map(encodeListValue).join(",")})&select=owner_id,plan,status`
+        )
+      : [];
+    const subscriptionByOwnerId = new Map(subscriptions.map((subscription) => [subscription.owner_id, subscription]));
 
     const propertyById = new Map(properties.map((property) => [property.id, property]));
-    const ownerById = new Map(owners.map((owner) => [owner.id, publicLandlordProfile(owner, ownerProperties, ownerUnits)]));
+    const ownerById = new Map(
+      owners.map((owner) => [owner.id, publicLandlordProfile(owner, ownerProperties, ownerUnits, subscriptionByOwnerId.get(owner.id))])
+    );
     const listings = units
       .map((unit) => {
         const property = propertyById.get(unit.property_id);
         const owner = property ? ownerById.get(property.owner_id) : null;
-        return property && owner && profileIsPublic(owner) ? { unit, property, owner } : null;
+        return property && owner && profileIsPublic(owner) && planCanPublishPublicListings(owner.subscription_plan)
+          ? { unit, property, owner }
+          : null;
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort(publicListingSort);
 
     return send(response, 200, { listings });
   } catch (error) {
@@ -57,24 +68,33 @@ function encodeListValue(value) {
   return `"${String(value).replace(/"/g, '\\"')}"`;
 }
 
-function publicLandlordProfile(owner, properties, units) {
+function publicLandlordProfile(owner, properties, units, subscription = null) {
+  const plan = subscription?.plan || "Trial";
   const ownedPropertyIds = new Set(properties.filter((property) => property.owner_id === owner.id).map((property) => property.id));
   const ownedUnits = units.filter((unit) => ownedPropertyIds.has(unit.property_id));
-  const activeListings = ownedUnits.filter((unit) => isPublishedVacancy(unit)).length;
-  const verified = String(owner.account_status || "").toLowerCase() === "active";
+  const activeListings = planCanPublishPublicListings(plan) ? ownedUnits.filter((unit) => isPublishedVacancy(unit)).length : 0;
+  const verified = Boolean(owner.verified_badge);
   return {
     id: owner.id,
     name: owner.name,
     phone: owner.phone,
     account_status: owner.account_status || "Trial",
     created_at: owner.created_at || null,
+    subscription_plan: plan,
     verified,
-    verification_label: verified ? "Verified landlord" : "RentLedger profile",
+    verified_badge: verified,
+    verification_label: owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile"),
     profile_photo: "",
     property_count: ownedPropertyIds.size,
     occupied_units_count: ownedUnits.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,
     published_vacancies_count: activeListings,
   };
+}
+
+function publicListingSort(left, right) {
+  const verifiedDelta = Number(Boolean(right.owner?.verified_badge)) - Number(Boolean(left.owner?.verified_badge));
+  if (verifiedDelta) return verifiedDelta;
+  return Number(left.unit.rent_amount) - Number(right.unit.rent_amount);
 }
 
 function isPublishedVacancy(unit) {

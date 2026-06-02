@@ -1,5 +1,9 @@
 (function () {
   const STORAGE_KEY = "rentledger_ug_mvp_v1";
+  const PLAN_FEATURES = {
+    Professional: { publicListings: true },
+    Enterprise: { publicListings: true },
+  };
 
   const ui = {
     shell: document.getElementById("landlordProfileShell"),
@@ -145,8 +149,13 @@
     const users = Array.isArray(saved.users) ? saved.users : [];
     const properties = Array.isArray(saved.properties) ? saved.properties : [];
     const units = Array.isArray(saved.units) ? saved.units : [];
+    const subscriptions = Array.isArray(saved.subscriptions) ? saved.subscriptions : [];
     const owner = users.find((user) => user.id === ownerId && user.role === "landlord");
     if (!owner) return null;
+
+    const subscription = subscriptions.find((item) => item.owner_id === owner.id);
+    const plan = subscription?.plan || owner.subscription_plan || "Trial";
+    if (!planCanPublishPublicListings(plan)) return null;
 
     const ownerProperties = properties.filter((property) => property.owner_id === owner.id);
     const ownerPropertyIds = new Set(ownerProperties.map((property) => property.id));
@@ -154,13 +163,15 @@
     const publicUnits = ownerUnits.filter((unit) => String(unit.status || "").toLowerCase() === "vacant" && unit.listing_published);
     if (!publicUnits.length) return null;
 
-    const verified = String(owner.account_status || "").toLowerCase() === "active";
+    const verified = Boolean(owner.verified_badge) || Boolean(owner.verified);
     const profile = {
       id: owner.id,
       name: owner.name,
       phone: owner.phone,
       profile_photo: owner.profile_photo || "",
+      subscription_plan: plan,
       verified,
+      verified_badge: verified,
       verification_label: owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile"),
       property_count: ownerProperties.length,
       occupied_units_count: ownerUnits.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,
@@ -205,9 +216,13 @@
   }
 
   function verificationBadge(profile) {
-    const verified = Boolean(profile.verified);
+    const verified = Boolean(profile.verified_badge) || Boolean(profile.verified);
     const label = profile.verification_label || (verified ? "Verified landlord" : "RentLedger profile");
     return `<span class="verification-badge${verified ? "" : " pending"}">${escapeHtml(label)}</span>`;
+  }
+
+  function planCanPublishPublicListings(plan) {
+    return Boolean(PLAN_FEATURES[plan]?.publicListings);
   }
 
   function listingTitle(unit, property) {

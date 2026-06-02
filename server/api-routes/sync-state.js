@@ -1,5 +1,6 @@
 const {
   fail,
+  planCanPublishPublicListings,
   planLimitForPlan,
   readBody,
   requireProfile,
@@ -38,7 +39,7 @@ module.exports = async function handler(request, response) {
 
     for (const item of STATE_TABLES) {
       const rows = writableRowsForStateKey(item.stateKey, snapshot, profile, context).map((row) =>
-        toSupabaseRow(item.stateKey, row, profile)
+        toSupabaseRow(item.stateKey, row, profile, context)
       );
       rowsByKey.set(item.stateKey, rows);
     }
@@ -63,7 +64,8 @@ module.exports = async function handler(request, response) {
 async function enforcePlanLimits(profile, context) {
   if (profile.role !== "landlord") return;
   const rows = await supabaseFetch(`/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(profile.id)}&select=plan`);
-  const limits = planLimitForPlan(rows[0]?.plan || "Trial");
+  context.plan = rows[0]?.plan || "Trial";
+  const limits = planLimitForPlan(context.plan);
   if (context.propertyIds.size > limits.properties) {
     const error = new Error(`Your plan allows ${limitLabel(limits.properties)} properties. Upgrade before adding more.`);
     error.status = 403;
@@ -118,7 +120,7 @@ async function buildSyncContext(profile, snapshot) {
     : [];
   remoteTenants.forEach((tenant) => tenantIds.add(tenant.id));
 
-  return { propertyIds: ownedPropertyIds, unitIds, tenantIds };
+  return { propertyIds: ownedPropertyIds, unitIds, tenantIds, plan: "Trial" };
 }
 
 function writableRowsForStateKey(stateKey, snapshot, profile, context) {
@@ -216,7 +218,7 @@ function isSuperAdminSupportNotification(row) {
   return row?.user_id === SUPER_ADMIN_USER_ID && row?.type === "support";
 }
 
-function toSupabaseRow(stateKey, row, profile) {
+function toSupabaseRow(stateKey, row, profile, context = {}) {
   if (stateKey === "subscriptions") {
     return pick(row, [
       "id",
@@ -248,7 +250,14 @@ function toSupabaseRow(stateKey, row, profile) {
     return pick({ ...row, owner_id: profile.id }, ["id", "owner_id", "property_name", "location", "property_type"]);
   }
   if (stateKey === "units") {
-    return pick(row, [
+    const unit = {
+      ...row,
+      listing_published:
+        profile.role === "landlord" && !planCanPublishPublicListings(context.plan)
+          ? false
+          : Boolean(row.listing_published),
+    };
+    return pick(unit, [
       "id",
       "property_id",
       "unit_number",

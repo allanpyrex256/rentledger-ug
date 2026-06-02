@@ -6,14 +6,23 @@ const PACKAGE_OPTIONS = [
 ];
 
 const PLAN_LIMITS = {
-  Trial: { properties: 1, units: 5, caretakers: 0 },
-  Starter: { properties: 1, units: 20, caretakers: 1 },
-  Professional: { properties: 5, units: 100, caretakers: 5 },
-  Enterprise: { properties: Number.POSITIVE_INFINITY, units: Number.POSITIVE_INFINITY, caretakers: Number.POSITIVE_INFINITY },
+  Trial: { properties: 1, units: 5, caretakers: 0, publicListings: false },
+  Starter: { properties: 1, units: 20, caretakers: 1, publicListings: false },
+  Professional: { properties: 5, units: 100, caretakers: 10, publicListings: true },
+  Enterprise: {
+    properties: Number.POSITIVE_INFINITY,
+    units: Number.POSITIVE_INFINITY,
+    caretakers: Number.POSITIVE_INFINITY,
+    publicListings: true,
+  },
 };
 
 function planLimitForPlan(plan) {
   return PLAN_LIMITS[plan] || PLAN_LIMITS.Trial;
+}
+
+function planCanPublishPublicListings(plan) {
+  return Boolean(planLimitForPlan(plan).publicListings);
 }
 
 function env() {
@@ -280,6 +289,7 @@ module.exports = {
   makeId,
   normalizeEmail,
   phoneVariants,
+  planCanPublishPublicListings,
   planLimitForPlan,
   patchRows,
   readBody,

@@ -1,17 +1,19 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { planLimitForPlan } = require("../server/supabase-admin");
+const { planCanPublishPublicListings, planLimitForPlan } = require("../server/supabase-admin");
 const flutterwave = require("../server/flutterwave");
 const pesapal = require("../server/pesapal");
 const payments = require("../server/api-routes/payments");
 const signup = require("../server/api-routes/signup");
 
 test("plan limits match public package promises", () => {
-  assert.deepEqual(planLimitForPlan("Starter"), { properties: 1, units: 20, caretakers: 1 });
-  assert.deepEqual(planLimitForPlan("Professional"), { properties: 5, units: 100, caretakers: 5 });
+  assert.deepEqual(planLimitForPlan("Starter"), { properties: 1, units: 20, caretakers: 1, publicListings: false });
+  assert.deepEqual(planLimitForPlan("Professional"), { properties: 5, units: 100, caretakers: 10, publicListings: true });
   assert.equal(planLimitForPlan("Enterprise").units, Number.POSITIVE_INFINITY);
-  assert.deepEqual(planLimitForPlan("Unknown"), { properties: 1, units: 5, caretakers: 0 });
+  assert.deepEqual(planLimitForPlan("Unknown"), { properties: 1, units: 5, caretakers: 0, publicListings: false });
+  assert.equal(planCanPublishPublicListings("Starter"), false);
+  assert.equal(planCanPublishPublicListings("Professional"), true);
 });
 
 test("signup masks billing contacts before storing subscription metadata", () => {

@@ -122,7 +122,7 @@ final payment = await http.post(
 The app stores real rows in these tables:
 
 ```sql
-app_users(id, name, phone, email, creator_email, platform_owner_id, role, account_status, created_at)
+app_users(id, name, phone, email, creator_email, platform_owner_id, role, account_status, verified_badge, verification_label, created_at)
 subscriptions(id, owner_id, plan, monthly_fee, status, last_payment_date, next_billing_date, billing_method, billing_contact_masked, auto_collect_authorized, cancel_at_period_end, payment_provider, provider_payment_reference, provider_payment_status, created_at)
 properties(id, property_name, location, property_type, owner_id)
 units(id, property_id, unit_number, rent_amount, status)

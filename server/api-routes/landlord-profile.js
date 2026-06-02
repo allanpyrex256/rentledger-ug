@@ -1,4 +1,4 @@
-const { fail, send, supabaseFetch } = require("../supabase-admin");
+const { fail, planCanPublishPublicListings, send, supabaseFetch } = require("../supabase-admin");
 
 module.exports = async function handler(request, response) {
   setCors(response);
@@ -11,7 +11,7 @@ module.exports = async function handler(request, response) {
     if (!ownerId) return send(response, 400, { error: "Landlord id is required." });
 
     const owners = await supabaseFetch(
-      `/rest/v1/app_users?id=eq.${encodeURIComponent(ownerId)}&role=eq.landlord&select=id,name,phone,account_status,created_at`
+      `/rest/v1/app_users?id=eq.${encodeURIComponent(ownerId)}&role=eq.landlord&select=id,name,phone,account_status,created_at,verified_badge,verification_label`
     );
     const owner = owners[0];
     if (!owner || !profileIsPublic(owner)) return send(response, 404, { error: "Landlord profile was not found." });
@@ -25,10 +25,14 @@ module.exports = async function handler(request, response) {
           `/rest/v1/units?property_id=in.(${propertyIds.map(encodeListValue).join(",")})&select=*&order=rent_amount.asc`
         )
       : [];
-    const publicUnits = units.filter(isPublishedVacancy);
+    const subscriptions = await supabaseFetch(
+      `/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(owner.id)}&select=owner_id,plan,status`
+    );
+    const subscription = subscriptions[0] || null;
+    const publicUnits = planCanPublishPublicListings(subscription?.plan || "Trial") ? units.filter(isPublishedVacancy) : [];
     if (!publicUnits.length) return send(response, 404, { error: "This landlord has no published vacancies." });
 
-    const profile = publicLandlordProfile(owner, properties, units);
+    const profile = publicLandlordProfile(owner, properties, units, subscription);
     const propertyById = new Map(properties.map((property) => [property.id, property]));
     const listings = publicUnits
       .map((unit) => {
@@ -52,17 +56,20 @@ module.exports = async function handler(request, response) {
   }
 };
 
-function publicLandlordProfile(owner, properties, units) {
-  const activeListings = units.filter(isPublishedVacancy).length;
-  const verified = String(owner.account_status || "").toLowerCase() === "active";
+function publicLandlordProfile(owner, properties, units, subscription = null) {
+  const plan = subscription?.plan || "Trial";
+  const activeListings = planCanPublishPublicListings(plan) ? units.filter(isPublishedVacancy).length : 0;
+  const verified = Boolean(owner.verified_badge);
   return {
     id: owner.id,
     name: owner.name,
     phone: owner.phone,
     account_status: owner.account_status || "Trial",
     created_at: owner.created_at || null,
+    subscription_plan: plan,
     verified,
-    verification_label: verified ? "Verified landlord" : "RentLedger profile",
+    verified_badge: verified,
+    verification_label: owner.verification_label || (verified ? "Verified landlord" : "RentLedger profile"),
     profile_photo: "",
     property_count: properties.length,
     occupied_units_count: units.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,
