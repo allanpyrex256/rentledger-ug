@@ -4,8 +4,10 @@ const assert = require("node:assert/strict");
 const { planCanPublishPublicListings, planLimitForPlan } = require("../server/supabase-admin");
 const flutterwave = require("../server/flutterwave");
 const pesapal = require("../server/pesapal");
+const subscriptionBilling = require("../server/subscription-billing");
 const payments = require("../server/api-routes/payments");
 const signup = require("../server/api-routes/signup");
+const syncState = require("../server/api-routes/sync-state");
 
 test("plan limits match public package promises", () => {
   assert.deepEqual(planLimitForPlan("Starter"), { properties: 1, units: 20, caretakers: 1, publicListings: false });
@@ -82,4 +84,29 @@ test("pesapal errors expose useful review-safe details", () => {
   assert.equal(pesapal._internal.extractPesapalErrorMessage(payload), "Merchant account is not enabled");
   assert.match(pesapal._internal.extractPesapalErrorDetails(payload), /abc-123/);
   assert.doesNotMatch(pesapal._internal.extractPesapalErrorDetails(payload), /secret-value/);
+});
+
+test("subscription billing uses subscription plan prices, not submitted overrides", () => {
+  const billingAmount = subscriptionBilling._internal.billingAmount;
+  assert.equal(billingAmount({ role: "saas-owner" }, { amount: 1000 }, { plan: "Starter", monthly_fee: 1000 }), 50000);
+  assert.equal(billingAmount({ role: "landlord" }, {}, { plan: "Professional", monthly_fee: 1000 }), 120000);
+  assert.equal(billingAmount({ role: "landlord" }, {}, { plan: "Enterprise", monthly_fee: 250000 }), 500000);
+  assert.equal(billingAmount({ role: "saas-owner" }, { amount: 1000 }, { plan: "Custom", monthly_fee: 75000 }), 75000);
+  assert.equal(billingAmount({ role: "saas-owner" }, { amount: 1000 }, { plan: "Custom", monthly_fee: 0 }), 0);
+});
+
+test("sync-state tolerates missing optional tenant move-out columns", () => {
+  const error = new Error("Could not find the 'move_out_balance' column of 'tenants' in the schema cache");
+  const missing = syncState._internal.missingSchemaCacheColumn(error);
+
+  assert.deepEqual(missing, { column: "move_out_balance", table: "tenants" });
+  assert.equal(syncState._internal.isRetryableOptionalTenantColumn("tenants", missing), true);
+  assert.equal(syncState._internal.isRetryableOptionalTenantColumn("payments", missing), false);
+  assert.deepEqual(
+    syncState._internal.stripColumnsFromRows(
+      [{ id: "tenant-1", status: "moved_out", move_out_balance: 10000, move_out_refund: 5000 }],
+      new Set(["move_out_balance"])
+    ),
+    [{ id: "tenant-1", status: "moved_out", move_out_refund: 5000 }]
+  );
 });

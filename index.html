@@ -396,7 +396,7 @@
             </article>
             <article class="price-card">
               <h3>Enterprise</h3>
-              <strong>From USh 250,000<span>/month</span></strong>
+              <strong>Up to USh 500,000<span>/month</span></strong>
               <p>For agencies, estates, and larger portfolios that need setup support.</p>
               <ul>
                 <li>Everything in Professional</li>
@@ -680,6 +680,11 @@
           </div>
         </header>
 
+        <div id="impersonationBanner" class="impersonation-banner hidden" role="status">
+          <span id="impersonationBannerText">You are currently viewing this account as Super Admin.</span>
+          <button class="ghost-button" data-exit-impersonation type="button">Exit Impersonation</button>
+        </div>
+
         <nav id="mobileTabs" class="mobile-tabs" aria-label="Mobile navigation">
           <button class="mobile-tab active" data-view="dashboard" type="button">Dashboard</button>
           <button class="mobile-tab" data-view="properties" type="button">Setup</button>
@@ -690,6 +695,38 @@
           <button class="mobile-tab" data-view="reminders" type="button">Alerts</button>
           <button class="mobile-tab" data-view="support" type="button">Support</button>
         </nav>
+
+        <section id="subscriptionLocked" class="view subscription-lock-view" aria-labelledby="viewTitle">
+          <section class="panel subscription-lock-panel">
+            <div class="subscription-lock-copy">
+              <span id="subscriptionLockStatus" class="pill danger">Trial ended</span>
+              <h2>Trial ended</h2>
+              <p id="subscriptionLockMessage">Subscribe to continue using RentLedger UG.</p>
+            </div>
+            <div class="subscription-lock-summary" aria-label="Subscription summary">
+              <div>
+                <span>Plan</span>
+                <strong id="subscriptionLockPlan">-</strong>
+              </div>
+              <div>
+                <span>Monthly fee</span>
+                <strong id="subscriptionLockAmount">-</strong>
+              </div>
+              <div>
+                <span>Due date</span>
+                <strong id="subscriptionLockDueDate">-</strong>
+              </div>
+              <div>
+                <span>Checkout options</span>
+                <strong id="subscriptionLockMethod">-</strong>
+              </div>
+            </div>
+            <div class="subscription-lock-actions">
+              <button class="primary-button" data-current-subscription-pay type="button" id="subscriptionLockPay">Subscribe</button>
+              <span id="subscriptionLockNote" class="subscription-lock-note"></span>
+            </div>
+          </section>
+        </section>
 
         <section id="superAdminDashboard" class="view super-admin-dashboard" aria-labelledby="viewTitle">
           <section class="admin-month-strip" aria-label="Current admin reporting month">
@@ -1385,11 +1422,24 @@
           </section>
         </section>
 
+        <section id="platformDetail" class="view platform-detail-view" aria-labelledby="viewTitle">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 id="platformDetailTitle">Details</h2>
+                <p id="platformDetailMeta" class="notification-modal-meta"></p>
+              </div>
+              <button class="ghost-button" data-platform-detail-back type="button">Back</button>
+            </div>
+            <div id="platformDetailBody" class="detail-modal-body platform-detail-body"></div>
+          </section>
+        </section>
+
         <section id="platformBilling" class="view" aria-labelledby="viewTitle">
           <div class="content-grid form-layout">
             <section class="panel">
               <div class="panel-header">
-                <h2>Record SaaS Payment</h2>
+                <h2>Confirm SaaS Payment</h2>
                 <span class="pill neutral">Subscription income</span>
               </div>
               <form id="ownerPaymentForm" class="stacked-form">
@@ -1398,8 +1448,8 @@
                   <select id="ownerPaymentLandlord" required></select>
                 </label>
                 <label>
-                  Amount
-                  <input id="ownerPaymentAmount" type="number" min="0" step="1000" required />
+                  Plan fee
+                  <input id="ownerPaymentAmount" type="number" min="0" step="1000" readonly required />
                 </label>
                 <div class="split-fields">
                   <label>
@@ -1407,14 +1457,8 @@
                     <input id="ownerPaymentDate" type="date" required />
                   </label>
                   <label>
-                    Method
-                    <select id="ownerPaymentMethod">
-                      <option value="MTN MoMo">MTN MoMo</option>
-                      <option value="Airtel Money">Airtel Money</option>
-                      <option value="Pesapal">Pesapal</option>
-                      <option value="Bank transfer">Bank transfer</option>
-                      <option value="Cash">Cash</option>
-                    </select>
+                    Payment channel
+                    <input id="ownerPaymentMethod" type="text" value="Landlord chooses on Pesapal" readonly />
                   </label>
                 </div>
                 <label>
@@ -1431,7 +1475,7 @@
                     <option value="Cancelled">Cancelled</option>
                   </select>
                 </label>
-                <button class="primary-button" type="submit">Save Subscription Payment</button>
+                <button class="primary-button" type="submit">Confirm Subscription Payment</button>
               </form>
             </section>
 
@@ -1439,6 +1483,10 @@
               <div class="panel-header">
                 <h2>Software Revenue</h2>
                 <span id="ownerBillingTotalLabel" class="pill success">USh 0</span>
+              </div>
+              <div class="billing-toolbar">
+                <label for="ownerBillingLandlordFilter">Landlord</label>
+                <select id="ownerBillingLandlordFilter" class="billing-filter-select" aria-label="Filter billing by landlord"></select>
               </div>
               <div id="ownerBillingSummary" class="owner-summary-grid"></div>
               <div class="table-wrap">
@@ -1461,48 +1509,191 @@
           </div>
         </section>
 
-        <section id="platformSupport" class="view" aria-labelledby="viewTitle">
-          <div class="content-grid form-layout">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Log Landlord Assistance</h2>
-                <span class="pill neutral">Backend support</span>
-              </div>
-              <form id="supportTicketForm" class="stacked-form">
-                <label>
-                  Landlord
-                  <select id="supportOwner" required></select>
-                </label>
-                <label>
-                  Issue
-                  <input id="supportSubject" placeholder="e.g. Help correcting tenant balance" required />
-                </label>
-                <div class="split-fields">
+        <section id="platformSupport" class="view support-center-view" aria-labelledby="viewTitle">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Support Center</h2>
+              <span id="systemStorageLabel" class="pill info">Checking</span>
+            </div>
+            <div id="systemMonitorSummary" class="owner-summary-grid"></div>
+            <div class="support-tabs" role="tablist" aria-label="Support Center tabs">
+              <button class="support-tab active" data-support-tab="tickets" type="button">Tickets</button>
+              <button class="support-tab" data-support-tab="corrections" type="button">Corrections</button>
+              <button class="support-tab" data-support-tab="notifications" type="button">Notifications</button>
+              <button class="support-tab" data-support-tab="audit" type="button">Audit Logs</button>
+              <button class="support-tab" data-support-tab="health" type="button">System Health</button>
+            </div>
+          </section>
+
+          <div class="support-panel active" data-support-panel="tickets">
+            <div class="content-grid form-layout">
+              <section class="panel">
+                <div class="panel-header">
+                  <h2>Log Landlord Assistance</h2>
+                  <span class="pill neutral">Backend support</span>
+                </div>
+                <form id="supportTicketForm" class="stacked-form">
+                  <label>
+                    Landlord
+                    <select id="supportOwner" required></select>
+                  </label>
+                  <label>
+                    Issue
+                    <input id="supportSubject" placeholder="e.g. Help correcting tenant balance" required />
+                  </label>
+                  <label>
+                    Description
+                    <textarea id="supportNote" rows="4" placeholder="What the landlord needs help with"></textarea>
+                  </label>
+                  <div class="split-fields">
+                    <label>
+                      Priority
+                      <select id="supportPriority">
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                      </select>
+                    </label>
+                    <label>
+                      Status
+                      <select id="supportStatus">
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Closed">Closed</option>
+                      </select>
+                    </label>
+                  </div>
+                  <button class="primary-button" type="submit">Save Support Ticket</button>
+                </form>
+              </section>
+
+              <section class="panel wide-panel">
+                <div class="panel-header">
+                  <h2>Support Desk</h2>
+                  <span id="supportTicketCount" class="pill warning">0 open</span>
+                </div>
+                <div class="support-toolbar">
+                  <label>
+                    Search
+                    <input id="supportTicketSearch" class="search-input" placeholder="Ticket, landlord, note" />
+                  </label>
+                  <label>
+                    Landlord
+                    <select id="supportTicketOwnerFilter"></select>
+                  </label>
+                  <label>
+                    Status
+                    <select id="supportTicketStatusFilter">
+                      <option value="all">All statuses</option>
+                      <option value="Open">Open</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                      <option value="Closed">Closed</option>
+                    </select>
+                  </label>
                   <label>
                     Priority
-                    <select id="supportPriority">
+                    <select id="supportTicketPriorityFilter">
+                      <option value="all">All priorities</option>
                       <option value="High">High</option>
                       <option value="Medium">Medium</option>
                       <option value="Low">Low</option>
                     </select>
                   </label>
-                  <label>
-                    Status
-                    <select id="supportStatus">
-                      <option value="Open">Open</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Resolved">Resolved</option>
-                    </select>
-                  </label>
                 </div>
-                <label>
-                  Support Note
-                  <textarea id="supportNote" rows="4" placeholder="What the landlord needs help with"></textarea>
-                </label>
-                <button class="primary-button" type="submit">Save Support Ticket</button>
-              </form>
-            </section>
+                <div id="supportTicketList" class="support-list"></div>
+              </section>
+            </div>
+          </div>
 
+          <div class="support-panel" data-support-panel="corrections">
+            <div class="content-grid form-layout">
+              <section class="panel wide-panel">
+                <div class="panel-header">
+                  <h2>Backend Correction</h2>
+                  <span class="pill warning">Super admin</span>
+                </div>
+                <form id="backendSupportForm" class="stacked-form">
+                  <div class="split-fields">
+                    <label>
+                      Landlord
+                      <select id="backendSupportOwner" required></select>
+                    </label>
+                    <label>
+                      Record type
+                      <select id="backendSupportType">
+                        <option value="account">Account</option>
+                        <option value="property">Property</option>
+                        <option value="unit">Room / Shop</option>
+                        <option value="tenant">Tenant</option>
+                        <option value="payment">Payment</option>
+                        <option value="expense">Expense</option>
+                        <option value="subscription">Subscription</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="split-fields">
+                    <label>
+                      Record
+                      <select id="backendSupportRecord" required></select>
+                    </label>
+                    <label>
+                      Correction
+                      <select id="backendSupportAction" required></select>
+                    </label>
+                  </div>
+                  <label>
+                    Correct value
+                    <input id="backendSupportValue" placeholder="Choose a correction first" />
+                  </label>
+                  <label>
+                    Support note
+                    <textarea id="backendSupportNote" rows="3" placeholder="Why this correction is needed"></textarea>
+                  </label>
+                  <p id="backendSupportPreview" class="support-note">Choose a landlord and record to start a correction.</p>
+                  <div class="button-row">
+                    <button class="primary-button" type="submit">Apply Correction</button>
+                    <button id="backendSupportOpenAccount" class="ghost-button" type="button">Open Account</button>
+                  </div>
+                </form>
+              </section>
+            </div>
+          </div>
+
+          <div class="support-panel" data-support-panel="notifications">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Notification Center</h2>
+                <span id="supportNotificationCount" class="pill neutral">0 notifications</span>
+              </div>
+              <div id="supportNotificationList" class="support-list"></div>
+            </section>
+          </div>
+
+          <div class="support-panel" data-support-panel="audit">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Audit Logs</h2>
+                <span id="auditLogCount" class="pill neutral">0 logs</span>
+              </div>
+              <div id="auditLogList" class="support-list"></div>
+            </section>
+          </div>
+
+          <div class="support-panel" data-support-panel="health">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>System Health</h2>
+                <span class="pill info">Live checks</span>
+              </div>
+              <div id="systemSignalList" class="support-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="platformMessages" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
             <section class="panel">
               <div class="panel-header">
                 <h2>Message Landlord</h2>
@@ -1512,6 +1703,17 @@
                 <label>
                   Landlord
                   <select id="adminMessageOwner" required></select>
+                </label>
+                <label>
+                  Template
+                  <select id="adminMessageTemplate">
+                    <option value="">Custom message</option>
+                    <option value="welcome">Welcome Message</option>
+                    <option value="subscription">Subscription Reminder</option>
+                    <option value="payment">Payment Reminder</option>
+                    <option value="support">Support Follow Up</option>
+                    <option value="maintenance">Maintenance Notice</option>
+                  </select>
                 </label>
                 <label>
                   Subject
@@ -1527,29 +1729,26 @@
 
             <section class="panel wide-panel">
               <div class="panel-header">
-                <h2>System Health</h2>
-                <span id="systemStorageLabel" class="pill info">Checking</span>
-              </div>
-              <div id="systemMonitorSummary" class="owner-summary-grid"></div>
-              <div id="systemSignalList" class="support-list"></div>
-            </section>
-
-            <section class="panel wide-panel">
-              <div class="panel-header">
-                <h2>Support Desk</h2>
-                <span id="supportTicketCount" class="pill warning">0 open</span>
-              </div>
-              <div id="supportTicketList" class="support-list"></div>
-            </section>
-
-            <section class="panel wide-panel">
-              <div class="panel-header">
-                <h2>Landlord Messages</h2>
+                <h2>Message History</h2>
                 <span id="adminMessageCount" class="pill neutral">0 sent</span>
               </div>
               <div id="adminMessageList" class="support-list"></div>
             </section>
+          </div>
+        </section>
 
+        <section id="platformReports" class="view" aria-labelledby="viewTitle">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>System Reports</h2>
+              <span class="pill info">Super admin</span>
+            </div>
+            <div id="platformReportSummary" class="owner-summary-grid"></div>
+          </section>
+        </section>
+
+        <section id="platformSettings" class="view" aria-labelledby="viewTitle">
+          <div class="content-grid form-layout">
             <section class="panel">
               <div class="panel-header">
                 <h2>Admin Password Reset</h2>

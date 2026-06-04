@@ -1,4 +1,5 @@
 const { fail, planCanPublishPublicListings, send, supabaseFetch } = require("../supabase-admin");
+const VERIFIED_BADGE_REQUEST_SUBJECT = "Verified badge request";
 
 module.exports = async function handler(request, response) {
   setCors(response);
@@ -11,7 +12,7 @@ module.exports = async function handler(request, response) {
     if (!ownerId) return send(response, 400, { error: "Landlord id is required." });
 
     const owners = await supabaseFetch(
-      `/rest/v1/app_users?id=eq.${encodeURIComponent(ownerId)}&role=eq.landlord&select=id,name,phone,account_status,created_at,verified_badge,verification_label`
+      `/rest/v1/app_users?id=eq.${encodeURIComponent(ownerId)}&role=eq.landlord&select=id,name,phone,account_status,created_at`
     );
     const owner = owners[0];
     if (!owner || !profileIsPublic(owner)) return send(response, 404, { error: "Landlord profile was not found." });
@@ -28,11 +29,16 @@ module.exports = async function handler(request, response) {
     const subscriptions = await supabaseFetch(
       `/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(owner.id)}&select=owner_id,plan,status`
     );
+    const verifiedTickets = await supabaseFetch(
+      `/rest/v1/support_tickets?owner_id=eq.${encodeURIComponent(owner.id)}&subject=eq.${encodeURIComponent(
+        VERIFIED_BADGE_REQUEST_SUBJECT
+      )}&status=eq.Resolved&select=id`
+    );
     const subscription = subscriptions[0] || null;
     const publicUnits = planCanPublishPublicListings(subscription?.plan || "Trial") ? units.filter(isPublishedVacancy) : [];
     if (!publicUnits.length) return send(response, 404, { error: "This landlord has no published vacancies." });
 
-    const profile = publicLandlordProfile(owner, properties, units, subscription);
+    const profile = publicLandlordProfile(owner, properties, units, subscription, Boolean(verifiedTickets.length));
     const propertyById = new Map(properties.map((property) => [property.id, property]));
     const listings = publicUnits
       .map((unit) => {
@@ -56,10 +62,9 @@ module.exports = async function handler(request, response) {
   }
 };
 
-function publicLandlordProfile(owner, properties, units, subscription = null) {
+function publicLandlordProfile(owner, properties, units, subscription = null, verified = false) {
   const plan = subscription?.plan || "Trial";
   const activeListings = planCanPublishPublicListings(plan) ? units.filter(isPublishedVacancy).length : 0;
-  const verified = Boolean(owner.verified_badge);
   return {
     id: owner.id,
     name: owner.name,
@@ -69,7 +74,7 @@ function publicLandlordProfile(owner, properties, units, subscription = null) {
     subscription_plan: plan,
     verified,
     verified_badge: verified,
-    verification_label: owner.verification_label || (verified ? "Verified" : "RentLedger profile"),
+    verification_label: verified ? "Verified" : "RentLedger profile",
     profile_photo: "",
     property_count: properties.length,
     occupied_units_count: units.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,

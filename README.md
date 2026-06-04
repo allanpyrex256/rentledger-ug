@@ -87,6 +87,10 @@ If you already ran an older version of the schema with UUID columns, use a fresh
 
 If sign-in shows `permission denied for table app_users`, rerun the latest `supabase-schema.sql` grant section in the Supabase SQL editor.
 
+If saving shows `Could not find the 'move_out_balance' column of 'tenants' in the schema cache`, rerun the latest `supabase-schema.sql` tenant `alter table` section in the Supabase SQL editor. The API can continue syncing core tenant fields against an older schema, but move-out balances, damages, refunds, and notes only persist after those columns exist.
+
+For existing Supabase projects, run `supabase-support-center-migration.sql` after `supabase-schema.sql` to add the Super Admin Support Center tables, filters, audit logs, landlord messages, notification read tracking, and RLS policies.
+
 ## Flutter Payment API
 
 Flutter clients can sign in with `/api/signin`, then call `/api/payments` with the returned Supabase access token.
@@ -126,11 +130,13 @@ app_users(id, name, phone, email, creator_email, platform_owner_id, role, accoun
 subscriptions(id, owner_id, plan, monthly_fee, status, last_payment_date, next_billing_date, billing_method, billing_contact_masked, auto_collect_authorized, cancel_at_period_end, payment_provider, provider_payment_reference, provider_payment_status, created_at)
 properties(id, property_name, location, property_type, owner_id)
 units(id, property_id, unit_number, rent_amount, status)
-tenants(id, unit_id, name, phone, national_id, rent_amount, deposit_paid, move_in_date, status, move_out_date)
+tenants(id, unit_id, name, phone, national_id, rent_amount, deposit_paid, move_in_date, status, move_out_date, move_out_balance, move_out_damages, move_out_refund, move_out_note)
 payments(id, tenant_id, amount, payment_method, payment_date, balance, reference, receipt_number, payment_proof, verification_status)
 expenses(id, property_id, type, amount, date)
-support_tickets(id, owner_id, subject, priority, status, note, updated_at)
-notifications(id, user_id, type, title, message, read, created_at)
+support_tickets(id, owner_id, landlord_id, subject, description, priority, status, note, admin_note, created_at, updated_at, resolved_at)
+landlord_messages(id, landlord_id, user_id, ticket_id, template, title, message, created_at)
+audit_logs(id, admin_id, landlord_id, action, old_value, new_value, created_at)
+notifications(id, user_id, type, title, message, read, is_read, created_at)
 app_settings(setting_key, value)
 ```
 

@@ -2,7 +2,7 @@ const PACKAGE_OPTIONS = [
   { plan: "Trial", fee: 0, status: "Trial" },
   { plan: "Starter", fee: 50000, status: "Active" },
   { plan: "Professional", fee: 120000, status: "Active" },
-  { plan: "Enterprise", fee: 250000, status: "Active" },
+  { plan: "Enterprise", fee: 500000, status: "Active" },
 ];
 
 const PLAN_LIMITS = {
@@ -223,11 +223,26 @@ async function insertRows(table, rows) {
 }
 
 async function upsertRows(table, rows, conflictColumn = "id") {
-  return supabaseFetch(`/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictColumn)}`, {
-    method: "POST",
-    prefer: "resolution=merge-duplicates,return=representation",
-    body: rows,
+  const groups = groupRowsByKeys(rows);
+  const results = [];
+  for (const group of groups) {
+    const saved = await supabaseFetch(`/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictColumn)}`, {
+      method: "POST",
+      prefer: "resolution=merge-duplicates,return=representation",
+      body: group,
+    });
+    results.push(...saved);
+  }
+  return results;
+}
+
+function groupRowsByKeys(rows = []) {
+  const groups = new Map();
+  rows.forEach((row) => {
+    const signature = Object.keys(row).sort().join("|");
+    groups.set(signature, [...(groups.get(signature) || []), row]);
   });
+  return [...groups.values()];
 }
 
 async function patchRows(table, query, values) {

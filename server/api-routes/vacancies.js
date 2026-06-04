@@ -1,4 +1,5 @@
 const { fail, planCanPublishPublicListings, send, supabaseFetch } = require("../supabase-admin");
+const VERIFIED_BADGE_REQUEST_SUBJECT = "Verified badge request";
 
 module.exports = async function handler(request, response) {
   setCors(response);
@@ -18,7 +19,7 @@ module.exports = async function handler(request, response) {
     const ownerIds = unique(properties.map((property) => property.owner_id));
     const owners = ownerIds.length
       ? await supabaseFetch(
-          `/rest/v1/app_users?id=in.(${ownerIds.map(encodeListValue).join(",")})&select=id,name,phone,account_status,created_at,verified_badge,verification_label`
+          `/rest/v1/app_users?id=in.(${ownerIds.map(encodeListValue).join(",")})&select=id,name,phone,account_status,created_at`
         )
       : [];
     const ownerProperties = ownerIds.length
@@ -37,11 +38,22 @@ module.exports = async function handler(request, response) {
           `/rest/v1/subscriptions?owner_id=in.(${ownerIds.map(encodeListValue).join(",")})&select=owner_id,plan,status`
         )
       : [];
+    const verifiedTickets = ownerIds.length
+      ? await supabaseFetch(
+          `/rest/v1/support_tickets?owner_id=in.(${ownerIds.map(encodeListValue).join(",")})&subject=eq.${encodeURIComponent(
+            VERIFIED_BADGE_REQUEST_SUBJECT
+          )}&status=eq.Resolved&select=owner_id`
+        )
+      : [];
     const subscriptionByOwnerId = new Map(subscriptions.map((subscription) => [subscription.owner_id, subscription]));
+    const verifiedOwnerIds = new Set(verifiedTickets.map((ticket) => ticket.owner_id).filter(Boolean));
 
     const propertyById = new Map(properties.map((property) => [property.id, property]));
     const ownerById = new Map(
-      owners.map((owner) => [owner.id, publicLandlordProfile(owner, ownerProperties, ownerUnits, subscriptionByOwnerId.get(owner.id))])
+      owners.map((owner) => [
+        owner.id,
+        publicLandlordProfile(owner, ownerProperties, ownerUnits, subscriptionByOwnerId.get(owner.id), verifiedOwnerIds.has(owner.id)),
+      ])
     );
     const listings = units
       .map((unit) => {
@@ -68,12 +80,11 @@ function encodeListValue(value) {
   return `"${String(value).replace(/"/g, '\\"')}"`;
 }
 
-function publicLandlordProfile(owner, properties, units, subscription = null) {
+function publicLandlordProfile(owner, properties, units, subscription = null, verified = false) {
   const plan = subscription?.plan || "Trial";
   const ownedPropertyIds = new Set(properties.filter((property) => property.owner_id === owner.id).map((property) => property.id));
   const ownedUnits = units.filter((unit) => ownedPropertyIds.has(unit.property_id));
   const activeListings = planCanPublishPublicListings(plan) ? ownedUnits.filter((unit) => isPublishedVacancy(unit)).length : 0;
-  const verified = Boolean(owner.verified_badge);
   return {
     id: owner.id,
     name: owner.name,
@@ -83,7 +94,7 @@ function publicLandlordProfile(owner, properties, units, subscription = null) {
     subscription_plan: plan,
     verified,
     verified_badge: verified,
-    verification_label: owner.verification_label || (verified ? "Verified" : "RentLedger profile"),
+    verification_label: verified ? "Verified" : "RentLedger profile",
     profile_photo: "",
     property_count: ownedPropertyIds.size,
     occupied_units_count: ownedUnits.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,

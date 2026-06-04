@@ -10,8 +10,13 @@
   let supabaseSessionActive = false;
   let authVisible = false;
   let highlightedUnitId = null;
+  let highlightedOwnerId = null;
   let unitPhotoPreviewUrl = null;
   let activeDashboardMonthKey = monthKey(new Date());
+  let activePlatformDetailType = "";
+  let activePlatformDetailReturnView = "platformLandlords";
+  let activeSupportTab = "tickets";
+  let impersonationContext = null;
 
   const SUPABASE_TABLES = [
     { stateKey: "users", table: "app_users" },
@@ -22,11 +27,15 @@
     { stateKey: "payments", table: "payments" },
     { stateKey: "expenses", table: "expenses" },
     { stateKey: "supportTickets", table: "support_tickets" },
+    { stateKey: "supportMessages", table: "landlord_messages" },
+    { stateKey: "auditLogs", table: "audit_logs" },
     { stateKey: "notifications", table: "notifications" },
   ];
 
   const SUPABASE_DELETE_ORDER = [
     "notifications",
+    "auditLogs",
+    "supportMessages",
     "supportTickets",
     "expenses",
     "payments",
@@ -41,7 +50,7 @@
     { plan: "Trial", fee: 0, status: "Trial" },
     { plan: "Starter", fee: 50000, status: "Active" },
     { plan: "Professional", fee: 120000, status: "Active" },
-    { plan: "Enterprise", fee: 250000, status: "Active" },
+    { plan: "Enterprise", fee: 500000, status: "Active" },
   ];
   const TRIAL_DAYS = 7;
   const VERIFIED_BADGE_REQUEST_SUBJECT = "Verified badge request";
@@ -113,6 +122,16 @@
     currentAccountPhone: document.getElementById("currentAccountPhone"),
     viewTitle: document.getElementById("viewTitle"),
     viewSubtitle: document.getElementById("viewSubtitle"),
+    impersonationBanner: document.getElementById("impersonationBanner"),
+    impersonationBannerText: document.getElementById("impersonationBannerText"),
+    subscriptionLockStatus: document.getElementById("subscriptionLockStatus"),
+    subscriptionLockMessage: document.getElementById("subscriptionLockMessage"),
+    subscriptionLockPlan: document.getElementById("subscriptionLockPlan"),
+    subscriptionLockAmount: document.getElementById("subscriptionLockAmount"),
+    subscriptionLockDueDate: document.getElementById("subscriptionLockDueDate"),
+    subscriptionLockMethod: document.getElementById("subscriptionLockMethod"),
+    subscriptionLockPay: document.getElementById("subscriptionLockPay"),
+    subscriptionLockNote: document.getElementById("subscriptionLockNote"),
     globalSearch: document.getElementById("globalSearch"),
     propertyFilter: document.getElementById("propertyFilter"),
     notificationToggle: document.getElementById("notificationToggle"),
@@ -134,6 +153,7 @@
     moveOutRefund: document.getElementById("moveOutRefund"),
     moveOutNote: document.getElementById("moveOutNote"),
     cancelMoveOut: document.getElementById("cancelMoveOut"),
+    roleSelectLabel: document.querySelector('label[for="roleSelect"]'),
     roleSelect: document.getElementById("roleSelect"),
     adminDashboardMonthLabel: document.getElementById("adminDashboardMonthLabel"),
     adminDashboardDateLabel: document.getElementById("adminDashboardDateLabel"),
@@ -275,6 +295,7 @@
     ownerPaymentNote: document.getElementById("ownerPaymentNote"),
     ownerPaymentStatus: document.getElementById("ownerPaymentStatus"),
     ownerBillingTotalLabel: document.getElementById("ownerBillingTotalLabel"),
+    ownerBillingLandlordFilter: document.getElementById("ownerBillingLandlordFilter"),
     ownerBillingSummary: document.getElementById("ownerBillingSummary"),
     ownerBillingTable: document.getElementById("ownerBillingTable"),
     supportTicketForm: document.getElementById("supportTicketForm"),
@@ -284,13 +305,32 @@
     supportStatus: document.getElementById("supportStatus"),
     supportNote: document.getElementById("supportNote"),
     supportTicketCount: document.getElementById("supportTicketCount"),
+    supportTicketSearch: document.getElementById("supportTicketSearch"),
+    supportTicketOwnerFilter: document.getElementById("supportTicketOwnerFilter"),
+    supportTicketStatusFilter: document.getElementById("supportTicketStatusFilter"),
+    supportTicketPriorityFilter: document.getElementById("supportTicketPriorityFilter"),
     supportTicketList: document.getElementById("supportTicketList"),
     adminMessageForm: document.getElementById("adminMessageForm"),
     adminMessageOwner: document.getElementById("adminMessageOwner"),
+    adminMessageTemplate: document.getElementById("adminMessageTemplate"),
     adminMessageTitle: document.getElementById("adminMessageTitle"),
     adminMessageBody: document.getElementById("adminMessageBody"),
     adminMessageCount: document.getElementById("adminMessageCount"),
     adminMessageList: document.getElementById("adminMessageList"),
+    supportNotificationCount: document.getElementById("supportNotificationCount"),
+    supportNotificationList: document.getElementById("supportNotificationList"),
+    auditLogCount: document.getElementById("auditLogCount"),
+    auditLogList: document.getElementById("auditLogList"),
+    platformReportSummary: document.getElementById("platformReportSummary"),
+    backendSupportForm: document.getElementById("backendSupportForm"),
+    backendSupportOwner: document.getElementById("backendSupportOwner"),
+    backendSupportType: document.getElementById("backendSupportType"),
+    backendSupportRecord: document.getElementById("backendSupportRecord"),
+    backendSupportAction: document.getElementById("backendSupportAction"),
+    backendSupportValue: document.getElementById("backendSupportValue"),
+    backendSupportNote: document.getElementById("backendSupportNote"),
+    backendSupportPreview: document.getElementById("backendSupportPreview"),
+    backendSupportOpenAccount: document.getElementById("backendSupportOpenAccount"),
     systemStorageLabel: document.getElementById("systemStorageLabel"),
     systemMonitorSummary: document.getElementById("systemMonitorSummary"),
     systemSignalList: document.getElementById("systemSignalList"),
@@ -300,6 +340,9 @@
     dashboardDetailTitle: document.getElementById("dashboardDetailTitle"),
     dashboardDetailMeta: document.getElementById("dashboardDetailMeta"),
     dashboardDetailBody: document.getElementById("dashboardDetailBody"),
+    platformDetailTitle: document.getElementById("platformDetailTitle"),
+    platformDetailMeta: document.getElementById("platformDetailMeta"),
+    platformDetailBody: document.getElementById("platformDetailBody"),
     closeDashboardDetail: document.getElementById("closeDashboardDetail"),
     receiptModal: document.getElementById("receiptModal"),
     receiptContent: document.getElementById("receiptContent"),
@@ -312,6 +355,7 @@
 
   const viewCopy = {
     superAdminDashboard: ["RentLedger UG Admin", "SaaS analytics for landlords, subscriptions, revenue, support, and account health."],
+    subscriptionLocked: ["Trial ended", "Subscribe to continue using RentLedger UG."],
     dashboard: ["Daily Control Center", "Who paid, who is late, and which rooms are vacant."],
     properties: ["Properties", "Set up rooms, shops, boys quarters, houses, and monthly rent."],
     tenants: ["Tenants", "Tenant move-in records, deposits, balances, and contacts."],
@@ -322,7 +366,10 @@
     reminders: ["Reminders", "SMS and WhatsApp messages for rent collection."],
     platformLandlords: ["Account Management", "Approve landlords, create demos, reset passwords, and manage packages."],
     platformBilling: ["Billing", "Track subscriptions, pending payments, expiring plans, and revenue analytics."],
-    platformSupport: ["System Monitoring", "Watch notifications, support tickets, errors, and storage health."],
+    platformSupport: ["Support Center", "Resolve tickets, correct records, audit changes, and monitor platform health."],
+    platformMessages: ["Messages", "Send landlord updates with reusable templates and message history."],
+    platformReports: ["Reports", "Platform performance, support workload, and billing health."],
+    platformSettings: ["Settings", "Super admin controls, roles, and system preferences."],
   };
 
   const landlordNav = [
@@ -336,11 +383,17 @@
     ["support", "Support"],
   ];
 
+  const lockedLandlordNav = [["subscriptionLocked", "Subscribe"]];
+
   const ownerNav = [
-    ["superAdminDashboard", "Overview"],
-    ["platformLandlords", "Accounts"],
-    ["platformBilling", "Billing"],
-    ["platformSupport", "Monitoring"],
+    ["superAdminDashboard", "Dashboard"],
+    ["platformLandlords", "Landlords"],
+    ["properties", "Properties"],
+    ["platformBilling", "Subscriptions"],
+    ["platformSupport", "Support Center"],
+    ["platformMessages", "Messages"],
+    ["platformReports", "Reports"],
+    ["platformSettings", "Settings"],
   ];
 
   const staffNav = [
@@ -505,10 +558,24 @@
     if (ui.queueReminderAlerts) ui.queueReminderAlerts.addEventListener("click", queueReminderNotifications);
     ui.createDemoAccountButton.addEventListener("click", createDemoLandlordAccount);
     ui.ownerPaymentLandlord.addEventListener("change", () => syncOwnerPaymentDefaults(true));
+    if (ui.ownerBillingLandlordFilter) ui.ownerBillingLandlordFilter.addEventListener("change", updateOwnerBillingLandlordFilter);
     ui.ownerPaymentDate.addEventListener("change", () => syncOwnerPaymentDefaults(false));
     ui.ownerPaymentForm.addEventListener("submit", saveOwnerPayment);
     ui.supportTicketForm.addEventListener("submit", saveSupportTicket);
+    [ui.supportTicketSearch, ui.supportTicketOwnerFilter, ui.supportTicketStatusFilter, ui.supportTicketPriorityFilter]
+      .filter(Boolean)
+      .forEach((input) => {
+        input.addEventListener("input", updateSupportTicketFilters);
+        input.addEventListener("change", updateSupportTicketFilters);
+      });
     if (ui.adminMessageForm) ui.adminMessageForm.addEventListener("submit", sendLandlordMessage);
+    if (ui.adminMessageTemplate) ui.adminMessageTemplate.addEventListener("change", applyAdminMessageTemplate);
+    if (ui.backendSupportForm) ui.backendSupportForm.addEventListener("submit", applyBackendSupportCorrection);
+    if (ui.backendSupportOwner) ui.backendSupportOwner.addEventListener("change", () => syncBackendSupportControls(true));
+    if (ui.backendSupportType) ui.backendSupportType.addEventListener("change", () => syncBackendSupportControls(true));
+    if (ui.backendSupportRecord) ui.backendSupportRecord.addEventListener("change", () => syncBackendSupportActions(true));
+    if (ui.backendSupportAction) ui.backendSupportAction.addEventListener("change", syncBackendSupportValue);
+    if (ui.backendSupportOpenAccount) ui.backendSupportOpenAccount.addEventListener("click", openBackendSupportAccount);
     ui.adminPasswordResetForm.addEventListener("submit", sendAdminPasswordReset);
     ui.closeDashboardDetail.addEventListener("click", closeDashboardDetailModal);
     ui.dashboardDetailModal.addEventListener("click", (event) => {
@@ -531,11 +598,19 @@
       ["toggleVerifiedBadge", toggleVerifiedBadge],
       ["endOwnerTrial", endOwnerTrial],
       ["deleteOwnerAccount", deleteOwnerAccount],
+      ["currentSubscriptionPay", startCurrentUserSubscriptionPayment],
       ["subscriptionCollect", startSubscriptionCollection],
       ["subscriptionCancel", toggleSubscriptionCancellation],
       ["adminResetUser", createAdminPasswordReset],
       ["focusLandlord", focusLandlordAccount],
+      ["openTicket", openSupportTicket],
       ["toggleTicket", toggleSupportTicket],
+      ["updateTicket", updateSupportTicket],
+      ["supportTab", setSupportCenterTab],
+      ["impersonateLandlord", startLandlordImpersonation],
+      ["exitImpersonation", exitLandlordImpersonation],
+      ["platformDetailPage", openPlatformDetailPage],
+      ["platformDetailBack", closePlatformDetailPage],
       ["editProperty", startPropertyEdit],
       ["removeProperty", removeProperty],
       ["removeUnit", removeUnit],
@@ -793,8 +868,8 @@
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const details = [payload.error, payload.details].filter(Boolean).join(" ");
-      const error = new Error(details || "Request failed");
+      const message = payload.error || payload.message || payload.details || "Request failed";
+      const error = new Error(message);
       error.status = response.status;
       error.payload = payload;
       throw error;
@@ -1147,11 +1222,18 @@
       return;
     }
 
+    const accessLocked = landlordAccessLocked(user);
     ui.currentAccountName.textContent = user.name;
     ui.currentAccountPhone.textContent = `${userContactLabel(user)} - ${roleLabel(user.role)}`;
     ui.globalSearch.value = state.searchTerm || "";
-    ui.propertyFilter.classList.toggle("hidden", isSaasOwner(user));
-    ui.resetDemo.classList.toggle("hidden", supabaseReady || !DEMO_ACCOUNT_IDS.includes(user.id));
+    populateRoleOptions();
+    ui.roleSelectLabel?.classList.toggle("hidden", accessLocked);
+    ui.roleSelect.classList.toggle("hidden", accessLocked);
+    ui.globalSearch.classList.toggle("hidden", accessLocked);
+    ui.propertyFilter.classList.toggle("hidden", isSaasOwner(user) || accessLocked);
+    ui.downloadBackup.classList.toggle("hidden", accessLocked);
+    ui.resetDemo.classList.toggle("hidden", accessLocked || supabaseReady || !DEMO_ACCOUNT_IDS.includes(user.id));
+    renderImpersonationBanner();
     renderNavigation();
     ensureSelectedProperty();
     renderAll();
@@ -1193,10 +1275,12 @@
 
   function currentNavItems() {
     if (currentUser()?.role === "staff") return staffNav;
+    if (landlordAccessLocked()) return lockedLandlordNav;
     return isSaasOwner() ? ownerNav : landlordNav;
   }
 
   function defaultView() {
+    if (landlordAccessLocked()) return "subscriptionLocked";
     return isSaasOwner() ? "superAdminDashboard" : "dashboard";
   }
 
@@ -1228,20 +1312,45 @@
     if (!isSaasOwner()) return;
     const selectedPaymentOwnerId = ui.ownerPaymentLandlord.value;
     const selectedMessageOwnerId = ui.adminMessageOwner?.value;
+    const selectedBackendOwnerId = ui.backendSupportOwner?.value;
+    const selectedBillingOwnerId = state.billingLandlordFilter || "all";
+    const selectedSupportOwnerId = supportTicketFilters().owner;
+    const landlords = landlordUsers();
     const landlordOptions =
-      landlordUsers()
+      landlords
         .map((user) => `<option value="${user.id}">${escapeHtml(user.name)} - ${escapeHtml(userContactLabel(user))}</option>`)
         .join("") || '<option value="">No landlords yet</option>';
     ui.ownerPaymentLandlord.innerHTML = landlordOptions;
-    if (selectedPaymentOwnerId && landlordUsers().some((user) => user.id === selectedPaymentOwnerId)) {
+    if (selectedPaymentOwnerId && landlords.some((user) => user.id === selectedPaymentOwnerId)) {
       ui.ownerPaymentLandlord.value = selectedPaymentOwnerId;
     }
+    if (ui.ownerBillingLandlordFilter) {
+      ui.ownerBillingLandlordFilter.innerHTML = [
+        '<option value="all">All landlords</option>',
+        ...landlords.map((user) => `<option value="${user.id}">${escapeHtml(user.name)} - ${escapeHtml(userContactLabel(user))}</option>`),
+      ].join("");
+      ui.ownerBillingLandlordFilter.value = landlords.some((user) => user.id === selectedBillingOwnerId) ? selectedBillingOwnerId : "all";
+    }
     ui.supportOwner.innerHTML = landlordOptions;
+    if (ui.supportTicketOwnerFilter) {
+      ui.supportTicketOwnerFilter.innerHTML = [
+        '<option value="all">All landlords</option>',
+        ...landlords.map((user) => `<option value="${user.id}">${escapeHtml(user.name)} - ${escapeHtml(userContactLabel(user))}</option>`),
+      ].join("");
+      ui.supportTicketOwnerFilter.value = landlords.some((user) => user.id === selectedSupportOwnerId) ? selectedSupportOwnerId : "all";
+    }
     if (ui.adminMessageOwner) {
       ui.adminMessageOwner.innerHTML = landlordOptions;
-      if (selectedMessageOwnerId && landlordUsers().some((user) => user.id === selectedMessageOwnerId)) {
+      if (selectedMessageOwnerId && landlords.some((user) => user.id === selectedMessageOwnerId)) {
         ui.adminMessageOwner.value = selectedMessageOwnerId;
       }
+    }
+    if (ui.backendSupportOwner) {
+      ui.backendSupportOwner.innerHTML = landlordOptions;
+      if (selectedBackendOwnerId && landlords.some((user) => user.id === selectedBackendOwnerId)) {
+        ui.backendSupportOwner.value = selectedBackendOwnerId;
+      }
+      syncBackendSupportControls(false);
     }
     ui.adminPasswordResetUser.innerHTML =
       resettableUsers()
@@ -1271,6 +1380,12 @@
 
   function renderAll() {
     setAppLoading("Updating dashboard");
+    if (landlordAccessLocked()) {
+      renderSubscriptionLocked();
+      renderNotifications();
+      clearAppLoading();
+      return;
+    }
     ensureSelectedProperty();
     populateStaticControls();
     populateDynamicSelects();
@@ -1289,10 +1404,43 @@
     clearAppLoading();
   }
 
+  function renderSubscriptionLocked() {
+    if (!ui.subscriptionLockPlan) return;
+    const user = currentUser();
+    if (!user) return;
+
+    const subscription = subscriptionByOwner(user.id);
+    const paidPlan = paidPlanForEndedTrial(subscription);
+    const plan = subscription?.plan && subscription.plan !== "Trial" ? subscription.plan : paidPlan?.plan || "Starter";
+    const billableMonthlyFee = subscriptionPlanFee(subscription);
+    const displayMonthlyFee = billableMonthlyFee || packageFee(plan) || paidPlan?.fee || 0;
+    const status = subscription ? billingSubscriptionStatus(subscription) : "No subscription";
+    const dueDate = subscription?.next_billing_date || trialEndDateForAccount(user, subscription);
+    const method = subscriptionCheckoutOptionLabel(subscription);
+    const canPay = Boolean(subscription?.id && billableMonthlyFee > 0);
+
+    ui.subscriptionLockStatus.textContent = trialHasEnded(user, subscription) || status === "Pending" ? "Trial ended" : status;
+    ui.subscriptionLockStatus.className = `pill ${canPay ? "danger" : "warning"}`;
+    ui.subscriptionLockPlan.textContent = plan;
+    ui.subscriptionLockAmount.textContent = displayMonthlyFee > 0 ? `${formatMoney(displayMonthlyFee)}/month` : "-";
+    ui.subscriptionLockDueDate.textContent = formatOptionalDate(dueDate);
+    ui.subscriptionLockMethod.textContent = method;
+    ui.subscriptionLockMessage.textContent = canPay
+      ? `Your 7-day trial has ended. Subscribe to ${plan} at ${formatMoney(billableMonthlyFee)}/month to continue using RentLedger UG.`
+      : "Your trial has ended, but billing is not ready for this account. Contact support to activate a paid plan.";
+    ui.subscriptionLockPay.disabled = !canPay;
+    ui.subscriptionLockPay.textContent = canPay ? "Subscribe" : "Billing setup needed";
+    ui.subscriptionLockNote.textContent = canPay
+      ? subscription?.provider_next_action || ""
+      : "Super admin needs to start billing for this account.";
+  }
+
   function setView(viewName) {
     setAppLoading("Loading view");
-    const allowedViewNames = currentNavItems().map(([itemViewName]) => itemViewName);
+    const secondaryViews = isSaasOwner() ? ["platformDetail"] : [];
+    const allowedViewNames = [...currentNavItems().map(([itemViewName]) => itemViewName), ...secondaryViews];
     const resolvedViewName = allowedViewNames.includes(viewName) ? viewName : defaultView();
+    if (resolvedViewName !== "platformDetail") activePlatformDetailType = "";
     document.querySelectorAll(".view").forEach((view) => {
       view.classList.toggle("active-view", view.id === resolvedViewName);
     });
@@ -1305,6 +1453,12 @@
   }
 
   function updateViewHeader(viewName) {
+    if (viewName === "platformDetail") {
+      const detail = buildPlatformDashboardDetail(activePlatformDetailType);
+      ui.viewTitle.textContent = detail?.title || "Details";
+      ui.viewSubtitle.textContent = detail?.meta || "Filtered platform records.";
+      return;
+    }
     const copy =
       viewName === "dashboard" && currentUser()?.role === "staff"
         ? ["Caretaker Dashboard", "Assigned tenants, follow-ups, and payments only."]
@@ -1970,7 +2124,7 @@
     showToast("No dashboard details available.");
   }
 
-  function openPlatformDashboardDetail(type) {
+  function buildPlatformDashboardDetail(type) {
     const landlords = landlordUsers();
     const subscriptions = state.subscriptions || [];
     const tickets = state.supportTickets || [];
@@ -2110,8 +2264,8 @@
       },
       systemUnreadAlerts: {
         title: "Unread Alerts",
-        meta: `${notifications.filter((notification) => !notification.read).length} unread notifications`,
-        body: [notificationDetailList(notifications.filter((notification) => !notification.read), "No unread alerts.")],
+        meta: `${notifications.filter((notification) => !isNotificationRead(notification)).length} unread notifications`,
+        body: [notificationDetailList(notifications.filter((notification) => !isNotificationRead(notification)), "No unread alerts.")],
       },
       systemSupportTickets: {
         title: "Support Tickets",
@@ -2141,10 +2295,44 @@
         ],
       },
     };
-    const detail = detailConfig[type];
+    return detailConfig[type] || null;
+  }
+
+  function openPlatformDashboardDetail(type) {
+    const detail = buildPlatformDashboardDetail(type);
     if (!detail) return false;
     openDashboardDetailModal(detail.title, detail.meta, detail.body.join(""));
     return true;
+  }
+
+  function renderPlatformDetailPage() {
+    if (!ui.platformDetailTitle || !ui.platformDetailBody) return;
+    const detail = buildPlatformDashboardDetail(activePlatformDetailType);
+    ui.platformDetailTitle.textContent = detail?.title || "Details";
+    ui.platformDetailMeta.textContent = detail?.meta || "";
+    ui.platformDetailBody.innerHTML = detail ? detail.body.join("") : emptyBlock("Choose a summary card to see its records.");
+  }
+
+  function openPlatformDetailPage(type, button = null) {
+    if (!isSaasOwner()) return;
+    const detail = buildPlatformDashboardDetail(type);
+    if (!detail) {
+      showToast("No page details available.");
+      return;
+    }
+    const sourceView = button?.closest(".view")?.id || document.querySelector(".view.active-view")?.id;
+    if (sourceView && sourceView !== "platformDetail") activePlatformDetailReturnView = sourceView;
+    activePlatformDetailType = type;
+    renderPlatformDetailPage();
+    setView("platformDetail");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function closePlatformDetailPage() {
+    const returnView = activePlatformDetailReturnView || "platformLandlords";
+    activePlatformDetailType = "";
+    setView(returnView);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openUnitDetail(id) {
@@ -2484,7 +2672,12 @@
           .map((ticket) => {
             const user = userById(ticket.owner_id);
             return `
-              <button class="detail-list-item" data-focus-landlord="${escapeHtml(ticket.owner_id)}" type="button">
+              <button
+                class="detail-list-item"
+                data-open-ticket="${escapeHtml(ticket.id)}"
+                aria-label="Open support message: ${escapeHtml(ticket.subject)}"
+                type="button"
+              >
                 <span>
                   <strong>${escapeHtml(ticket.subject)}</strong>
                   <small>${escapeHtml(user ? user.name : "Unknown landlord")} - ${escapeHtml(ticket.priority)} - ${formatDate(ticket.updated_at)}</small>
@@ -2511,7 +2704,7 @@
                   <strong>${escapeHtml(notification.title)}</strong>
                   <small>${escapeHtml(notificationTypeLabel(notification.type))} - ${escapeHtml(user ? user.name : "Platform")} - ${timeAgo(notification.created_at)}</small>
                 </span>
-                <b>${escapeHtml(notification.read ? "Read" : "Open")}</b>
+                <b>${escapeHtml(isNotificationRead(notification) ? "Read" : "Open")}</b>
               </button>
             `;
           })
@@ -2656,6 +2849,9 @@
     renderPlatformLandlords();
     renderPlatformBilling();
     renderPlatformSupport();
+    renderPlatformMessages();
+    renderPlatformReports();
+    renderPlatformDetailPage();
   }
 
   function renderLandlordSupport() {
@@ -2697,6 +2893,7 @@
                 </div>
               </div>
               <p class="support-note">${escapeHtml(ticket.note || "No message added.")}</p>
+              ${ticketMessageHistoryMarkup(ticket.id)}
             </article>
           `
         )
@@ -2709,6 +2906,12 @@
       .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0] || null;
   }
 
+  function resolvedVerifiedBadgeRequestForOwner(ownerId) {
+    return (state.supportTickets || [])
+      .filter((ticket) => ticket.owner_id === ownerId && isVerifiedBadgeRequest(ticket) && ticket.status === "Resolved")
+      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0] || null;
+  }
+
   function isVerifiedBadgeRequest(ticket) {
     return String(ticket?.subject || "").trim().toLowerCase() === VERIFIED_BADGE_REQUEST_SUBJECT.toLowerCase();
   }
@@ -2717,6 +2920,14 @@
     state.supportTickets = (state.supportTickets || []).map((ticket) =>
       ticket.owner_id === ownerId && isVerifiedBadgeRequest(ticket) && ticket.status !== "Resolved"
         ? { ...ticket, status: "Resolved", updated_at: isoDate(new Date()) }
+        : ticket
+    );
+  }
+
+  function reopenVerifiedBadgeRequests(ownerId) {
+    state.supportTickets = (state.supportTickets || []).map((ticket) =>
+      ticket.owner_id === ownerId && isVerifiedBadgeRequest(ticket) && ticket.status === "Resolved"
+        ? { ...ticket, status: "Open", updated_at: isoDate(new Date()) }
         : ticket
     );
   }
@@ -2911,7 +3122,7 @@
       type: "Notification",
       date: notification.created_at,
       dateLabel: timeAgo(notification.created_at),
-      status: notification.read ? "Read" : "Open",
+      status: isNotificationRead(notification) ? "Read" : "Open",
     }));
     const storage = estimateStorageUsage();
     const systemRows = [
@@ -2987,7 +3198,7 @@
   }
 
   function isPaidSubscription(subscription) {
-    if (!subscription || Number(subscription.monthly_fee || 0) <= 0) return false;
+    if (!subscription || subscriptionPlanFee(subscription) <= 0) return false;
     const status = effectiveSubscriptionStatus(subscription);
     if (!["Active", "Cancelling"].includes(status)) return false;
     const paymentStatus = String(subscription.provider_payment_status || "").trim().toLowerCase();
@@ -2996,10 +3207,57 @@
 
   function billingSubscriptionStatus(subscription) {
     const status = effectiveSubscriptionStatus(subscription);
-    if (["Active", "Cancelling"].includes(status) && Number(subscription?.monthly_fee || 0) > 0 && !isPaidSubscription(subscription)) {
+    if (["Active", "Cancelling"].includes(status) && subscriptionPlanFee(subscription) > 0 && !isPaidSubscription(subscription)) {
       return "Pending";
     }
     return status;
+  }
+
+  function landlordAccessLocked(user = currentUser()) {
+    if (!user || user.role !== "landlord") return false;
+    const subscription = subscriptionByOwner(user.id);
+    if (isPaidSubscription(subscription)) return false;
+
+    if (hasTrialAccess(user, subscription)) {
+      return trialHasEnded(user, subscription);
+    }
+
+    if (accountStatus(user) === "Pending") return true;
+    if (!subscription) return false;
+
+    const status = billingSubscriptionStatus(subscription);
+    return (
+      ["Pending", "Overdue", "Expired", "Cancelled", "Paused"].includes(status) ||
+      (subscriptionPlanFee(subscription) > 0 && status !== "Trial")
+    );
+  }
+
+  function hasTrialAccess(user, subscription = subscriptionByOwner(user?.id)) {
+    return Boolean(
+      user &&
+        (accountStatus(user) === "Trial" ||
+          subscription?.status === "Trial" ||
+          subscription?.plan === "Trial" ||
+          effectiveSubscriptionStatus(subscription) === "Trial")
+    );
+  }
+
+  function trialHasEnded(user, subscription = subscriptionByOwner(user?.id)) {
+    const endDate = trialEndDateForAccount(user, subscription);
+    if (!endDate) return false;
+    const trialEnd = new Date(`${endDate}T00:00:00`);
+    if (Number.isNaN(trialEnd.getTime())) return false;
+    return trialEnd <= stripTime(new Date());
+  }
+
+  function trialEndDateForAccount(user, subscription = subscriptionByOwner(user?.id)) {
+    if (subscription?.next_billing_date) return subscription.next_billing_date;
+    const createdDate = String(user?.created_at || "").slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(createdDate) ? addDays(createdDate, TRIAL_DAYS) : "";
+  }
+
+  function subscriptionCheckoutOptionLabel(_subscription) {
+    return "Landlord chooses on Pesapal";
   }
 
   function platformAccountDisplayStatus(user, subscription = subscriptionByOwner(user?.id)) {
@@ -3018,7 +3276,58 @@
   }
 
   function canEndTrialAccount(user, subscription = subscriptionByOwner(user?.id)) {
-    return Boolean(user?.role === "landlord" && isTrialAccount(user) && effectiveSubscriptionStatus(subscription) !== "Pending");
+    return canStartBillingAccount(user, subscription);
+  }
+
+  function canStartBillingAccount(user, subscription = subscriptionByOwner(user?.id)) {
+    return Boolean(
+      user?.role === "landlord" &&
+        !isPaidSubscription(subscription) &&
+        (!subscription || isTrialAccount(user) || subscriptionPlanFee(subscription) <= 0)
+    );
+  }
+
+  function canCollectSubscription(subscription) {
+    return Boolean(subscription?.id && subscriptionPlanFee(subscription) > 0 && !isPaidSubscription(subscription));
+  }
+
+  function adminBillingActions(user, subscription = subscriptionByOwner(user?.id)) {
+    if (!user || user.role !== "landlord") return "";
+    const actions = [];
+    if (canStartBillingAccount(user, subscription)) {
+      const label = isTrialAccount(user) ? "End Trial" : "Start Billing";
+      actions.push(`<button class="text-button" data-end-owner-trial="${escapeHtml(user.id)}" type="button">${label}</button>`);
+    }
+    if (canCollectSubscription(subscription)) {
+      actions.push(`<button class="text-button" data-subscription-collect="${escapeHtml(subscription.id)}" type="button">Request</button>`);
+    }
+    return actions.join("");
+  }
+
+  function adminBillingRows() {
+    const subscriptions = state.subscriptions || [];
+    const subscriptionOwnerIds = new Set(subscriptions.map((subscription) => subscription.owner_id).filter(Boolean));
+    const missingSubscriptionRows = landlordUsers()
+      .filter((user) => !subscriptionOwnerIds.has(user.id))
+      .map((user) => ({
+        id: "",
+        owner_id: user.id,
+        plan: "No plan",
+        monthly_fee: 0,
+        status: accountStatus(user) === "Trial" ? "Trial" : "No subscription",
+        last_payment_date: "",
+        next_billing_date: "",
+        billing_method: "",
+        provider_payment_status: "",
+        provider_payment_reference: "",
+      }));
+    return [...subscriptions, ...missingSubscriptionRows];
+  }
+
+  function billingDateSortValue(value) {
+    if (!value) return Number.MAX_SAFE_INTEGER;
+    const time = new Date(`${value}T00:00:00`).getTime();
+    return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
   }
 
   function paidPlanForEndedTrial(subscription) {
@@ -3338,20 +3647,6 @@
 
     ui.ownerLandlordTable.innerHTML =
       landlords
-        .filter((user) => {
-          const subscription = subscriptionByOwner(user.id);
-          const portfolio = ownerPortfolio(user.id);
-          return matchesSearch([
-            user.name,
-            user.phone,
-            user.email,
-            platformAccountDisplayStatus(user, subscription),
-            platformOwnerText(user),
-            subscription ? subscription.plan : "",
-            subscription ? subscription.status : "",
-            portfolio.properties.map((property) => property.property_name).join(" "),
-          ]);
-        })
         .map((user) => {
           const portfolio = ownerPortfolio(user.id);
           const subscription = subscriptionByOwner(user.id);
@@ -3363,11 +3658,9 @@
           const badgeRequest = verifiedBadgeRequestForOwner(user.id);
           const badgeAction = hasVerifiedBadge ? "Remove Badge" : badgeRequest ? "Approve Badge" : "No Request";
           const badgeActionDisabled = !hasVerifiedBadge && !badgeRequest ? "disabled" : "";
-          const endTrialButton = canEndTrialAccount(user, subscription)
-            ? `<button class="text-button" data-end-owner-trial="${escapeHtml(user.id)}" type="button">End Trial</button>`
-            : "";
+          const billingActions = adminBillingActions(user, subscription);
           return `
-            <tr>
+            <tr data-owner-row="${escapeHtml(user.id)}" class="${user.id === highlightedOwnerId ? "row-highlight" : ""}">
               <td>
                 <strong>${escapeHtml(user.name)}</strong>
                 <small class="table-subtext">${escapeHtml(userContactLabel(user))}</small>
@@ -3382,14 +3675,15 @@
               <td>${portfolio.properties.length} properties / ${portfolio.units.length} rooms</td>
               <td>
                 ${escapeHtml(openTicketCount ? `${openTicketCount} support open` : "No open support")}
-                <small class="table-subtext">${subscription ? `Next: ${formatDate(subscription.next_billing_date)}` : "No subscription"}</small>
+                <small class="table-subtext">${subscription ? `Next: ${formatOptionalDate(subscription.next_billing_date)}` : "No subscription"}</small>
               </td>
               <td>
                 <div class="button-row">
                   <button class="text-button" data-toggle-account-status="${user.id}" type="button">${nextAction}</button>
                   <button class="text-button" data-cycle-plan="${user.id}" type="button">Package</button>
                   <button class="text-button" data-toggle-verified-badge="${user.id}" ${badgeActionDisabled} type="button">${badgeAction}</button>
-                  ${endTrialButton}
+                  ${billingActions}
+                  <button class="text-button" data-impersonate-landlord="${escapeHtml(user.id)}" type="button">Login As Landlord</button>
                   <button class="text-button" data-admin-reset-user="${user.id}" type="button">Send Reset OTP</button>
                   <button class="danger-button" data-delete-owner-account="${user.id}" type="button">Delete</button>
                 </div>
@@ -3403,6 +3697,13 @@
 
   function renderPlatformBilling() {
     const subscriptions = state.subscriptions || [];
+    const billingRows = adminBillingRows();
+    const billingLandlords = landlordUsers();
+    const selectedBillingOwnerId =
+      state.billingLandlordFilter && billingLandlords.some((user) => user.id === state.billingLandlordFilter)
+        ? state.billingLandlordFilter
+        : "all";
+    if (state.billingLandlordFilter !== selectedBillingOwnerId) state.billingLandlordFilter = selectedBillingOwnerId;
     const currentMrr = subscriptions.filter(isPaidSubscription).reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
     const paidThisMonth = subscriptions
       .filter((subscription) => isPaidSubscription(subscription) && isCurrentMonth(subscription.last_payment_date))
@@ -3419,47 +3720,68 @@
       ownerSummaryItem("Trial Accounts", trials, "billingTrialAccounts"),
       ownerSummaryItem("Paid Active Plans", subscriptions.filter(isPaidSubscription).length, "billingPaidActivePlans"),
     ].join("");
+    if (ui.ownerBillingLandlordFilter) {
+      ui.ownerBillingLandlordFilter.value = selectedBillingOwnerId;
+    }
 
     ui.ownerBillingTable.innerHTML =
-      subscriptions
+      billingRows
         .slice()
         .filter((subscription) => {
           const user = userById(subscription.owner_id);
-          return matchesSearch([user ? user.name : "", subscription.plan, billingSubscriptionStatus(subscription), subscription.monthly_fee]);
+          const matchesOwner = selectedBillingOwnerId === "all" || subscription.owner_id === selectedBillingOwnerId;
+          return (
+            matchesOwner &&
+            matchesSearch([
+              user ? user.name : "",
+              user ? userContactLabel(user) : "",
+              subscription.plan,
+              billingSubscriptionStatus(subscription),
+              subscription.monthly_fee,
+            ])
+          );
         })
-        .sort((a, b) => new Date(a.next_billing_date) - new Date(b.next_billing_date))
+        .sort((a, b) => billingDateSortValue(a.next_billing_date) - billingDateSortValue(b.next_billing_date))
         .map((subscription) => {
           const user = userById(subscription.owner_id);
           const baseStatus = billingSubscriptionStatus(subscription);
           const status = isSubscriptionExpiring(subscription) && baseStatus === "Active" ? "Expiring" : baseStatus;
           const cancelLabel = subscription.cancel_at_period_end ? "Resume" : "Cancel";
           const providerNote = subscriptionProviderNote(subscription);
-          const endTrialButton =
-            user && canEndTrialAccount(user, subscription)
-              ? `<button class="text-button" data-end-owner-trial="${escapeHtml(user.id)}" type="button">End Trial</button>`
-              : "";
+          const billingActions = user ? adminBillingActions(user, subscription) : "";
           return `
             <tr>
               <td>${escapeHtml(user ? user.name : "Unknown landlord")}</td>
               <td>${escapeHtml(subscription.plan)}</td>
               <td>${formatMoney(subscription.monthly_fee)}</td>
-              <td>${formatDate(subscription.last_payment_date)}</td>
-              <td>${formatDate(subscription.next_billing_date)}</td>
+              <td>${formatOptionalDate(subscription.last_payment_date)}</td>
+              <td>${formatOptionalDate(subscription.next_billing_date)}</td>
               <td>
                 ${statusPill(status)}
                 ${providerNote ? `<small class="table-subtext">${escapeHtml(providerNote)}</small>` : ""}
               </td>
               <td>
                 <div class="button-row">
-                  ${endTrialButton}
-                  <button class="text-button" data-subscription-collect="${escapeHtml(subscription.id)}" type="button">Collect</button>
-                  <button class="text-button" data-subscription-cancel="${escapeHtml(subscription.id)}" type="button">${cancelLabel}</button>
+                  ${billingActions || `<span class="table-subtext">No payment action</span>`}
+                  ${
+                    subscription.id
+                      ? `<button class="text-button" data-subscription-cancel="${escapeHtml(subscription.id)}" type="button">${cancelLabel}</button>`
+                      : ""
+                  }
                 </div>
               </td>
             </tr>
           `;
         })
-        .join("") || emptyTableRow(7, "No subscription records yet.");
+        .join("") || emptyTableRow(7, selectedBillingOwnerId === "all" ? "No subscription records yet." : "No subscription records for this landlord.");
+  }
+
+  function updateOwnerBillingLandlordFilter() {
+    state.billingLandlordFilter = ui.ownerBillingLandlordFilter?.value || "all";
+    state.searchTerm = "";
+    if (ui.globalSearch) ui.globalSearch.value = "";
+    saveState();
+    renderPlatformBilling();
   }
 
   function subscriptionProviderNote(subscription) {
@@ -3474,23 +3796,183 @@
     return String(provider || "").toLowerCase() === "flutterwave" ? "Flutterwave" : "Pesapal";
   }
 
+  function supportTicketStatuses() {
+    return ["Open", "In Progress", "Resolved", "Closed"];
+  }
+
+  function ticketOwnerId(ticket) {
+    return ticket?.landlord_id || ticket?.owner_id || "";
+  }
+
+  function ticketDescription(ticket) {
+    return ticket?.description || ticket?.note || "";
+  }
+
+  function isOpenSupportTicket(ticket) {
+    return !["Resolved", "Closed"].includes(String(ticket?.status || "Open"));
+  }
+
+  function isNotificationRead(notification) {
+    return Boolean(notification?.is_read ?? notification?.read);
+  }
+
+  function supportTicketFilters() {
+    const saved = state.supportTicketFilters && typeof state.supportTicketFilters === "object" ? state.supportTicketFilters : {};
+    return {
+      search: String(saved.search || ""),
+      owner: saved.owner || "all",
+      status: saved.status || "all",
+      priority: saved.priority || "all",
+    };
+  }
+
+  function updateSupportTicketFilters() {
+    state.supportTicketFilters = {
+      search: ui.supportTicketSearch?.value || "",
+      owner: ui.supportTicketOwnerFilter?.value || "all",
+      status: ui.supportTicketStatusFilter?.value || "all",
+      priority: ui.supportTicketPriorityFilter?.value || "all",
+    };
+    saveState();
+    renderPlatformSupport();
+  }
+
+  function supportTicketMatchesFilters(ticket, filters = supportTicketFilters()) {
+    const ownerId = ticketOwnerId(ticket);
+    const owner = userById(ownerId);
+    const localSearch = String(filters.search || "").trim().toLowerCase();
+    const values = [ticket.subject, ticket.priority, ticket.status, ticket.description, ticket.note, ticket.admin_note, owner ? owner.name : ""];
+    const matchesLocalSearch =
+      !localSearch ||
+      values
+        .map((value) => String(value || "").toLowerCase())
+        .join(" ")
+        .includes(localSearch);
+    return (
+      matchesLocalSearch &&
+      (filters.owner === "all" || ownerId === filters.owner) &&
+      (filters.status === "all" || String(ticket.status || "Open") === filters.status) &&
+      (filters.priority === "all" || String(ticket.priority || "Medium") === filters.priority) &&
+      matchesSearch(values)
+    );
+  }
+
+  function ticketMessages(ticketId) {
+    return (state.supportMessages || [])
+      .filter((message) => message.ticket_id === ticketId)
+      .slice()
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }
+
+  function ticketMessageHistoryMarkup(ticketId) {
+    const messages = ticketMessages(ticketId);
+    if (!messages.length) return "";
+    return `
+      <div class="ticket-response-history">
+        ${messages
+          .map(
+            (message) => `
+              <div>
+                <strong>${escapeHtml(message.title || "Support response")}</strong>
+                <span>${escapeHtml(message.message)}</span>
+                <small>${escapeHtml(timeAgo(message.created_at))}</small>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  function setSupportCenterTab(tab = "tickets") {
+    activeSupportTab = ["tickets", "corrections", "notifications", "audit", "health"].includes(tab) ? tab : "tickets";
+    document.querySelectorAll("[data-support-tab]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.supportTab === activeSupportTab);
+    });
+    document.querySelectorAll("[data-support-panel]").forEach((panel) => {
+      panel.classList.toggle("active", panel.dataset.supportPanel === activeSupportTab);
+    });
+  }
+
   function renderPlatformSupport() {
     const tickets = state.supportTickets || [];
-    const openTickets = tickets.filter((ticket) => ticket.status !== "Resolved");
+    const openTickets = tickets.filter(isOpenSupportTicket);
     const notifications = state.notifications || [];
-    const unreadNotifications = notifications.filter((notification) => !notification.read).length;
+    const unreadNotifications = notifications.filter((notification) => !isNotificationRead(notification)).length;
+    const subscriptions = state.subscriptions || [];
+    const activeSubscriptions = subscriptions.filter(isPaidSubscription);
+    const monthlyRevenue = activeSubscriptions.reduce((sum, subscription) => sum + subscriptionPlanFee(subscription), 0);
+    const failedPayments = subscriptions.filter((subscription) =>
+      ["failed", "cancelled", "expired"].includes(String(subscription.provider_payment_status || "").toLowerCase()) ||
+      ["Overdue", "Pending"].includes(billingSubscriptionStatus(subscription))
+    );
+    const filters = supportTicketFilters();
+    const filteredTickets = tickets.filter((ticket) => supportTicketMatchesFilters(ticket, filters));
+    const filteredOpenTickets = filteredTickets.filter(isOpenSupportTicket);
     const storage = estimateStorageUsage();
     const systemRows = buildSystemMonitorRows();
+    if (ui.supportTicketSearch) ui.supportTicketSearch.value = filters.search;
+    if (ui.supportTicketOwnerFilter) ui.supportTicketOwnerFilter.value = filters.owner;
+    if (ui.supportTicketStatusFilter) ui.supportTicketStatusFilter.value = filters.status;
+    if (ui.supportTicketPriorityFilter) ui.supportTicketPriorityFilter.value = filters.priority;
     ui.systemStorageLabel.textContent = supabaseReady ? "Supabase active" : "Browser fallback";
     ui.systemStorageLabel.className = `pill ${supabaseReady ? "success" : "warning"}`;
     ui.systemMonitorSummary.innerHTML = [
-      ownerSummaryItem("Notifications", notifications.length, "systemNotifications"),
-      ownerSummaryItem("Unread Alerts", unreadNotifications, "systemUnreadAlerts"),
-      ownerSummaryItem("Support Tickets", tickets.length, "systemSupportTickets"),
-      ownerSummaryItem("Open Requests", openTickets.length, "systemOpenRequests"),
-      ownerSummaryItem("Bug Reports", 0, "systemBugReports"),
-      ownerSummaryItem("Storage Used", storage.label, "systemStorage"),
+      ownerSummaryItem("Total Landlords", landlordUsers().length, "adminTotalLandlords"),
+      ownerSummaryItem("Active Subscriptions", activeSubscriptions.length, "adminActiveSubscriptions"),
+      ownerSummaryItem("Monthly Revenue", formatMoney(monthlyRevenue), "adminMonthlyRevenue"),
+      ownerSummaryItem("Open Tickets", openTickets.length, "systemOpenRequests"),
+      ownerSummaryItem("Failed Payments", failedPayments.length, "billingPendingPayments"),
+      ownerSummaryItem("Unread Notifications", unreadNotifications, "systemUnreadAlerts"),
     ].join("");
+    if (ui.supportNotificationCount) ui.supportNotificationCount.textContent = `${notifications.length} notifications`;
+    if (ui.supportNotificationList) {
+      ui.supportNotificationList.innerHTML =
+        notifications
+          .slice()
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .map((notification) => {
+            const user = notification.user_id ? userById(notification.user_id) : null;
+            return `
+              <article class="support-card">
+                <div class="support-card-header">
+                  <div class="support-card-title">
+                    <strong>${escapeHtml(notification.title)}</strong>
+                    <small>${escapeHtml(notificationTypeLabel(notification.type))} - ${escapeHtml(user ? user.name : "Platform")} - ${timeAgo(notification.created_at)}</small>
+                  </div>
+                  ${statusPill(isNotificationRead(notification) ? "Read" : "Open")}
+                </div>
+                <p class="support-note">${escapeHtml(notification.message)}</p>
+              </article>
+            `;
+          })
+          .join("") || emptyBlock("No notifications yet.");
+    }
+    if (ui.auditLogCount) ui.auditLogCount.textContent = `${(state.auditLogs || []).length} logs`;
+    if (ui.auditLogList) {
+      ui.auditLogList.innerHTML =
+        (state.auditLogs || [])
+          .slice()
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .map((log) => {
+            const admin = userById(log.admin_id);
+            const landlord = userById(log.landlord_id);
+            return `
+              <article class="support-card">
+                <div class="support-card-header">
+                  <div class="support-card-title">
+                    <strong>${escapeHtml(log.action)}</strong>
+                    <small>${escapeHtml(admin ? admin.name : "Super Admin")} - ${escapeHtml(landlord ? landlord.name : "Platform")} - ${timeAgo(log.created_at)}</small>
+                  </div>
+                  ${statusPill("Audit")}
+                </div>
+                <p class="support-note">${escapeHtml(log.old_value || "No previous value")}</p>
+                <p class="support-note">${escapeHtml(log.new_value || "No new value")}</p>
+              </article>
+            `;
+          })
+          .join("") || emptyBlock("No audit logs yet.");
+    }
     ui.systemSignalList.innerHTML =
       systemRows
         .slice(0, 8)
@@ -3510,20 +3992,15 @@
         )
         .join("") || emptyBlock("No system signals yet.");
 
-    ui.supportTicketCount.textContent = `${openTickets.length} open`;
+    ui.supportTicketCount.textContent = `${filteredOpenTickets.length} open`;
     ui.supportTicketList.innerHTML =
-      tickets
+      filteredTickets
         .slice()
-        .filter((ticket) => {
-          const user = userById(ticket.owner_id);
-          return matchesSearch([ticket.subject, ticket.priority, ticket.status, ticket.note, user ? user.name : ""]);
-        })
         .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
         .map((ticket) => {
-          const user = userById(ticket.owner_id);
-          const resolved = ticket.status === "Resolved";
+          const user = userById(ticketOwnerId(ticket));
           return `
-            <article class="support-card">
+            <article class="support-card" data-ticket-card="${escapeHtml(ticket.id)}">
               <div class="support-card-header">
                 <div class="support-card-title">
                   <strong>${escapeHtml(ticket.subject)}</strong>
@@ -3534,45 +4011,671 @@
                   ${statusPill(ticket.status)}
                 </div>
               </div>
-              <p class="support-note">${escapeHtml(ticket.note || "No support note added.")}</p>
+              <p class="support-note">${escapeHtml(ticketDescription(ticket) || "No support description added.")}</p>
+              ${ticket.admin_note ? `<p class="support-note"><strong>Internal:</strong> ${escapeHtml(ticket.admin_note)}</p>` : ""}
+              ${ticketMessageHistoryMarkup(ticket.id)}
+              <div class="split-fields">
+                <label>
+                  Status
+                  <select class="ticket-status-select">
+                    ${supportTicketStatuses()
+                      .map((status) => `<option value="${escapeHtml(status)}" ${ticket.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`)
+                      .join("")}
+                  </select>
+                </label>
+                <label>
+                  Internal note
+                  <input class="ticket-admin-note" value="${escapeHtml(ticket.admin_note || "")}" placeholder="Private support note" />
+                </label>
+              </div>
+              <label>
+                Response to landlord
+                <textarea class="ticket-response-message" rows="2" placeholder="Optional response to send to landlord"></textarea>
+              </label>
               <div class="button-row">
-                <button class="text-button" data-focus-landlord="${ticket.owner_id}" type="button">View Account</button>
-                <button class="${resolved ? "text-button" : "primary-button"}" data-toggle-ticket="${ticket.id}" type="button">
-                  ${resolved ? "Reopen" : "Mark Resolved"}
-                </button>
+                <button class="text-button" data-focus-landlord="${escapeHtml(ticketOwnerId(ticket))}" type="button">View Account</button>
+                <button class="primary-button" data-update-ticket="${escapeHtml(ticket.id)}" type="button">Update Ticket</button>
               </div>
             </article>
           `;
         })
-        .join("") || emptyBlock("No support tickets yet.");
+        .join("") || emptyBlock("No support tickets match these filters.");
+    setSupportCenterTab(activeSupportTab);
+    syncBackendSupportControls(false);
+  }
 
-    const landlordMessages = notifications
-      .filter((notification) => notification.type === "announcement" && notification.user_id)
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    ui.adminMessageCount.textContent = `${landlordMessages.length} sent`;
+  function renderPlatformMessages() {
+    if (!isSaasOwner() || !ui.adminMessageList) return;
+    const messages = state.supportMessages || [];
+    ui.adminMessageCount.textContent = `${messages.length} sent`;
     ui.adminMessageList.innerHTML =
-      landlordMessages
-        .filter((notification) => {
-          const user = userById(notification.user_id);
-          return matchesSearch([notification.title, notification.message, user ? user.name : ""]);
+      messages
+        .slice()
+        .filter((message) => {
+          const user = userById(message.landlord_id || message.user_id);
+          return matchesSearch([message.title, message.message, message.template, user ? user.name : ""]);
         })
-        .slice(0, 10)
-        .map((notification) => {
-          const user = userById(notification.user_id);
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .map((message) => {
+          const user = userById(message.landlord_id || message.user_id);
           return `
             <article class="support-card">
               <div class="support-card-header">
                 <div class="support-card-title">
-                  <strong>${escapeHtml(notification.title)}</strong>
-                  <small>${escapeHtml(user ? user.name : "Unknown landlord")} - ${timeAgo(notification.created_at)}</small>
+                  <strong>${escapeHtml(message.title)}</strong>
+                  <small>${escapeHtml(user ? user.name : "Unknown landlord")} - ${timeAgo(message.created_at)}</small>
                 </div>
-                ${statusPill(notification.read ? "Read" : "Open")}
+                ${statusPill(message.template ? templateLabel(message.template) : "Custom")}
               </div>
-              <p class="support-note">${escapeHtml(notification.message)}</p>
+              <p class="support-note">${escapeHtml(message.message)}</p>
             </article>
           `;
         })
         .join("") || emptyBlock("No landlord messages yet.");
+  }
+
+  function renderPlatformReports() {
+    if (!ui.platformReportSummary || !isSaasOwner()) return;
+    const tickets = state.supportTickets || [];
+    const auditLogs = state.auditLogs || [];
+    const messages = state.supportMessages || [];
+    ui.platformReportSummary.innerHTML = [
+      ownerSummaryItem("Landlords", landlordUsers().length, "adminTotalLandlords"),
+      ownerSummaryItem("Open Tickets", tickets.filter(isOpenSupportTicket).length, "systemOpenRequests"),
+      ownerSummaryItem("Corrections", auditLogs.filter((log) => /correction|corrected|update/i.test(log.action)).length, "systemBugReports"),
+      ownerSummaryItem("Messages Sent", messages.length, "systemNotifications"),
+      ownerSummaryItem("Unread Notifications", (state.notifications || []).filter((notification) => !isNotificationRead(notification)).length, "systemUnreadAlerts"),
+      ownerSummaryItem("Storage Used", estimateStorageUsage().label, "systemStorage"),
+    ].join("");
+  }
+
+  function syncBackendSupportControls(resetRecord) {
+    if (!ui.backendSupportOwner || !isSaasOwner()) return;
+    const ownerId = ui.backendSupportOwner.value || landlordUsers()[0]?.id || "";
+    const type = ui.backendSupportType?.value || "account";
+    const records = backendSupportRecords(ownerId, type);
+    const previousRecordId = resetRecord ? "" : ui.backendSupportRecord.value;
+    ui.backendSupportRecord.innerHTML =
+      records.map((record) => `<option value="${escapeHtml(record.id)}">${escapeHtml(backendSupportRecordLabel(type, record))}</option>`).join("") ||
+      '<option value="">No records available</option>';
+    if (previousRecordId && records.some((record) => record.id === previousRecordId)) {
+      ui.backendSupportRecord.value = previousRecordId;
+    }
+    syncBackendSupportActions(resetRecord);
+  }
+
+  function syncBackendSupportActions(resetAction) {
+    if (!ui.backendSupportAction) return;
+    const type = ui.backendSupportType?.value || "account";
+    const actions = backendSupportActions(type);
+    const previousActionId = resetAction ? "" : ui.backendSupportAction.value;
+    ui.backendSupportAction.innerHTML = actions
+      .map((action) => `<option value="${escapeHtml(action.id)}">${escapeHtml(action.label)}</option>`)
+      .join("");
+    if (previousActionId && actions.some((action) => action.id === previousActionId)) {
+      ui.backendSupportAction.value = previousActionId;
+    }
+    syncBackendSupportValue();
+  }
+
+  function syncBackendSupportValue() {
+    if (!ui.backendSupportValue || !ui.backendSupportPreview) return;
+    const type = ui.backendSupportType?.value || "account";
+    const record = backendSupportSelectedRecord();
+    const action = backendSupportSelectedAction();
+    const needsValue = action && !action.fixedValue && action.input !== "none";
+    ui.backendSupportValue.disabled = !needsValue;
+    ui.backendSupportValue.readOnly = !needsValue;
+    ui.backendSupportValue.type = needsValue ? backendSupportInputType(action) : "text";
+    ui.backendSupportValue.placeholder = needsValue ? action.placeholder || "Enter corrected value" : "No manual value needed";
+    ui.backendSupportValue.value = needsValue ? backendSupportCurrentValue(type, record, action) : action?.valueLabel || action?.fixedValue || "";
+    ui.backendSupportPreview.textContent = record && action
+      ? `${backendSupportTypeLabel(type)}: ${backendSupportRecordLabel(type, record)}. ${action.label}.`
+      : "Choose a landlord and record to start a correction.";
+  }
+
+  function backendSupportInputType(action) {
+    return ["number", "date", "text"].includes(action?.input) ? action.input : "text";
+  }
+
+  function backendSupportRecords(ownerId, type) {
+    const owner = userById(ownerId);
+    const portfolio = ownerPortfolio(ownerId);
+    if (type === "account") return [owner, ...staffUsersForOwner(ownerId)].filter(Boolean);
+    if (type === "property") return portfolio.properties;
+    if (type === "unit") return portfolio.units;
+    if (type === "tenant") return portfolio.tenants;
+    if (type === "payment") return portfolio.payments;
+    if (type === "expense") return portfolio.expenses;
+    if (type === "subscription") return (state.subscriptions || []).filter((subscription) => subscription.owner_id === ownerId);
+    return [];
+  }
+
+  function backendSupportActions(type) {
+    const number = "number";
+    const date = "date";
+    const text = "text";
+    const actions = {
+      account: [
+        fixedAction("account_status", "Set account Active", "Active"),
+        fixedAction("account_status", "Set account Pending", "Pending"),
+        fixedAction("account_status", "Set account Suspended", "Suspended"),
+        fixedAction("account_status", "Set account Trial", "Trial"),
+      ],
+      property: [
+        fieldAction("property_name", "Correct property name", text),
+        fieldAction("location", "Correct location", text),
+        fieldAction("property_type", "Correct property type", text),
+      ],
+      unit: [
+        fieldAction("unit_number", "Correct room/shop name", text),
+        fieldAction("rent_amount", "Correct rent amount", number),
+        fixedAction("status", "Mark room vacant", "vacant"),
+        fixedAction("status", "Mark room occupied", "occupied"),
+        fixedAction("status", "Mark room maintenance", "maintenance"),
+        fixedAction("listing_published", "Publish vacancy", true, "Published"),
+        fixedAction("listing_published", "Unpublish vacancy", false, "Unpublished"),
+        { id: "sync_unit_status", label: "Sync room status from active tenants", input: "none" },
+      ],
+      tenant: [
+        fieldAction("name", "Correct tenant name", text),
+        fieldAction("phone", "Correct phone", text),
+        fieldAction("national_id", "Correct national ID", text),
+        { id: "correct_tenant_balance", label: "Correct current balance", input: number, placeholder: "Enter current balance" },
+        fieldAction("rent_amount", "Correct tenant rent", number),
+        fieldAction("deposit_paid", "Correct deposit paid", number),
+        fieldAction("move_in_date", "Correct move-in date", date),
+        fixedAction("status", "Mark tenant active", "active", "active"),
+        fixedAction("status", "Mark tenant moved out", "moved_out", "moved out"),
+        { id: "recover_tenant", label: "Recover moved-out tenant", input: "none" },
+      ],
+      payment: [
+        fieldAction("amount", "Edit payment amount", number),
+        fieldAction("payment_date", "Correct payment date", date),
+        fieldAction("payment_method", "Correct payment method", text),
+        fieldAction("reference", "Correct reference", text),
+        fieldAction("payment_proof", "Correct proof note", text),
+        { id: "reverse_payment", label: "Reverse payment", input: "none" },
+        { id: "reassign_payment", label: "Reassign payment", input: "tenant", placeholder: "Tenant name, phone, or ID" },
+        fixedAction("verification_status", "Mark payment Verified", "Verified"),
+        fixedAction("verification_status", "Mark payment Unverified", "Unverified"),
+        fixedAction("verification_status", "Mark payment Disputed", "Disputed"),
+        { id: "recalculate_balance", label: "Recalculate tenant payment balances", input: "none" },
+      ],
+      expense: [
+        fieldAction("type", "Correct expense type", text),
+        fieldAction("amount", "Correct expense amount", number),
+        fieldAction("date", "Correct expense date", date),
+      ],
+      subscription: [
+        fixedAction("plan", "Set Starter plan", "Starter"),
+        fixedAction("plan", "Set Professional plan", "Professional"),
+        fixedAction("plan", "Set Enterprise plan", "Enterprise"),
+        fixedAction("status", "Activate subscription", "Active"),
+        fixedAction("status", "Suspend subscription", "Paused", "Suspended"),
+        fixedAction("status", "Set subscription Pending", "Pending"),
+        fixedAction("status", "Set subscription Overdue", "Overdue"),
+        fixedAction("status", "Set subscription Cancelled", "Cancelled"),
+        { id: "extend_subscription_7", label: "Extend subscription by 7 days", input: "none", days: 7 },
+        { id: "extend_subscription_30", label: "Extend subscription by 30 days", input: "none", days: 30 },
+        fieldAction("next_billing_date", "Correct next billing date", date),
+        fieldAction("last_payment_date", "Correct last paid date", date),
+      ],
+    };
+    return actions[type] || [];
+  }
+
+  function fieldAction(field, label, input) {
+    return { id: field, field, label, input, placeholder: input === "number" ? "Enter amount" : "Enter corrected value" };
+  }
+
+  function fixedAction(field, label, fixedValue, valueLabel = fixedValue) {
+    return { id: `${field}:${String(fixedValue)}`, field, label, fixedValue, valueLabel: String(valueLabel), input: "none" };
+  }
+
+  function backendSupportSelectedRecord() {
+    const type = ui.backendSupportType?.value || "account";
+    const id = ui.backendSupportRecord?.value || "";
+    return backendSupportRecords(ui.backendSupportOwner?.value || "", type).find((record) => record.id === id) || null;
+  }
+
+  function backendSupportSelectedAction() {
+    const type = ui.backendSupportType?.value || "account";
+    const id = ui.backendSupportAction?.value || "";
+    return backendSupportActions(type).find((action) => action.id === id) || null;
+  }
+
+  function backendSupportCurrentValue(type, record, action) {
+    if (!record || !action) return "";
+    if (action.id === "correct_tenant_balance") return getRentRows([record])[0]?.balance ?? 0;
+    if (action.id === "reassign_payment") {
+      const tenant = tenantById(record.tenant_id);
+      return tenant ? `${tenant.name} - ${tenant.phone}` : "";
+    }
+    if (!action.field) return "";
+    if (type === "subscription" && action.field === "plan") return record.plan || "";
+    return record[action.field] ?? "";
+  }
+
+  function backendSupportRecordLabel(type, record) {
+    if (!record) return "Unknown record";
+    if (type === "account") return `${record.name} - ${roleLabel(record.role)} - ${accountStatus(record)}`;
+    if (type === "property") return `${record.property_name} - ${record.location || "No location"}`;
+    if (type === "unit") return `${record.unit_number} - ${record.status} - ${formatMoney(record.rent_amount)}`;
+    if (type === "tenant") return `${record.name} - ${tenantStatusLabel(record)} - ${formatMoney(record.rent_amount)}`;
+    if (type === "payment") {
+      const tenant = tenantById(record.tenant_id);
+      return `${tenant ? tenant.name : "Removed tenant"} - ${formatMoney(record.amount)} - ${formatOptionalDate(record.payment_date)}`;
+    }
+    if (type === "expense") return `${record.type} - ${formatMoney(record.amount)} - ${formatOptionalDate(record.date)}`;
+    if (type === "subscription") return `${record.plan} - ${billingSubscriptionStatus(record)} - ${formatMoney(subscriptionPlanFee(record))}`;
+    return record.id;
+  }
+
+  function backendSupportTypeLabel(type) {
+    return {
+      account: "Account",
+      property: "Property",
+      unit: "Room / Shop",
+      tenant: "Tenant",
+      payment: "Payment",
+      expense: "Expense",
+      subscription: "Subscription",
+    }[type] || "Record";
+  }
+
+  function applyBackendSupportCorrection(event) {
+    event.preventDefault();
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can apply backend corrections.");
+      return;
+    }
+    const ownerId = ui.backendSupportOwner.value;
+    const type = ui.backendSupportType.value;
+    const record = backendSupportSelectedRecord();
+    const action = backendSupportSelectedAction();
+    const owner = userById(ownerId);
+    if (!owner || !record || !action) {
+      showToast("Choose a landlord, record, and correction first.");
+      return;
+    }
+
+    const beforeLabel = backendSupportRecordLabel(type, record);
+    const beforeValue = backendSupportAuditValue(type, record, action);
+    const value = backendSupportCorrectionValue(action);
+    if (value.invalid) {
+      showToast(value.message);
+      return;
+    }
+    const applied = applyBackendSupportChange(type, record.id, action, value.value);
+    if (!applied) {
+      showToast("Could not apply that correction.");
+      return;
+    }
+
+    const afterRecord = backendSupportRecords(ownerId, type).find((item) => item.id === record.id) || record;
+    const afterLabel = backendSupportRecordLabel(type, afterRecord);
+    const afterValue = backendSupportAuditValue(type, afterRecord, action);
+    const note = ui.backendSupportNote.value.trim();
+    const actionValue = backendSupportCorrectionDisplayValue(action, value);
+    addAuditLog({
+      landlord_id: ownerId,
+      action: `Super Admin corrected ${backendSupportTypeLabel(type).toLowerCase()}: ${action.label}`,
+      old_value: beforeValue || beforeLabel,
+      new_value: afterValue || afterLabel,
+    });
+    state.supportTickets = state.supportTickets || [];
+    state.supportTickets.push({
+      id: makeId("support"),
+      owner_id: ownerId,
+      landlord_id: ownerId,
+      subject: `Backend correction: ${backendSupportTypeLabel(type)}`,
+      description: note || `${action.label}${actionValue !== undefined && actionValue !== "" ? ` -> ${actionValue}` : ""}.`,
+      priority: "Medium",
+      status: "Resolved",
+      note: [
+        `${action.label}${actionValue !== undefined && actionValue !== "" ? ` -> ${actionValue}` : ""}.`,
+        `Before: ${beforeLabel}.`,
+        `After: ${afterLabel}.`,
+        note ? `Reason: ${note}` : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      admin_note: note,
+      created_at: new Date().toISOString(),
+      updated_at: isoDate(new Date()),
+      resolved_at: new Date().toISOString(),
+    });
+    addNotification({
+      user_id: SUPER_ADMIN_USER_ID,
+      type: "support",
+      title: "Backend correction applied",
+      message: `${owner.name}: ${action.label}. ${note || "No note added."}`,
+    });
+
+    ui.backendSupportNote.value = "";
+    saveState();
+    flushPendingSupabaseSave();
+    renderAll();
+    showToast("Correction applied.");
+  }
+
+  function backendSupportCorrectionValue(action) {
+    if (action.fixedValue !== undefined) return { value: action.fixedValue };
+    if (action.input === "none") return { value: undefined };
+    const raw = String(ui.backendSupportValue.value || "").trim();
+    if (!raw) return { invalid: true, message: "Enter the corrected value." };
+    if (action.input === "number") {
+      const number = Number(raw);
+      if (!Number.isFinite(number) || number < 0) return { invalid: true, message: "Enter a valid amount." };
+      if (action.id === "correct_tenant_balance") {
+        const tenant = backendSupportSelectedRecord();
+        if (tenant && number > Number(tenant.rent_amount || 0)) {
+          return { invalid: true, message: "Balance cannot be higher than the tenant's monthly rent." };
+        }
+      }
+      return { value: number };
+    }
+    if (action.input === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return { invalid: true, message: "Use a valid date." };
+    }
+    if (action.input === "tenant") {
+      const ownerId = ui.backendSupportOwner?.value || "";
+      const query = raw.toLowerCase();
+      const tenant = ownerPortfolio(ownerId).tenants.find((item) =>
+        [item.id, item.name, item.phone, item.national_id]
+          .map((value) => String(value || "").toLowerCase())
+          .some((value) => value === query || value.includes(query))
+      );
+      if (!tenant) return { invalid: true, message: "No tenant matched that name, phone, or ID." };
+      return { value: tenant.id, label: `${tenant.name} - ${tenant.phone}` };
+    }
+    return { value: raw };
+  }
+
+  function backendSupportCorrectionDisplayValue(action, value) {
+    if (value?.label) return value.label;
+    if (action.fixedValue !== undefined) return action.valueLabel;
+    if (value?.value === undefined || value?.value === "") return "";
+    return value.value;
+  }
+
+  function backendSupportAuditValue(type, record, action) {
+    if (!record || !action) return "";
+    if (action.id === "correct_tenant_balance") {
+      const balance = getRentRows([record])[0]?.balance ?? 0;
+      return `Current balance ${formatMoney(balance)}`;
+    }
+    if (action.id === "reverse_payment") {
+      return `${formatMoney(record.amount)} / ${record.verification_status || "Unverified"} / ${record.reference || "No reference"}`;
+    }
+    if (action.id === "reassign_payment") {
+      const tenant = tenantById(record.tenant_id);
+      return tenant ? `${tenant.name} / ${tenant.phone}` : record.tenant_id || "Unassigned";
+    }
+    if (action.id?.startsWith("extend_subscription_")) {
+      return `Next billing ${formatOptionalDate(record.next_billing_date)}`;
+    }
+    if (action.field) {
+      const value = record[action.field];
+      if (action.input === "number") return formatMoney(value);
+      if (action.input === "date") return formatOptionalDate(value);
+      return String(value ?? "");
+    }
+    return backendSupportRecordLabel(type, record);
+  }
+
+  function applyBackendSupportChange(type, recordId, action, value) {
+    if (type === "account") {
+      state.users = state.users.map((user) => (user.id === recordId ? { ...user, [action.field]: value } : user));
+      return true;
+    }
+    if (type === "property") {
+      state.properties = state.properties.map((property) => (property.id === recordId ? { ...property, [action.field]: value } : property));
+      return true;
+    }
+    if (type === "unit") {
+      if (action.id === "sync_unit_status") {
+        syncUnitStatusFromTenants(recordId);
+        return true;
+      }
+      state.units = state.units.map((unit) =>
+        unit.id === recordId
+          ? {
+              ...unit,
+              [action.field]: value,
+              listing_published: action.field === "status" && value !== "vacant" ? false : action.field === "listing_published" ? Boolean(value) : unit.listing_published,
+            }
+          : unit
+      );
+      return true;
+    }
+    if (type === "tenant") {
+      if (action.id === "correct_tenant_balance") {
+        correctTenantCurrentBalance(recordId, value);
+        return true;
+      }
+      if (action.id === "recover_tenant") {
+        recoverTenantRecord(recordId);
+        return true;
+      }
+      state.tenants = state.tenants.map((tenant) =>
+        tenant.id === recordId
+          ? {
+              ...tenant,
+              [action.field]: value,
+              move_out_date:
+                action.field === "status" && value === "active"
+                  ? ""
+                  : action.field === "status" && value === "moved_out"
+                    ? tenant.move_out_date || isoDate(new Date())
+                    : tenant.move_out_date,
+              move_out_balance: action.field === "status" && value === "active" ? 0 : tenant.move_out_balance,
+              move_out_damages: action.field === "status" && value === "active" ? 0 : tenant.move_out_damages,
+              move_out_refund: action.field === "status" && value === "active" ? 0 : tenant.move_out_refund,
+            }
+          : tenant
+      );
+      const tenant = tenantById(recordId);
+      if (tenant?.unit_id) syncUnitStatusFromTenants(tenant.unit_id);
+      return true;
+    }
+    if (type === "payment") {
+      if (action.id === "reverse_payment") {
+        const payment = state.payments.find((item) => item.id === recordId);
+        if (!payment) return false;
+        state.payments = state.payments.map((item) =>
+          item.id === recordId
+            ? {
+                ...item,
+                amount: 0,
+                balance: tenantById(item.tenant_id)?.rent_amount || item.balance || 0,
+                verification_status: "Reversed",
+                payment_proof: item.payment_proof || "Reversed by Super Admin",
+              }
+            : item
+        );
+        recalculateTenantPaymentBalances(payment.tenant_id);
+        return true;
+      }
+      if (action.id === "reassign_payment") {
+        const payment = state.payments.find((item) => item.id === recordId);
+        if (!payment || !tenantById(value)) return false;
+        const previousTenantId = payment.tenant_id;
+        state.payments = state.payments.map((item) => (item.id === recordId ? { ...item, tenant_id: value } : item));
+        recalculateTenantPaymentBalances(previousTenantId);
+        recalculateTenantPaymentBalances(value);
+        return true;
+      }
+      if (action.id !== "recalculate_balance") {
+        state.payments = state.payments.map((payment) => (payment.id === recordId ? { ...payment, [action.field]: value } : payment));
+      }
+      const payment = state.payments.find((item) => item.id === recordId);
+      if (payment?.tenant_id) recalculateTenantPaymentBalances(payment.tenant_id);
+      return true;
+    }
+    if (type === "expense") {
+      state.expenses = state.expenses.map((expense) => (expense.id === recordId ? { ...expense, [action.field]: value } : expense));
+      return true;
+    }
+    if (type === "subscription") {
+      if (action.id?.startsWith("extend_subscription_")) {
+        state.subscriptions = state.subscriptions.map((subscription) => {
+          if (subscription.id !== recordId) return subscription;
+          const startDate = subscription.next_billing_date || isoDate(new Date());
+          return {
+            ...subscription,
+            status: "Active",
+            provider_payment_status: subscription.provider_payment_status || "Manual",
+            next_billing_date: addDays(startDate, Number(action.days || 0)),
+            grace_period_end: addDays(startDate, Number(action.days || 0)),
+          };
+        });
+        const subscription = state.subscriptions.find((item) => item.id === recordId);
+        if (subscription?.owner_id) {
+          state.users = state.users.map((user) => (user.id === subscription.owner_id ? { ...user, account_status: "Active" } : user));
+        }
+        return true;
+      }
+      state.subscriptions = state.subscriptions.map((subscription) => {
+        if (subscription.id !== recordId) return subscription;
+        const next = { ...subscription, [action.field]: value };
+        if (action.field === "plan") next.monthly_fee = packageFee(value) || subscription.monthly_fee;
+        if (action.field === "status" && value === "Active") next.provider_payment_status = next.provider_payment_status || "Manual";
+        return next;
+      });
+      const subscription = state.subscriptions.find((item) => item.id === recordId);
+      if (subscription?.owner_id && action.field === "status") {
+        state.users = state.users.map((user) =>
+          user.id === subscription.owner_id
+            ? { ...user, account_status: value === "Active" ? "Active" : ["Pending", "Overdue", "Paused", "Cancelled"].includes(value) ? "Pending" : user.account_status }
+            : user
+        );
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function recoverTenantRecord(tenantId) {
+    state.tenants = state.tenants.map((tenant) =>
+      tenant.id === tenantId
+        ? {
+            ...tenant,
+            status: "active",
+            move_out_date: "",
+            move_out_balance: 0,
+            move_out_damages: 0,
+            move_out_refund: 0,
+            move_out_note: "",
+          }
+        : tenant
+    );
+    const tenant = tenantById(tenantId);
+    if (tenant?.unit_id) syncUnitStatusFromTenants(tenant.unit_id);
+  }
+
+  function syncUnitStatusFromTenants(unitId) {
+    const occupied = (state.tenants || []).some((tenant) => tenant.unit_id === unitId && isActiveTenant(tenant));
+    state.units = state.units.map((unit) =>
+      unit.id === unitId
+        ? {
+            ...unit,
+            status: occupied ? "occupied" : "vacant",
+            listing_published: occupied ? false : unit.listing_published,
+          }
+        : unit
+    );
+  }
+
+  function recalculateTenantPaymentBalances(tenantId) {
+    const tenant = tenantById(tenantId);
+    if (!tenant) return;
+    const balanceById = new Map();
+    const paymentsByMonth = state.payments
+      .filter((payment) => payment.tenant_id === tenantId)
+      .reduce((groups, payment) => {
+        const key = String(payment.payment_date || "").slice(0, 7) || "unknown";
+        groups.set(key, [...(groups.get(key) || []), payment]);
+        return groups;
+      }, new Map());
+    paymentsByMonth.forEach((payments) => {
+      let paid = 0;
+      payments
+        .slice()
+        .sort((a, b) => new Date(`${a.payment_date}T00:00:00`) - new Date(`${b.payment_date}T00:00:00`) || String(a.id).localeCompare(String(b.id)))
+        .forEach((payment) => {
+        paid += Number(payment.amount || 0);
+        balanceById.set(payment.id, Math.max(0, Number(tenant.rent_amount || 0) - paid));
+      });
+    });
+    state.payments = state.payments.map((payment) => (balanceById.has(payment.id) ? { ...payment, balance: balanceById.get(payment.id) } : payment));
+  }
+
+  function correctTenantCurrentBalance(tenantId, desiredBalance) {
+    const tenant = tenantById(tenantId);
+    if (!tenant) return;
+
+    const targetPaid = Math.max(0, Number(tenant.rent_amount || 0) - Number(desiredBalance || 0));
+    const monthlyPayments = state.payments
+      .filter((payment) => payment.tenant_id === tenantId && isCurrentMonth(payment.payment_date))
+      .sort((a, b) => new Date(`${a.payment_date}T00:00:00`) - new Date(`${b.payment_date}T00:00:00`) || String(a.id).localeCompare(String(b.id)));
+    const currentPaid = monthlyPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const delta = targetPaid - currentPaid;
+
+    if (delta > 0 || !monthlyPayments.length) {
+      state.payments.push({
+        id: makeId("payment"),
+        tenant_id: tenantId,
+        amount: Math.max(0, delta || targetPaid),
+        payment_method: "Admin correction",
+        payment_date: isoDate(new Date()),
+        balance: Number(desiredBalance || 0),
+        reference: autoReference("ADMIN"),
+        receipt_number: generateReceiptNumber(isoDate(new Date()), `${tenantId}-${Date.now()}`),
+        payment_proof: "Super Admin balance correction",
+        verification_status: "Verified",
+        created_at: new Date().toISOString(),
+      });
+    } else if (delta < 0) {
+      let remainingReduction = Math.abs(delta);
+      const paymentIdsToAmounts = new Map(monthlyPayments.map((payment) => [payment.id, Number(payment.amount || 0)]));
+      monthlyPayments
+        .slice()
+        .reverse()
+        .forEach((payment) => {
+          if (remainingReduction <= 0) return;
+          const currentAmount = paymentIdsToAmounts.get(payment.id) || 0;
+          const reduction = Math.min(currentAmount, remainingReduction);
+          paymentIdsToAmounts.set(payment.id, currentAmount - reduction);
+          remainingReduction -= reduction;
+        });
+      state.payments = state.payments.map((payment) =>
+        paymentIdsToAmounts.has(payment.id)
+          ? {
+              ...payment,
+              amount: paymentIdsToAmounts.get(payment.id),
+              payment_proof: payment.payment_proof || "Adjusted by Super Admin balance correction",
+            }
+          : payment
+      );
+    } else {
+      const latest = monthlyPayments[monthlyPayments.length - 1];
+      if (latest) {
+        state.payments = state.payments.map((payment) => (payment.id === latest.id ? { ...payment, balance: Number(desiredBalance || 0) } : payment));
+      }
+    }
+
+    recalculateTenantPaymentBalances(tenantId);
+  }
+
+  function openBackendSupportAccount() {
+    const ownerId = ui.backendSupportOwner?.value;
+    if (!ownerId) {
+      showToast("Choose a landlord first.");
+      return;
+    }
+    focusLandlordAccount(ownerId);
   }
 
   function renderProperties() {
@@ -4689,29 +5792,43 @@
     syncOwnerPaymentDefaults(false);
     const owner = userById(ownerId);
     const paymentDate = ui.ownerPaymentDate.value || isoDate(new Date());
-    const amount = Number(ui.ownerPaymentAmount.value || subscription.monthly_fee || 0);
+    const planMonthlyFee = subscriptionPlanFee(subscription);
+    const savedMonthlyFee = planMonthlyFee || Number(subscription.monthly_fee || 0);
     const note = ui.ownerPaymentNote.value.trim() || defaultOwnerPaymentNote(owner, subscription, paymentDate);
     const status = ui.ownerPaymentStatus?.value || "Active";
     state.subscriptions = state.subscriptions.map((item) =>
       item.id === subscription.id
         ? {
             ...item,
-            monthly_fee: Number.isFinite(amount) ? amount : item.monthly_fee,
+            monthly_fee: savedMonthlyFee,
             status,
             cancel_at_period_end: status === "Cancelled" ? true : item.cancel_at_period_end && status !== "Active",
             last_payment_date: paymentDate,
-            last_payment_method: ui.ownerPaymentMethod.value,
+            last_payment_method: item.last_payment_method || "Manual confirmation",
             last_payment_note: note,
             next_billing_date: addMonths(paymentDate, 1),
-            provider_payment_status: ["Pesapal", "Flutterwave"].includes(ui.ownerPaymentMethod.value)
-              ? item.provider_payment_status
-              : "Manual",
+            provider_payment_status: status === "Active" ? "Manual" : item.provider_payment_status || "Pending",
             provider_next_action: null,
           }
         : item
     );
+    state.users = state.users.map((item) =>
+      item.id === ownerId
+        ? {
+            ...item,
+            account_status: status === "Active" ? "Active" : ["Pending", "Overdue", "Paused", "Cancelled"].includes(status) ? "Pending" : item.account_status,
+          }
+        : item
+    );
 
+    addAuditLog({
+      landlord_id: ownerId,
+      action: "Super Admin corrected subscription payment",
+      old_value: `${subscription.status || "Unknown"} / ${formatMoney(subscription.monthly_fee || 0)} / ${subscription.last_payment_date || "No payment"}`,
+      new_value: `${status} / ${formatMoney(savedMonthlyFee)} / ${paymentDate}`,
+    });
     saveState();
+    flushPendingSupabaseSave();
     ui.ownerPaymentForm.reset();
     setTodayDefaults();
     renderAll();
@@ -4735,7 +5852,7 @@
       return;
     }
 
-    const packageAmount = Number(subscription.monthly_fee || packageFee(subscription.plan) || 0);
+    const packageAmount = subscriptionPlanFee(subscription);
     const paymentDate = ui.ownerPaymentDate.value || today;
     const generatedNote = defaultOwnerPaymentNote(owner, subscription, paymentDate);
     const noteWasGenerated = !ui.ownerPaymentNote.value.trim() || ui.ownerPaymentNote.value === ui.ownerPaymentNote.dataset.generatedNote;
@@ -4748,8 +5865,8 @@
       ui.ownerPaymentNote.value = generatedNote;
       ui.ownerPaymentNote.dataset.generatedNote = generatedNote;
     }
-    if (!ui.ownerPaymentMethod.value) {
-      ui.ownerPaymentMethod.value = "MTN MoMo";
+    if (ui.ownerPaymentMethod) {
+      ui.ownerPaymentMethod.value = subscriptionCheckoutOptionLabel(subscription);
     }
     if (ui.ownerPaymentStatus) {
       ui.ownerPaymentStatus.value = billingSubscriptionStatus(subscription) === "Overdue" ? "Overdue" : subscription.status || "Active";
@@ -4763,6 +5880,11 @@
 
   function packageFee(plan) {
     return PACKAGE_OPTIONS.find((option) => option.plan === plan)?.fee || 0;
+  }
+
+  function subscriptionPlanFee(subscription) {
+    if (!subscription) return 0;
+    return packageFee(subscription.plan) || Number(subscription.monthly_fee || 0);
   }
 
   function signupPlanOption(plan) {
@@ -4812,20 +5934,77 @@
     }
 
     state.supportTickets = state.supportTickets || [];
-    state.supportTickets.push({
+    const createdAt = new Date().toISOString();
+    const ticket = {
       id: makeId("ticket"),
       owner_id: ownerId,
+      landlord_id: ownerId,
       subject: ui.supportSubject.value.trim(),
+      description: ui.supportNote.value.trim(),
       priority: ui.supportPriority.value,
       status: ui.supportStatus.value,
       note: ui.supportNote.value.trim(),
+      admin_note: "",
       updated_at: isoDate(new Date()),
+      created_at: createdAt,
+      resolved_at: ["Resolved", "Closed"].includes(ui.supportStatus.value) ? createdAt : null,
+    };
+    state.supportTickets.push(ticket);
+    addAuditLog({
+      landlord_id: ownerId,
+      action: `Super Admin created support ticket: ${ticket.subject}`,
+      old_value: "",
+      new_value: ticketDescription(ticket),
     });
 
     saveState();
     ui.supportTicketForm.reset();
     renderAll();
     showToast("Support ticket saved.");
+  }
+
+  function updateSupportTicket(id, button = null) {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can update support tickets.");
+      return;
+    }
+    const card = button?.closest("[data-ticket-card]");
+    const ticket = (state.supportTickets || []).find((item) => item.id === id);
+    if (!ticket || !card) return;
+    const nextStatus = card.querySelector(".ticket-status-select")?.value || ticket.status || "Open";
+    const nextAdminNote = card.querySelector(".ticket-admin-note")?.value.trim() || "";
+    const response = card.querySelector(".ticket-response-message")?.value.trim() || "";
+    const updatedAt = new Date().toISOString();
+    const oldValue = `${ticket.status || "Open"} | ${ticket.admin_note || ""}`;
+    state.supportTickets = (state.supportTickets || []).map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            status: nextStatus,
+            admin_note: nextAdminNote,
+            updated_at: isoDate(new Date()),
+            resolved_at: ["Resolved", "Closed"].includes(nextStatus) ? item.resolved_at || updatedAt : null,
+          }
+        : item
+    );
+    if (response) {
+      createLandlordMessage({
+        landlord_id: ticketOwnerId(ticket),
+        title: `Support update: ${ticket.subject}`,
+        message: response,
+        template: "support",
+        ticket_id: ticket.id,
+      });
+    }
+    addAuditLog({
+      landlord_id: ticketOwnerId(ticket),
+      action: `Super Admin updated support ticket: ${ticket.subject}`,
+      old_value: oldValue,
+      new_value: `${nextStatus} | ${nextAdminNote}${response ? ` | Response: ${response}` : ""}`,
+    });
+    saveState();
+    renderAll();
+    showToast(response ? "Ticket updated and response sent." : "Ticket updated.");
   }
 
   function sendLandlordMessage(event) {
@@ -4847,16 +6026,85 @@
       return;
     }
 
-    addNotification({
-      user_id: owner.id,
-      type: "announcement",
+    createLandlordMessage({
+      landlord_id: owner.id,
       title,
       message,
+      template: ui.adminMessageTemplate?.value || "",
+    });
+    addAuditLog({
+      landlord_id: owner.id,
+      action: `Super Admin sent message: ${title}`,
+      old_value: "",
+      new_value: message,
     });
     saveState();
     ui.adminMessageForm.reset();
+    if (ui.adminMessageTemplate) ui.adminMessageTemplate.value = "";
     renderAll();
     showToast(`Message sent to ${owner.name}.`);
+  }
+
+  function createLandlordMessage({ landlord_id, title, message, template = "", ticket_id = "" }) {
+    state.supportMessages = state.supportMessages || [];
+    state.supportMessages.push({
+      id: makeId("message"),
+      landlord_id,
+      user_id: landlord_id,
+      title,
+      message,
+      template,
+      ticket_id,
+      created_at: new Date().toISOString(),
+    });
+    addNotification({
+      user_id: landlord_id,
+      type: template === "support" ? "support" : "announcement",
+      title,
+      message,
+    });
+  }
+
+  function applyAdminMessageTemplate() {
+    const template = adminMessageTemplates()[ui.adminMessageTemplate?.value || ""];
+    if (!template) return;
+    ui.adminMessageTitle.value = template.title;
+    ui.adminMessageBody.value = template.message;
+  }
+
+  function adminMessageTemplates() {
+    return {
+      welcome: {
+        title: "Welcome to RentLedger UG",
+        message: "Welcome to RentLedger UG. Your account is ready, and our support team is here if you need help setting up properties, tenants, or payments.",
+      },
+      subscription: {
+        title: "Subscription reminder",
+        message: "Your RentLedger UG subscription needs attention. Please open Billing and complete payment to keep your account active.",
+      },
+      payment: {
+        title: "Payment reminder",
+        message: "This is a reminder to confirm your pending RentLedger UG platform payment. Contact support if you already paid.",
+      },
+      support: {
+        title: "Support follow up",
+        message: "We reviewed your support request and have updated your account. Reply if anything still looks incorrect.",
+      },
+      maintenance: {
+        title: "Maintenance notice",
+        message: "RentLedger UG may have brief maintenance. Your records remain saved, and normal access will resume shortly.",
+      },
+    };
+  }
+
+  function templateLabel(template) {
+    return {
+      welcome: "Welcome",
+      subscription: "Subscription",
+      payment: "Payment",
+      support: "Support",
+      maintenance: "Maintenance",
+    }[template] || "Custom";
   }
 
   function saveLandlordSupportTicket(event) {
@@ -4870,11 +6118,16 @@
     const ticket = {
       id: makeId("ticket"),
       owner_id: user.id,
+      landlord_id: user.id,
       subject: ui.landlordSupportSubject.value.trim(),
+      description: ui.landlordSupportNote.value.trim(),
       priority: ui.landlordSupportPriority.value,
       status: "Open",
       note: ui.landlordSupportNote.value.trim(),
+      admin_note: "",
+      created_at: new Date().toISOString(),
       updated_at: isoDate(new Date()),
+      resolved_at: null,
     };
 
     state.supportTickets = state.supportTickets || [];
@@ -4911,11 +6164,16 @@
     const ticket = {
       id: makeId("ticket"),
       owner_id: user.id,
+      landlord_id: user.id,
       subject: VERIFIED_BADGE_REQUEST_SUBJECT,
+      description: VERIFIED_BADGE_REQUEST_NOTE,
       priority: "High",
       status: "Open",
       note: VERIFIED_BADGE_REQUEST_NOTE,
+      admin_note: "",
+      created_at: new Date().toISOString(),
       updated_at: isoDate(new Date()),
+      resolved_at: null,
     };
     state.supportTickets = state.supportTickets || [];
     state.supportTickets.push(ticket);
@@ -5067,6 +6325,13 @@
       try {
         const result = await apiRequest("/api/admin-user", { action: "toggle-status", userId });
         await refreshSupabaseState();
+        addAuditLog({
+          landlord_id: userId,
+          action: "Super Admin modified landlord account status",
+          old_value: accountStatus(user),
+          new_value: result.account_status,
+        });
+        saveState();
         showToast(`${user.name} ${result.account_status === "Active" ? "approved" : "suspended"}.`);
       } catch (error) {
         console.error("Status update failed", error);
@@ -5084,6 +6349,12 @@
           }
         : item
     );
+    addAuditLog({
+      landlord_id: userId,
+      action: "Super Admin modified landlord account status",
+      old_value: accountStatus(user),
+      new_value: nextStatus,
+    });
     saveState();
     renderAll();
     showToast(`${user.name} ${nextStatus === "Active" ? "approved" : "suspended"}.`);
@@ -5111,6 +6382,13 @@
       try {
         const result = await apiRequest("/api/admin-user", { action: "toggle-verified-badge", userId });
         await refreshSupabaseState();
+        addAuditLog({
+          landlord_id: userId,
+          action: "Super Admin modified verified badge",
+          old_value: ownerHasVerifiedBadge(user) ? "Verified" : "Unverified",
+          new_value: result.verified_badge ? "Verified" : "Unverified",
+        });
+        saveState();
         showToast(`${user.name} ${result.verified_badge ? "now has" : "no longer has"} a verified badge.`);
       } catch (error) {
         console.error("Verified badge update failed", error);
@@ -5137,7 +6415,15 @@
         title: "Verified badge approved",
         message: "The super admin approved your verified landlord badge.",
       });
+    } else {
+      reopenVerifiedBadgeRequests(userId);
     }
+    addAuditLog({
+      landlord_id: userId,
+      action: "Super Admin modified verified badge",
+      old_value: ownerHasVerifiedBadge(user) ? "Verified" : "Unverified",
+      new_value: nextVerified ? "Verified" : "Unverified",
+    });
     saveState();
     renderAll();
     showToast(`${user.name} ${nextVerified ? "now has" : "no longer has"} a verified badge.`);
@@ -5148,11 +6434,19 @@
       showToast("Only the super admin can manage packages.");
       return;
     }
+    const subscription = subscriptionByOwner(ownerId);
 
     if (supabaseReady) {
       try {
         const result = await apiRequest("/api/admin-user", { action: "cycle-package", ownerId });
         await refreshSupabaseState();
+        addAuditLog({
+          landlord_id: ownerId,
+          action: "Super Admin updated subscription package",
+          old_value: subscription?.plan || "No subscription",
+          new_value: result.plan || "Package changed",
+        });
+        saveState();
         showToast(`Package changed to ${result.plan}.`);
       } catch (error) {
         console.error("Package update failed", error);
@@ -5162,7 +6456,6 @@
     }
 
     state.subscriptions = state.subscriptions || [];
-    const subscription = subscriptionByOwner(ownerId);
     const today = isoDate(new Date());
     const currentIndex = Math.max(0, PACKAGE_OPTIONS.findIndex((option) => option.plan === subscription?.plan));
     const nextPackage = PACKAGE_OPTIONS[(currentIndex + 1) % PACKAGE_OPTIONS.length];
@@ -5200,6 +6493,12 @@
         ? { ...item, account_status: nextStatus === "Trial" ? "Trial" : nextStatus === "Active" ? "Active" : "Pending" }
         : item
     );
+    addAuditLog({
+      landlord_id: ownerId,
+      action: "Super Admin updated subscription package",
+      old_value: subscription?.plan || "No subscription",
+      new_value: nextPackage.plan,
+    });
     saveState();
     renderAll();
     showToast(`Package changed to ${nextPackage.plan}.`);
@@ -5229,6 +6528,13 @@
         setAppLoading("Ending trial");
         const result = await apiRequest("/api/admin-user", { action: "end-trial", ownerId });
         await refreshSupabaseState();
+        addAuditLog({
+          landlord_id: ownerId,
+          action: "Super Admin ended landlord trial",
+          old_value: subscription?.status || owner.account_status || "Trial",
+          new_value: result.status || "Pending",
+        });
+        saveState();
         showToast(`${owner.name}'s trial ended. ${result.plan || paidPlan.plan} subscription request sent.`);
       } catch (error) {
         console.error("End trial failed", error);
@@ -5288,6 +6594,12 @@
       title: "Trial ended - subscription required",
       message: promptMessage,
     });
+    addAuditLog({
+      landlord_id: ownerId,
+      action: "Super Admin ended landlord trial",
+      old_value: subscription?.status || owner.account_status || "Trial",
+      new_value: "Pending",
+    });
     saveState();
     renderAll();
     showToast(`${owner.name}'s trial ended. Subscription request sent.`);
@@ -5315,6 +6627,13 @@
         setAppLoading("Deleting account");
         await apiRequest("/api/admin-user", { action: "delete-account", ownerId });
         await refreshSupabaseState();
+        addAuditLog({
+          landlord_id: "",
+          action: "Super Admin deleted landlord account",
+          old_value: `${owner.name} / ${owner.email || owner.phone || ownerId}`,
+          new_value: "Deleted",
+        });
+        saveState();
         showToast(`${owner.name}'s account deleted.`);
       } catch (error) {
         console.error("Account deletion failed", error);
@@ -5325,6 +6644,12 @@
       return;
     }
 
+    addAuditLog({
+      landlord_id: ownerId,
+      action: "Super Admin deleted landlord account",
+      old_value: `${owner.name} / ${owner.email || owner.phone || ownerId}`,
+      new_value: "Deleted",
+    });
     removeOwnerAccountFromLocalState(ownerId);
     saveState();
     renderAll();
@@ -5340,6 +6665,7 @@
     state.properties = (state.properties || []).filter((property) => !cascade.propertyIds.includes(property.id));
     state.subscriptions = (state.subscriptions || []).filter((subscription) => !cascade.subscriptionIds.includes(subscription.id));
     state.supportTickets = (state.supportTickets || []).filter((ticket) => !cascade.supportTicketIds.includes(ticket.id));
+    state.supportMessages = (state.supportMessages || []).filter((message) => !cascade.supportMessageIds.includes(message.id));
     state.notifications = (state.notifications || []).filter((notification) => !cascade.notificationIds.includes(notification.id));
     state.users = (state.users || []).filter((user) => !cascade.userIds.includes(user.id));
     markRowsDeleted("payments", cascade.paymentIds);
@@ -5349,6 +6675,7 @@
     markRowsDeleted("properties", cascade.propertyIds);
     markRowsDeleted("subscriptions", cascade.subscriptionIds);
     markRowsDeleted("supportTickets", cascade.supportTicketIds);
+    markRowsDeleted("supportMessages", cascade.supportMessageIds);
     markRowsDeleted("notifications", cascade.notificationIds);
     markRowsDeleted("users", cascade.userIds);
   }
@@ -5369,9 +6696,68 @@
       paymentIds: (state.payments || []).filter((payment) => tenantIds.includes(payment.tenant_id)).map((payment) => payment.id),
       expenseIds: (state.expenses || []).filter((expense) => propertyIds.includes(expense.property_id)).map((expense) => expense.id),
       subscriptionIds: (state.subscriptions || []).filter((subscription) => subscription.owner_id === ownerId).map((subscription) => subscription.id),
-      supportTicketIds: (state.supportTickets || []).filter((ticket) => ticket.owner_id === ownerId).map((ticket) => ticket.id),
+      supportTicketIds: (state.supportTickets || []).filter((ticket) => ticketOwnerId(ticket) === ownerId).map((ticket) => ticket.id),
+      supportMessageIds: (state.supportMessages || []).filter((message) => message.landlord_id === ownerId || message.user_id === ownerId).map((message) => message.id),
       notificationIds: (state.notifications || []).filter((notification) => userIds.includes(notification.user_id)).map((notification) => notification.id),
     };
+  }
+
+  async function startCurrentUserSubscriptionPayment(_value, button = null) {
+    const user = currentUser();
+    if (!user || user.role !== "landlord") {
+      showToast("Sign in as the landlord account to subscribe.");
+      return;
+    }
+
+    const subscription = subscriptionByOwner(user.id);
+    if (!landlordAccessLocked(user)) {
+      showToast("Your subscription is already active.");
+      renderSession();
+      return;
+    }
+    if (!subscription) {
+      showToast("Billing is not ready for this account. Contact support.");
+      renderSubscriptionLocked();
+      return;
+    }
+    const billableMonthlyFee = subscriptionPlanFee(subscription);
+    if (billableMonthlyFee <= 0) {
+      showToast("Billing is not ready for this account. Contact support.");
+      renderSubscriptionLocked();
+      return;
+    }
+    if (!supabaseReady) {
+      showToast("Live Pesapal checkout needs Supabase and Vercel environment variables.");
+      return;
+    }
+
+    const originalLabel = button?.textContent || "";
+    try {
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Opening payment";
+      }
+      setAppLoading("Opening payment");
+      const result = await apiRequest("/api/subscription-payment", {});
+      const checkoutUrl = result.payment?.checkout_url || "";
+      if (checkoutUrl) {
+        showToast("Opening Pesapal checkout.");
+        window.location.href = checkoutUrl;
+      } else {
+        showToast(result.payment?.instruction || "Payment prompt sent.");
+      }
+      await refreshSupabaseState();
+    } catch (error) {
+      console.error("Subscription payment failed", error);
+      showToast(error.message || "Could not start subscription payment.");
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalLabel || "Subscribe";
+      }
+      renderSubscriptionLocked();
+      clearAppLoading();
+    }
   }
 
   async function startSubscriptionCollection(subscriptionId) {
@@ -5386,6 +6772,11 @@
       showToast("Landlord account was not found.");
       return;
     }
+    const collectionAmount = subscriptionPlanFee(subscription);
+    if (collectionAmount <= 0) {
+      showToast("Start billing before collecting this subscription.");
+      return;
+    }
 
     if (!supabaseReady) {
       const reference = autoReference("Pesapal");
@@ -5393,48 +6784,55 @@
         item.id === subscription.id
           ? {
               ...item,
+              monthly_fee: collectionAmount,
               status: "Pending",
               payment_provider: "pesapal",
               provider_payment_reference: reference,
               provider_payment_status: "Pending",
-              provider_next_action: "Demo collection queued. Connect Supabase and Pesapal for live checkout.",
-              last_payment_method: item.billing_method || item.last_payment_method || "MTN MoMo",
-              last_payment_note: `Demo Pesapal collection queued: ${reference}`,
+              provider_next_action: "Demo payment request queued. Landlord pays from Subscribe when live checkout is connected.",
+              last_payment_method: item.last_payment_method || "Pesapal checkout",
+              last_payment_note: `Demo Pesapal payment requested: ${reference}`,
             }
           : item
       );
       addNotification({
         user_id: owner.id,
         type: "billing",
-        title: "Subscription collection queued",
-        message: `Demo Pesapal collection queued for ${formatMoney(subscription.monthly_fee)}. Reference ${reference}.`,
+        title: "Subscription payment requested",
+        message: `Demo Pesapal payment requested for ${formatMoney(collectionAmount)}. Reference ${reference}.`,
+      });
+      addAuditLog({
+        landlord_id: owner.id,
+        action: "Super Admin requested subscription payment",
+        old_value: subscription.provider_payment_status || subscription.status || "Unknown",
+        new_value: `Pending ${formatMoney(collectionAmount)} / ${reference}`,
       });
       saveState();
       renderAll();
-      showToast("Demo collection queued. Live Pesapal needs Supabase and Vercel env vars.");
+      showToast("Payment request queued.");
       return;
     }
 
-    let checkoutWindow = null;
     try {
-      checkoutWindow = window.open("", "_blank", "noopener");
       setAppLoading("Starting payment collection");
       const result = await apiRequest("/api/subscription-payment", {
         owner_id: subscription.owner_id,
-        payment_method: subscription.billing_method || subscription.last_payment_method || "MTN MoMo",
       });
       const checkoutUrl = result.payment?.checkout_url || "";
       if (checkoutUrl) {
-        if (checkoutWindow) checkoutWindow.location = checkoutUrl;
-        else window.location.href = checkoutUrl;
-        showToast("Payment checkout opened.");
+        showToast("Payment request sent.");
       } else {
-        if (checkoutWindow) checkoutWindow.close();
-        showToast(result.payment?.instruction || "Payment prompt sent.");
+        showToast(result.payment?.instruction || "Payment request sent.");
       }
       await refreshSupabaseState();
+      addAuditLog({
+        landlord_id: owner.id,
+        action: "Super Admin requested subscription payment",
+        old_value: subscription.provider_payment_status || subscription.status || "Unknown",
+        new_value: `Pending ${formatMoney(collectionAmount)}`,
+      });
+      saveState();
     } catch (error) {
-      if (checkoutWindow) checkoutWindow.close();
       console.error("Payment collection failed", error);
       showToast(error.message || "Could not start payment collection.");
     } finally {
@@ -5468,6 +6866,12 @@
         ? "Your subscription is marked to cancel at the end of the current billing period."
         : "Your subscription is active again for the next billing period.",
     });
+    addAuditLog({
+      landlord_id: subscription.owner_id,
+      action: willCancel ? "Super Admin queued subscription cancellation" : "Super Admin resumed subscription",
+      old_value: subscription.cancel_at_period_end ? "Cancelling" : subscription.status || "Active",
+      new_value: willCancel ? "Cancelling" : "Active",
+    });
     saveState();
     renderAll();
     showToast(willCancel ? "Cancellation queued." : "Subscription resumed.");
@@ -5497,6 +6901,12 @@
           type: "support",
           title: "Password reset email sent",
           message: `${targetUser.name} received a secure password reset email.`,
+        });
+        addAuditLog({
+          landlord_id: targetUser.role === "landlord" ? targetUser.id : "",
+          action: "Super Admin sent password reset",
+          old_value: targetUser.email || targetUser.phone || targetUser.id,
+          new_value: "Reset email sent",
         });
         saveState();
         renderNotifications();
@@ -5528,6 +6938,12 @@
       title: "Password reset OTP sent",
       message: `${targetUser.name} reset OTP was sent to ${maskEmailAddress(resetEmail)}.`,
     });
+    addAuditLog({
+      landlord_id: targetUser.role === "landlord" ? targetUser.id : "",
+      action: "Super Admin sent password reset",
+      old_value: resetEmail,
+      new_value: "Reset OTP sent",
+    });
     saveState();
     renderNotifications();
     showToast(`Reset OTP sent to ${maskEmailAddress(resetEmail)}. Demo OTP: ${otp}`);
@@ -5548,15 +6964,115 @@
     showToast("Support ticket updated.");
   }
 
+  function openSupportTicket(id) {
+    const ticket = (state.supportTickets || []).find((item) => item.id === id);
+    if (!ticket) return;
+    const user = userById(ticket.owner_id);
+    const resolved = ticket.status === "Resolved";
+    openDashboardDetailModal(
+      ticket.subject || "Support Ticket",
+      `${user ? user.name : "Unknown landlord"} - ${ticket.priority || "Medium"} - ${formatDate(ticket.updated_at)}`,
+      `
+        <article class="support-card">
+          <div class="support-card-header">
+            <div class="support-card-title">
+              <strong>${escapeHtml(ticket.subject || "Support Ticket")}</strong>
+              <small>${escapeHtml(user ? user.name : "Unknown landlord")} - ${formatDate(ticket.updated_at)}</small>
+            </div>
+            <div class="button-row">
+              ${statusPill(ticket.priority || "Medium")}
+              ${statusPill(ticket.status || "Open")}
+            </div>
+          </div>
+          <p class="support-note">${escapeHtml(ticket.note || "No message added.")}</p>
+          <div class="button-row">
+            ${
+              ticket.owner_id
+                ? `<button class="text-button" data-focus-landlord="${escapeHtml(ticket.owner_id)}" type="button">View Account</button>`
+                : ""
+            }
+            <button class="${resolved ? "text-button" : "primary-button"}" data-toggle-ticket="${escapeHtml(ticket.id)}" type="button">
+              ${resolved ? "Reopen" : "Mark Resolved"}
+            </button>
+          </div>
+        </article>
+      `
+    );
+  }
+
   function focusLandlordAccount(ownerId) {
     const user = userById(ownerId);
     if (!user) return;
-    state.searchTerm = user.name;
+    state.searchTerm = "";
+    highlightedOwnerId = ownerId;
     saveState();
     ui.globalSearch.value = state.searchTerm;
     renderAll();
     setView("platformLandlords");
-    showToast(`Showing account for ${user.name}.`);
+    revealOwnerRow(ownerId);
+    showToast(`Opened Account Management for ${user.name}.`);
+  }
+
+  function revealOwnerRow(ownerId) {
+    const row = document.querySelector(`[data-owner-row="${ownerId}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.clearTimeout(revealOwnerRow.timer);
+    revealOwnerRow.timer = window.setTimeout(() => {
+      if (highlightedOwnerId === ownerId) highlightedOwnerId = null;
+      row.classList.remove("row-highlight");
+    }, 3000);
+  }
+
+  function startLandlordImpersonation(ownerId) {
+    const admin = currentUser();
+    const landlord = userById(ownerId);
+    if (!admin || !isSaasOwner(admin) || !landlord || landlord.role !== "landlord") {
+      showToast("Only the super admin can impersonate landlord accounts.");
+      return;
+    }
+    impersonationContext = { adminId: admin.id, landlordId: landlord.id };
+    addAuditLog({
+      landlord_id: landlord.id,
+      action: `Super Admin started impersonation for ${landlord.name}`,
+      old_value: admin.name,
+      new_value: landlord.name,
+    });
+    state.currentUserId = landlord.id;
+    state.role = "landlord";
+    state.selectedPropertyId = "all";
+    saveState();
+    renderSession();
+    showToast(`Viewing ${landlord.name} as Super Admin.`);
+  }
+
+  function exitLandlordImpersonation() {
+    if (!impersonationContext?.adminId) return;
+    const landlord = userById(impersonationContext.landlordId);
+    const adminId = impersonationContext.adminId;
+    addAuditLog({
+      landlord_id: impersonationContext.landlordId,
+      action: `Super Admin exited impersonation${landlord ? ` for ${landlord.name}` : ""}`,
+      old_value: landlord ? landlord.name : "",
+      new_value: "Super Admin",
+    });
+    impersonationContext = null;
+    state.currentUserId = adminId;
+    state.role = "saas-owner";
+    state.selectedPropertyId = "all";
+    saveState();
+    renderSession();
+    showToast("Exited impersonation.");
+  }
+
+  function renderImpersonationBanner() {
+    if (!ui.impersonationBanner) return;
+    const active = Boolean(impersonationContext?.adminId);
+    const landlord = active ? userById(impersonationContext.landlordId) : null;
+    ui.impersonationBanner.classList.toggle("hidden", !active);
+    if (active && ui.impersonationBannerText) {
+      ui.impersonationBannerText.textContent = `You are currently viewing ${landlord ? landlord.name : "this account"} as Super Admin.`;
+    }
   }
 
   function openLandlordPortfolio(ownerId) {
@@ -6069,7 +7585,7 @@
 
   function ownerHasVerifiedBadge(owner) {
     if (!owner) return false;
-    return Boolean(owner.verified_badge) || Boolean(owner.verified);
+    return Boolean(owner.verified_badge) || Boolean(owner.verified) || Boolean(resolvedVerifiedBadgeRequestForOwner(owner.id));
   }
 
   function limitLabel(value) {
@@ -6206,12 +7722,26 @@
       .includes(term);
   }
 
+  function addAuditLog({ landlord_id = "", action, old_value = "", new_value = "" }) {
+    state.auditLogs = state.auditLogs || [];
+    state.auditLogs.unshift({
+      id: makeId("audit"),
+      admin_id: impersonationContext?.adminId || (isSaasOwner() ? currentUser()?.id : SUPER_ADMIN_USER_ID),
+      landlord_id,
+      action,
+      old_value: String(old_value || ""),
+      new_value: String(new_value || ""),
+      created_at: new Date().toISOString(),
+    });
+  }
+
   function addNotification(notification) {
     state.notifications = state.notifications || [];
     state.notifications.unshift({
       id: makeId("notification"),
       created_at: new Date().toISOString(),
       read: false,
+      is_read: false,
       user_id: notification.user_id === undefined ? currentUser()?.id || null : notification.user_id,
       ...notification,
     });
@@ -6297,13 +7827,13 @@
 
   function renderNotifications() {
     const notifications = platformNotifications();
-    const unread = notifications.filter((item) => !item.read);
+    const unread = notifications.filter((item) => !isNotificationRead(item));
     ui.notificationCount.textContent = unread.length;
     ui.notificationList.innerHTML =
       notifications
         .slice(0, 8)
         .map((item) => `
-          <button class="notification-item ${item.read ? "read" : ""}" data-open-notification="${escapeHtml(item.id)}" type="button">
+          <button class="notification-item ${isNotificationRead(item) ? "read" : ""}" data-open-notification="${escapeHtml(item.id)}" type="button">
             <strong>${escapeHtml(item.title)}</strong>
             <span>${escapeHtml(item.message)}</span>
             <time>${escapeHtml(timeAgo(item.created_at || item.date))}</time>
@@ -6337,7 +7867,7 @@
   function markNotificationRead(id) {
     if (String(id).startsWith("notification")) {
       state.notifications = (state.notifications || []).map((item) =>
-        item.id === id ? { ...item, read: true } : item
+        item.id === id ? { ...item, read: true, is_read: true } : item
       );
     } else {
       state.dismissedNotificationIds = [...new Set([...(state.dismissedNotificationIds || []), id])];
@@ -6349,7 +7879,7 @@
   function markNotificationsRead() {
     const user = currentUser();
     state.notifications = (state.notifications || []).map((item) =>
-      !item.user_id || item.user_id === user?.id ? { ...item, read: true } : item
+      !item.user_id || item.user_id === user?.id ? { ...item, read: true, is_read: true } : item
     );
     const derivedIds = platformNotifications()
       .filter((item) => item.id && !String(item.id).startsWith("notification"))
@@ -6843,7 +8373,7 @@
       await Promise.all([
         client.from("units").select("*").eq("status", "vacant").eq("listing_published", true),
         client.from("properties").select("id,owner_id,property_name,location,property_type"),
-        client.from("app_users").select("id,name,phone,email,account_status,created_at,verified_badge,verification_label"),
+        client.from("app_users").select("id,name,phone,email,account_status,created_at"),
         client.from("subscriptions").select("id,owner_id,plan,status,monthly_fee"),
       ]);
 
@@ -6977,7 +8507,7 @@
     if (stateKey === "subscriptions") {
       return {
         ...row,
-        monthly_fee: Number(row.monthly_fee || 0),
+        monthly_fee: subscriptionPlanFee(row),
         auto_collect_authorized: Boolean(row.auto_collect_authorized),
         cancel_at_period_end: Boolean(row.cancel_at_period_end),
         billing_contact_masked: row.billing_contact_masked || "",
@@ -6989,6 +8519,42 @@
         provider_customer_id: row.provider_customer_id || "",
         provider_payment_method_id: row.provider_payment_method_id || "",
         provider_next_action: row.provider_next_action || "",
+      };
+    }
+    if (stateKey === "supportTickets") {
+      const landlordId = row.landlord_id || row.owner_id || "";
+      return {
+        ...row,
+        owner_id: landlordId,
+        landlord_id: landlordId,
+        description: row.description || row.note || "",
+        note: row.note || row.description || "",
+        admin_note: row.admin_note || "",
+        status: row.status || "Open",
+        priority: row.priority || "Medium",
+      };
+    }
+    if (stateKey === "supportMessages") {
+      return {
+        ...row,
+        landlord_id: row.landlord_id || row.user_id || "",
+        user_id: row.user_id || row.landlord_id || "",
+        template: row.template || "",
+        ticket_id: row.ticket_id || "",
+      };
+    }
+    if (stateKey === "auditLogs") {
+      return {
+        ...row,
+        old_value: row.old_value || "",
+        new_value: row.new_value || "",
+      };
+    }
+    if (stateKey === "notifications") {
+      return {
+        ...row,
+        read: Boolean(row.read ?? row.is_read),
+        is_read: Boolean(row.is_read ?? row.read),
       };
     }
     return { ...row };
@@ -7139,6 +8705,7 @@
 
   function syncStatePayload(snapshot) {
     return {
+      users: snapshot.users || [],
       properties: snapshot.properties || [],
       subscriptions: snapshot.subscriptions || [],
       units: snapshot.units || [],
@@ -7146,6 +8713,8 @@
       payments: snapshot.payments || [],
       expenses: snapshot.expenses || [],
       supportTickets: snapshot.supportTickets || [],
+      supportMessages: snapshot.supportMessages || [],
+      auditLogs: snapshot.auditLogs || [],
       notifications: snapshot.notifications || [],
       deletedRowIds: snapshot.deletedRowIds || {},
     };
@@ -7211,8 +8780,6 @@
         company_owner_id: row.company_owner_id || null,
         assigned_property_ids: row.assigned_property_ids || [],
         invitation_status: row.invitation_status || null,
-        verified_badge: Boolean(row.verified_badge || row.verified),
-        verification_label: row.verification_label || null,
       };
     }
     if (stateKey === "subscriptions") {
@@ -7293,7 +8860,32 @@
     }
     if (stateKey === "expenses") return pick(row, ["id", "property_id", "type", "amount", "date"]);
     if (stateKey === "supportTickets") {
-      return pick(row, ["id", "owner_id", "subject", "priority", "status", "note", "updated_at"]);
+      return pick(
+        {
+          ...row,
+          owner_id: ticketOwnerId(row),
+          landlord_id: ticketOwnerId(row),
+          description: row.description || row.note || "",
+          note: row.note || row.description || "",
+          admin_note: row.admin_note || "",
+        },
+        ["id", "owner_id", "landlord_id", "subject", "description", "priority", "status", "note", "admin_note", "created_at", "updated_at", "resolved_at"]
+      );
+    }
+    if (stateKey === "supportMessages") {
+      return pick({ ...row, landlord_id: row.landlord_id || row.user_id || null }, [
+        "id",
+        "landlord_id",
+        "user_id",
+        "ticket_id",
+        "template",
+        "title",
+        "message",
+        "created_at",
+      ]);
+    }
+    if (stateKey === "auditLogs") {
+      return pick(row, ["id", "admin_id", "landlord_id", "action", "old_value", "new_value", "created_at"]);
     }
     if (stateKey === "notifications") {
       return {
@@ -7303,6 +8895,7 @@
         title: row.title,
         message: row.message,
         read: Boolean(row.read),
+        is_read: Boolean(row.is_read ?? row.read),
         created_at: row.created_at || new Date().toISOString(),
       };
     }
@@ -7328,10 +8921,22 @@
     migrated.expenses = Array.isArray(saved.expenses) ? saved.expenses : seeded.expenses;
     migrated.subscriptions = Array.isArray(saved.subscriptions) ? saved.subscriptions : seeded.subscriptions;
     migrated.supportTickets = Array.isArray(saved.supportTickets) ? saved.supportTickets : seeded.supportTickets;
+    migrated.supportMessages = Array.isArray(saved.supportMessages) ? saved.supportMessages : seeded.supportMessages;
+    migrated.auditLogs = Array.isArray(saved.auditLogs) ? saved.auditLogs : seeded.auditLogs;
     migrated.notifications = Array.isArray(saved.notifications) ? saved.notifications : seeded.notifications;
     migrated.dismissedNotificationIds = Array.isArray(saved.dismissedNotificationIds) ? saved.dismissedNotificationIds : [];
     migrated.deletedRowIds = normalizeDeletedRowIds(saved.deletedRowIds);
     migrated.passwordReset = saved.passwordReset || null;
+    migrated.billingLandlordFilter = saved.billingLandlordFilter || "all";
+    migrated.supportTicketFilters =
+      saved.supportTicketFilters && typeof saved.supportTicketFilters === "object"
+        ? {
+            search: saved.supportTicketFilters.search || "",
+            owner: saved.supportTicketFilters.owner || "all",
+            status: saved.supportTicketFilters.status || "all",
+            priority: saved.supportTicketFilters.priority || "all",
+          }
+        : { search: "", owner: "all", status: "all", priority: "all" };
 
     const seedUsersById = new Map(seeded.users.map((user) => [user.id, user]));
     migrated.users = migrated.users.map((user) => {
@@ -7464,24 +9069,66 @@
         const exists = migrated.supportTickets.some((ticket) => ticket.id === seedTicket.id);
         if (!exists) migrated.supportTickets.push(seedTicket);
       });
+      appendMissingSeedRows(migrated.supportMessages, seeded.supportMessages);
+      appendMissingSeedRows(migrated.auditLogs, seeded.auditLogs);
     }
-    migrated.subscriptions = migrated.subscriptions.map((subscription) => ({
-      billing_method: subscription.last_payment_method || "",
-      billing_contact_masked: "",
-      auto_collect_authorized: false,
-      cancel_at_period_end: false,
-      cancellation_requested_at: null,
-      grace_period_end: subscription.next_billing_date || null,
-      payment_provider: "",
-      provider_payment_reference: "",
-      provider_payment_status: "",
-      provider_checkout_url: "",
-      provider_charge_id: "",
-      provider_customer_id: "",
-      provider_payment_method_id: "",
-      provider_next_action: "",
-      ...subscription,
+    migrated.supportTickets = migrated.supportTickets.map((ticket) => {
+      const landlordId = ticket.landlord_id || ticket.owner_id || "";
+      return {
+        ...ticket,
+        owner_id: landlordId,
+        landlord_id: landlordId,
+        description: ticket.description || ticket.note || "",
+        note: ticket.note || ticket.description || "",
+        admin_note: ticket.admin_note || "",
+        status: ticket.status || "Open",
+        priority: ticket.priority || "Medium",
+        created_at: ticket.created_at || ticket.updated_at || new Date().toISOString(),
+        resolved_at: ticket.resolved_at || null,
+      };
+    });
+    migrated.supportMessages = migrated.supportMessages.map((message) => ({
+      ...message,
+      landlord_id: message.landlord_id || message.user_id || "",
+      user_id: message.user_id || message.landlord_id || "",
+      template: message.template || "",
+      ticket_id: message.ticket_id || "",
+      created_at: message.created_at || new Date().toISOString(),
     }));
+    migrated.auditLogs = migrated.auditLogs.map((log) => ({
+      ...log,
+      old_value: log.old_value || "",
+      new_value: log.new_value || "",
+      created_at: log.created_at || new Date().toISOString(),
+    }));
+    migrated.notifications = migrated.notifications.map((notification) => ({
+      ...notification,
+      read: Boolean(notification.read ?? notification.is_read),
+      is_read: Boolean(notification.is_read ?? notification.read),
+    }));
+    migrated.subscriptions = migrated.subscriptions.map((subscription) => {
+      const normalized = {
+        billing_method: subscription.last_payment_method || "",
+        billing_contact_masked: "",
+        auto_collect_authorized: false,
+        cancel_at_period_end: false,
+        cancellation_requested_at: null,
+        grace_period_end: subscription.next_billing_date || null,
+        payment_provider: "",
+        provider_payment_reference: "",
+        provider_payment_status: "",
+        provider_checkout_url: "",
+        provider_charge_id: "",
+        provider_customer_id: "",
+        provider_payment_method_id: "",
+        provider_next_action: "",
+        ...subscription,
+      };
+      return {
+        ...normalized,
+        monthly_fee: subscriptionPlanFee(normalized),
+      };
+    });
     migrated.selectedPropertyId = migrated.selectedPropertyId || "all";
     migrated.role = migrated.role || "landlord";
     migrated.searchTerm = migrated.searchTerm || "";
@@ -7500,7 +9147,7 @@
   }
 
   function normalizeDeletedRowIds(value = {}) {
-    const stateKeys = ["subscriptions", "properties", "units", "tenants", "payments", "expenses", "supportTickets", "notifications"];
+    const stateKeys = ["users", "subscriptions", "properties", "units", "tenants", "payments", "expenses", "supportTickets", "supportMessages", "auditLogs", "notifications"];
     return stateKeys.reduce((result, key) => {
       const ids = Array.isArray(value[key]) ? value[key].filter(Boolean) : [];
       if (ids.length) result[key] = [...new Set(ids)];
@@ -7520,6 +9167,8 @@
       selectedPropertyId: "all",
       role: "landlord",
       searchTerm: "",
+      billingLandlordFilter: "all",
+      supportTicketFilters: { search: "", owner: "all", status: "all", priority: "all" },
       passwordReset: null,
       users: [],
       properties: [],
@@ -7529,6 +9178,8 @@
       expenses: [],
       subscriptions: [],
       supportTickets: [],
+      supportMessages: [],
+      auditLogs: [],
       notifications: [],
       dismissedNotificationIds: [],
       deletedRowIds: {},
@@ -7547,6 +9198,8 @@
       selectedPropertyId: "all",
       role: "landlord",
       searchTerm: "",
+      billingLandlordFilter: "all",
+      supportTicketFilters: { search: "", owner: "all", status: "all", priority: "all" },
       passwordReset: null,
       deletedRowIds: {},
       users: [
@@ -8163,29 +9816,66 @@
         {
           id: "ticket-1",
           owner_id: "user-1",
+          landlord_id: "user-1",
           subject: "Import tenant rent balances",
+          description: "Sarah needs assistance moving tenant arrears from her notebook into RentLedger.",
           priority: "High",
           status: "In Progress",
           note: "Sarah needs assistance moving tenant arrears from her notebook into RentLedger.",
+          admin_note: "Imported sample arrears workflow is pending review.",
+          created_at: date(21),
           updated_at: date(21),
+          resolved_at: null,
         },
         {
           id: "ticket-2",
           owner_id: "user-2",
+          landlord_id: "user-2",
           subject: "Subscription payment confirmation",
+          description: "Daniel says he paid by Airtel Money and needs the account marked active.",
           priority: "Medium",
           status: "Open",
           note: "Daniel says he paid by Airtel Money and needs the account marked active.",
+          admin_note: "",
+          created_at: date(20),
           updated_at: date(20),
+          resolved_at: null,
         },
         {
           id: "ticket-3",
           owner_id: "user-1",
+          landlord_id: "user-1",
           subject: "Caretaker access question",
+          description: "Explained caretaker mode and removal restrictions.",
           priority: "Low",
           status: "Resolved",
           note: "Explained caretaker mode and removal restrictions.",
+          admin_note: "Resolved during onboarding.",
+          created_at: date(16),
           updated_at: date(16),
+          resolved_at: date(16),
+        },
+      ],
+      supportMessages: [
+        {
+          id: "message-1",
+          landlord_id: "user-1",
+          user_id: "user-1",
+          template: "welcome",
+          title: "Welcome to RentLedger UG",
+          message: "Welcome to RentLedger UG. Your account is ready for rent tracking.",
+          created_at: date(2),
+        },
+      ],
+      auditLogs: [
+        {
+          id: "audit-1",
+          admin_id: SUPER_ADMIN_USER_ID,
+          landlord_id: "user-1",
+          action: "Super Admin created demo landlord account",
+          old_value: "",
+          new_value: "Landlord Demo",
+          created_at: date(2),
         },
       ],
       notifications: [
@@ -8288,7 +9978,9 @@
 
   function ownerSummaryItem(label, value, detailType = "") {
     const tag = detailType ? "button" : "article";
-    const detailAttribute = detailType ? ` data-dashboard-detail="${escapeHtml(detailType)}" type="button" aria-label="Open ${escapeHtml(label)} details"` : "";
+    const detailAttribute = detailType
+      ? ` data-platform-detail-page="${escapeHtml(detailType)}" type="button" aria-label="Open ${escapeHtml(label)} page"`
+      : "";
     return `
       <${tag} class="owner-summary-item dashboard-action-card"${detailAttribute}>
         <span>${escapeHtml(label)}</span>
@@ -8361,6 +10053,10 @@
       month: "short",
       year: "numeric",
     });
+  }
+
+  function formatOptionalDate(value) {
+    return value ? formatDate(value) : "-";
   }
 
   function monthName(value) {

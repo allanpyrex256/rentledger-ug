@@ -78,7 +78,7 @@ async function createPesapalSubscriptionPayment({
   });
 
   if (payload?.error?.message) {
-    const error = new Error(extractPesapalErrorMessage(payload) || "Pesapal rejected the checkout request.");
+    const error = new Error(normalizePesapalErrorMessage(extractPesapalErrorMessage(payload)) || "Pesapal rejected the checkout request.");
     error.status = 502;
     error.provider = "pesapal";
     error.details = extractPesapalErrorDetails(payload);
@@ -232,7 +232,7 @@ async function fetchJson(url, options = {}) {
   const text = await response.text();
   const payload = parseJsonResponse(text);
   if (!response.ok) {
-    const error = new Error(extractPesapalErrorMessage(payload) || "Pesapal request failed.");
+    const error = new Error(normalizePesapalErrorMessage(extractPesapalErrorMessage(payload)) || "Pesapal request failed.");
     error.status = response.status >= 500 ? 502 : response.status;
     error.provider = "pesapal";
     error.code = response.status;
@@ -262,6 +262,15 @@ function extractPesapalErrorMessage(payload = {}) {
     Array.isArray(payload?.errors) ? payload.errors.map((item) => item.message || item.detail || item).join("; ") : "",
   ];
   return values.map((value) => String(value || "").trim()).find(Boolean) || "";
+}
+
+function normalizePesapalErrorMessage(message) {
+  const text = String(message || "").trim();
+  if (!text) return "";
+  if (/amount.*exceeds.*limit|amount_exceeds/i.test(text)) {
+    return "Pesapal rejected this amount because it exceeds your merchant transaction limit. Ask Pesapal to increase the limit or test with a lower amount.";
+  }
+  return text.replace(/\s+/g, " ");
 }
 
 function extractPesapalErrorDetails(payload = {}, rawText = "") {

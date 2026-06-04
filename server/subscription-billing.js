@@ -1,4 +1,5 @@
 const {
+  PACKAGE_OPTIONS,
   addMonths,
   insertRows,
   isoDate,
@@ -18,7 +19,6 @@ const {
   createPesapalSubscriptionPayment,
   extractPesapalPaymentEvent,
   isPesapalEvent,
-  normalizePesapalPaymentMethod,
   verifyPesapalPayment,
 } = require("./pesapal");
 
@@ -26,15 +26,18 @@ async function startSubscriptionCollection({ request, profile, body = {} }) {
   const ownerId = ownerIdForBillingRequest(profile, body);
   const { owner, subscription } = await loadSubscriptionContext(ownerId);
   const provider = normalizePaymentProvider(body.payment_provider || body.provider || process.env.PAYMENT_PROVIDER || "pesapal");
-  const method = normalizeProviderPaymentMethod(provider, body.payment_method || body.paymentMethod || subscription.billing_method);
   const amount = billingAmount(profile, body, subscription);
   if (amount <= 0) {
     const error = new Error("This subscription does not have a billable monthly fee.");
     error.status = 400;
     throw error;
   }
+  if (profile.role === "saas-owner") {
+    return requestLandlordSubscriptionPayment({ owner, subscription, amount, provider });
+  }
 
   const reference = buildPaymentReference();
+  const method = normalizeProviderPaymentMethod(provider, body.payment_method || body.paymentMethod || subscription.billing_method);
   const providerResult =
     provider === "pesapal"
       ? await createPesapalSubscriptionPayment({
@@ -56,6 +59,7 @@ async function startSubscriptionCollection({ request, profile, body = {} }) {
   const providerLabel = providerDisplayName(providerResult.provider);
 
   const patch = {
+    monthly_fee: subscriptionPlanFee(subscription) || amount,
     status: nextCollectionStatus(subscription),
     billing_method: method,
     auto_collect_authorized: true,
@@ -106,7 +110,7 @@ async function settleSubscriptionPayment(input, options = {}) {
   const owners = await supabaseFetch(`/rest/v1/app_users?id=eq.${encodeURIComponent(subscription.owner_id)}&select=*`);
   const owner = owners[0];
   const amount = Number(event.amount || 0);
-  const expectedAmount = Number(subscription.monthly_fee || 0);
+  const expectedAmount = subscriptionPlanFee(subscription);
   const currency = String(event.currency || process.env.PAYMENT_CURRENCY || "UGX").toUpperCase();
   const status = normalizeProviderStatus(event.status);
   const expectedCurrency = String(process.env.PAYMENT_CURRENCY || process.env.PESAPAL_CURRENCY || "UGX").toUpperCase();
@@ -118,6 +122,7 @@ async function settleSubscriptionPayment(input, options = {}) {
   if (status === "Successful" && paidEnough) {
     const patch = {
       status: "Active",
+      monthly_fee: expectedAmount,
       last_payment_date: today,
       last_payment_method: event.payment_method || subscription.billing_method || providerLabel,
       last_payment_note: `${providerLabel} payment successful: ${event.reference}`,
@@ -215,9 +220,45 @@ function ownerIdForBillingRequest(profile, body = {}) {
 }
 
 function billingAmount(profile, body, subscription) {
-  const requested = Number(body.amount || 0);
-  if (profile.role === "saas-owner" && requested > 0) return requested;
-  return Number(subscription.monthly_fee || 0);
+  return subscriptionPlanFee(subscription);
+}
+
+function subscriptionPlanFee(subscription) {
+  const planFee = PACKAGE_OPTIONS.find((option) => option.plan === subscription?.plan)?.fee || 0;
+  return planFee || Number(subscription?.monthly_fee || 0);
+}
+
+async function requestLandlordSubscriptionPayment({ owner, subscription, amount, provider }) {
+  const providerLabel = providerDisplayName(provider);
+  const patch = {
+    monthly_fee: amount,
+    status: nextCollectionStatus(subscription),
+    payment_provider: provider,
+    provider_payment_status: "Pending",
+    provider_checkout_url: null,
+    provider_next_action: `Open Subscribe and choose your ${providerLabel} checkout option.`,
+    last_payment_note: `${providerLabel} payment requested by Super Admin.`,
+  };
+  await patchRows("subscriptions", `id=eq.${encodeURIComponent(subscription.id)}`, patch);
+  await createBillingNotification({
+    userId: owner.id,
+    title: "Subscription payment required",
+    message: `Your ${subscription.plan} subscription payment of ${formatMoney(amount)} is due. Open Subscribe to pay on ${providerLabel}.`,
+  });
+
+  return {
+    subscription: { ...subscription, ...patch },
+    payment: {
+      reference: "",
+      amount,
+      currency: process.env.PAYMENT_CURRENCY || "UGX",
+      method: `${providerLabel} checkout`,
+      status: "Pending",
+      checkout_url: "",
+      instruction: "Payment request sent.",
+      provider_version: provider,
+    },
+  };
 }
 
 function nextCollectionStatus(subscription) {
@@ -262,7 +303,7 @@ function normalizePaymentProvider(value) {
 }
 
 function normalizeProviderPaymentMethod(provider, value) {
-  if (provider === "pesapal") return normalizePesapalPaymentMethod(value) || "Pesapal";
+  if (provider === "pesapal") return "Pesapal checkout";
   return normalizeFlutterwavePaymentMethod(value);
 }
 

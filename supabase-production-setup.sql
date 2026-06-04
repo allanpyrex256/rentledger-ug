@@ -16,6 +16,8 @@ grant select, insert, update, delete on
   payments,
   expenses,
   support_tickets,
+  landlord_messages,
+  audit_logs,
   notifications,
   app_settings
 to authenticated;

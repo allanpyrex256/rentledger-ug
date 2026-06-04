@@ -173,15 +173,12 @@ async function toggleVerifiedBadge(response, userId) {
   const user = rows[0];
   if (!user || user.role !== "landlord") return send(response, 404, { error: "Landlord not found." });
 
-  const nextVerified = !Boolean(user.verified_badge);
+  const approvedRequests = await resolvedVerifiedBadgeRequestsForOwner(userId);
+  const nextVerified = !approvedRequests.length;
   const requests = await verifiedBadgeRequestsForOwner(userId);
   if (nextVerified && !requests.length) {
     return send(response, 400, { error: "This landlord must send a verified badge request before approval." });
   }
-  await patchRows("app_users", `id=eq.${encodeURIComponent(userId)}`, {
-    verified_badge: nextVerified,
-    verification_label: nextVerified ? "Verified" : null,
-  });
   if (nextVerified) {
     await Promise.all(
       requests.map((request) =>
@@ -202,6 +199,15 @@ async function toggleVerifiedBadge(response, userId) {
         created_at: new Date().toISOString(),
       },
     ]);
+  } else {
+    await Promise.all(
+      approvedRequests.map((request) =>
+        patchRows("support_tickets", `id=eq.${encodeURIComponent(request.id)}`, {
+          status: "Open",
+          updated_at: isoDate(new Date()),
+        })
+      )
+    );
   }
   return send(response, 200, { verified_badge: nextVerified });
 }
@@ -211,6 +217,14 @@ async function verifiedBadgeRequestsForOwner(ownerId) {
     `/rest/v1/support_tickets?owner_id=eq.${encodeURIComponent(ownerId)}&subject=eq.${encodeURIComponent(
       VERIFIED_BADGE_REQUEST_SUBJECT
     )}&status=neq.Resolved&select=id`
+  );
+}
+
+async function resolvedVerifiedBadgeRequestsForOwner(ownerId) {
+  return await supabaseFetch(
+    `/rest/v1/support_tickets?owner_id=eq.${encodeURIComponent(ownerId)}&subject=eq.${encodeURIComponent(
+      VERIFIED_BADGE_REQUEST_SUBJECT
+    )}&status=eq.Resolved&select=id`
   );
 }
 
