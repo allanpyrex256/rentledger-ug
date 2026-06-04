@@ -18,16 +18,22 @@ const STATE_TABLES = [
   { stateKey: "tenants", table: "tenants" },
   { stateKey: "payments", table: "payments" },
   { stateKey: "expenses", table: "expenses" },
-  { stateKey: "supportTickets", table: "support_tickets" },
-  { stateKey: "supportMessages", table: "landlord_messages" },
-  { stateKey: "auditLogs", table: "audit_logs" },
-  { stateKey: "notifications", table: "notifications" },
+  { stateKey: "supportTickets", table: "support_tickets", optional: true },
+  { stateKey: "supportMessages", table: "landlord_messages", optional: true },
+  { stateKey: "auditLogs", table: "audit_logs", optional: true },
+  { stateKey: "notifications", table: "notifications", optional: true },
 ];
 
 const DELETE_ORDER = ["notifications", "auditLogs", "supportMessages", "supportTickets", "expenses", "payments", "tenants", "units", "properties", "subscriptions", "users"];
 const SUPER_ADMIN_USER_ID = "user-saas-owner";
 const TENANT_OPTIONAL_SCHEMA_COLUMNS = ["move_out_date", "move_out_balance", "move_out_damages", "move_out_refund", "move_out_note"];
 const TENANT_OPTIONAL_SCHEMA_COLUMN_SET = new Set(TENANT_OPTIONAL_SCHEMA_COLUMNS);
+const OPTIONAL_SCHEMA_TABLES = new Set(STATE_TABLES.filter((item) => item.optional).map((item) => item.table));
+const OPTIONAL_SCHEMA_COLUMNS_BY_STATE = {
+  tenants: TENANT_OPTIONAL_SCHEMA_COLUMN_SET,
+  supportTickets: new Set(["landlord_id", "description", "admin_note", "resolved_at"]),
+  notifications: new Set(["is_read"]),
+};
 
 module.exports = async function handler(request, response) {
   setCors(response);
@@ -51,9 +57,9 @@ module.exports = async function handler(request, response) {
     }
 
     for (const stateKey of DELETE_ORDER) {
-      const table = STATE_TABLES.find((item) => item.stateKey === stateKey)?.table;
-      if (!table) continue;
-      await deleteRequestedRows(table, stateKey, deletedRowsByKey[stateKey] || [], profile, context);
+      const item = STATE_TABLES.find((entry) => entry.stateKey === stateKey);
+      if (!item) continue;
+      await deleteRequestedRows(item.table, item.stateKey, deletedRowsByKey[stateKey] || [], profile, context);
     }
 
     for (const item of STATE_TABLES) {
@@ -160,15 +166,32 @@ function writableRowsForStateKey(stateKey, snapshot, profile, context) {
 
 async function deleteRequestedRows(table, stateKey, deleteIds, profile, context) {
   if (!deleteIds.length) return;
-  const remoteIds = await remoteIdsForStateKey(table, stateKey, profile, context);
+  let remoteIds = [];
+  try {
+    remoteIds = await remoteIdsForStateKey(table, stateKey, profile, context);
+  } catch (error) {
+    if (isRetryableOptionalSchemaTable({ table }, error)) {
+      console.warn(`Supabase ${table} table is missing; skipped pending deletes. Run supabase-support-center-migration.sql.`);
+      return;
+    }
+    throw error;
+  }
   if (!remoteIds.length) return;
   const allowedIds = new Set(remoteIds);
   const scopedDeleteIds = deleteIds.filter((id) => allowedIds.has(id));
   if (!scopedDeleteIds.length) return;
-  await supabaseFetch(`/rest/v1/${table}?id=in.(${listValues(scopedDeleteIds)})`, {
-    method: "DELETE",
-    prefer: "return=minimal",
-  });
+  try {
+    await supabaseFetch(`/rest/v1/${table}?id=in.(${listValues(scopedDeleteIds)})`, {
+      method: "DELETE",
+      prefer: "return=minimal",
+    });
+  } catch (error) {
+    if (isRetryableOptionalSchemaTable({ table }, error)) {
+      console.warn(`Supabase ${table} table is missing; skipped pending deletes. Run supabase-support-center-migration.sql.`);
+      return;
+    }
+    throw error;
+  }
 }
 
 function normalizeDeletedRowIds(value = {}) {
@@ -238,8 +261,12 @@ async function upsertStateRows(item, rows) {
       await upsertRows(item.table, writableRows);
       return;
     } catch (error) {
+      if (isRetryableOptionalSchemaTable(item, error)) {
+        console.warn(`Supabase ${item.table} table is missing; skipped optional sync. Run supabase-support-center-migration.sql.`);
+        return;
+      }
       const missing = missingSchemaCacheColumn(error);
-      if (!isRetryableOptionalTenantColumn(item.stateKey, missing, skippedColumns)) throw error;
+      if (!isRetryableOptionalSchemaColumn(item.stateKey, missing, skippedColumns)) throw error;
 
       skippedColumns.add(missing.column);
       writableRows = stripColumnsFromRows(rows, skippedColumns);
@@ -256,11 +283,39 @@ function missingSchemaCacheColumn(error) {
   return match ? { column: match[1], table: match[2] } : null;
 }
 
+function missingSchemaCacheTable(error) {
+  const text = [error?.message, error?.details, error?.hint, error?.code].filter(Boolean).join(" ");
+  const schemaCacheMatch = text.match(/Could not find the table '([^']+)' in the schema cache/i);
+  if (schemaCacheMatch) return normalizeSchemaTableName(schemaCacheMatch[1]);
+  const relationMatch = text.match(/relation "([^"]+)" does not exist/i);
+  if (relationMatch) return normalizeSchemaTableName(relationMatch[1]);
+  return "";
+}
+
+function isRetryableOptionalSchemaTable(item, error) {
+  const table = normalizeSchemaTableName(item?.table || item);
+  const missing = missingSchemaCacheTable(error);
+  return Boolean(table && missing === table && OPTIONAL_SCHEMA_TABLES.has(table));
+}
+
+function normalizeSchemaTableName(value) {
+  return String(value || "")
+    .replace(/"/g, "")
+    .split(".")
+    .pop();
+}
+
 function isRetryableOptionalTenantColumn(stateKey, missing, skippedColumns = new Set()) {
+  return stateKey === "tenants" && isRetryableOptionalSchemaColumn(stateKey, missing, skippedColumns);
+}
+
+function isRetryableOptionalSchemaColumn(stateKey, missing, skippedColumns = new Set()) {
+  const optionalColumns = OPTIONAL_SCHEMA_COLUMNS_BY_STATE[stateKey];
+  const expectedTable = STATE_TABLES.find((item) => item.stateKey === stateKey)?.table || "";
   return (
-    stateKey === "tenants" &&
-    missing?.table === "tenants" &&
-    TENANT_OPTIONAL_SCHEMA_COLUMN_SET.has(missing.column) &&
+    Boolean(optionalColumns) &&
+    normalizeSchemaTableName(missing?.table) === expectedTable &&
+    optionalColumns.has(missing?.column) &&
     !skippedColumns.has(missing.column)
   );
 }
@@ -453,6 +508,9 @@ function apiCorsOrigin() {
 
 module.exports._internal = {
   missingSchemaCacheColumn,
+  missingSchemaCacheTable,
   isRetryableOptionalTenantColumn,
+  isRetryableOptionalSchemaColumn,
+  isRetryableOptionalSchemaTable,
   stripColumnsFromRows,
 };

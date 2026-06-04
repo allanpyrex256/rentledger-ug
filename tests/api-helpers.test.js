@@ -110,3 +110,21 @@ test("sync-state tolerates missing optional tenant move-out columns", () => {
     [{ id: "tenant-1", status: "moved_out", move_out_refund: 5000 }]
   );
 });
+
+test("sync-state tolerates missing optional support center tables", () => {
+  const error = new Error("Could not find the table 'public.landlord_messages' in the schema cache");
+
+  assert.equal(syncState._internal.missingSchemaCacheTable(error), "landlord_messages");
+  assert.equal(syncState._internal.isRetryableOptionalSchemaTable({ table: "landlord_messages" }, error), true);
+  assert.equal(syncState._internal.isRetryableOptionalSchemaTable({ table: "payments" }, error), false);
+});
+
+test("sync-state strips additive support center columns before migration", () => {
+  const missing = syncState._internal.missingSchemaCacheColumn(
+    new Error("Could not find the 'admin_note' column of 'support_tickets' in the schema cache")
+  );
+
+  assert.equal(syncState._internal.isRetryableOptionalSchemaColumn("supportTickets", missing), true);
+  assert.equal(syncState._internal.isRetryableOptionalSchemaColumn("supportTickets", { ...missing, column: "subject" }), false);
+  assert.equal(syncState._internal.isRetryableOptionalSchemaColumn("payments", missing), false);
+});

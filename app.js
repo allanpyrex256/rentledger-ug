@@ -26,10 +26,10 @@
     { stateKey: "tenants", table: "tenants" },
     { stateKey: "payments", table: "payments" },
     { stateKey: "expenses", table: "expenses" },
-    { stateKey: "supportTickets", table: "support_tickets" },
-    { stateKey: "supportMessages", table: "landlord_messages" },
-    { stateKey: "auditLogs", table: "audit_logs" },
-    { stateKey: "notifications", table: "notifications" },
+    { stateKey: "supportTickets", table: "support_tickets", optional: true },
+    { stateKey: "supportMessages", table: "landlord_messages", optional: true },
+    { stateKey: "auditLogs", table: "audit_logs", optional: true },
+    { stateKey: "notifications", table: "notifications", optional: true },
   ];
 
   const SUPABASE_DELETE_ORDER = [
@@ -786,6 +786,9 @@
 
   function signInErrorMessage(error, identifier = "") {
     const message = String(error?.message || "").trim();
+    if (missingSupabaseTableName(error)) {
+      return "Database migration is pending. Run supabase-support-center-migration.sql in Supabase, then retry.";
+    }
     if (!message || message === "Invalid login." || message === "Invalid login credentials") {
       if (isSuperAdminIdentifier(identifier)) {
         return "Super admin must be created in Supabase Auth first.";
@@ -8348,9 +8351,16 @@
 
   async function fetchSupabaseState(client) {
     const remote = {};
-    for (const { stateKey, table } of SUPABASE_TABLES) {
+    for (const { stateKey, table, optional } of SUPABASE_TABLES) {
       const { data, error } = await client.from(table).select("*");
-      if (error) throw error;
+      if (error) {
+        if (optional && isMissingSupabaseTableError(error, table)) {
+          console.warn(`Supabase table ${table} is missing. Run supabase-support-center-migration.sql to enable this module.`);
+          remote[stateKey] = [];
+          continue;
+        }
+        throw error;
+      }
       remote[stateKey] = (data || []).map((row) => fromSupabaseRow(stateKey, row));
     }
 
@@ -8358,6 +8368,27 @@
     remote.passwordReset = state.passwordReset || null;
     remote.deletedRowIds = state.deletedRowIds || {};
     return remote;
+  }
+
+  function isMissingSupabaseTableError(error, table = "") {
+    const missingTable = missingSupabaseTableName(error);
+    return Boolean(missingTable && (!table || missingTable === normalizeSupabaseTableName(table)));
+  }
+
+  function missingSupabaseTableName(error) {
+    const text = [error?.message, error?.details, error?.hint, error?.code].filter(Boolean).join(" ");
+    const schemaCacheMatch = text.match(/Could not find the table '([^']+)' in the schema cache/i);
+    if (schemaCacheMatch) return normalizeSupabaseTableName(schemaCacheMatch[1]);
+    const relationMatch = text.match(/relation "([^"]+)" does not exist/i);
+    if (relationMatch) return normalizeSupabaseTableName(relationMatch[1]);
+    return "";
+  }
+
+  function normalizeSupabaseTableName(value) {
+    return String(value || "")
+      .replace(/"/g, "")
+      .split(".")
+      .pop();
   }
 
   async function fetchPublicSupabaseState(client) {
@@ -8694,6 +8725,10 @@
   function handleSupabaseSaveError(error) {
     if (isSignInRequiredError(error)) {
       promptSupabaseSignIn("Sign in again to sync changes across devices.");
+      return;
+    }
+    if (missingSupabaseTableName(error)) {
+      showToast("Database migration is pending. Run supabase-support-center-migration.sql in Supabase.");
       return;
     }
     showToast(`Could not save to Supabase: ${error.message || "Browser copy kept."}`);

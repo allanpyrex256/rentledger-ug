@@ -137,6 +137,9 @@ async function supabaseFetch(path, options = {}) {
   if (!response.ok) {
     const error = new Error(payload?.msg || payload?.message || payload?.error_description || "Supabase request failed.");
     error.status = response.status >= 500 ? 502 : response.status;
+    if (payload?.code) error.code = payload.code;
+    if (payload?.details) error.details = payload.details;
+    if (payload?.hint) error.hint = payload.hint;
     throw error;
   }
   return payload;
