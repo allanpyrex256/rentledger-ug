@@ -1441,7 +1441,8 @@
     setAppLoading("Loading view");
     const secondaryViews = isSaasOwner() ? ["platformDetail"] : [];
     const allowedViewNames = [...currentNavItems().map(([itemViewName]) => itemViewName), ...secondaryViews];
-    const resolvedViewName = allowedViewNames.includes(viewName) ? viewName : defaultView();
+    const requestedViewName = normalizeRequestedView(viewName);
+    const resolvedViewName = allowedViewNames.includes(requestedViewName) ? requestedViewName : defaultView();
     if (resolvedViewName !== "platformDetail") activePlatformDetailType = "";
     document.querySelectorAll(".view").forEach((view) => {
       view.classList.toggle("active-view", view.id === resolvedViewName);
@@ -1452,6 +1453,11 @@
     updateViewHeader(resolvedViewName);
     if (resolvedViewName === "platformBilling") syncOwnerPaymentDefaults(false);
     clearAppLoading();
+  }
+
+  function normalizeRequestedView(viewName) {
+    if (isSaasOwner() && viewName === "properties") return "superAdminDashboard";
+    return viewName;
   }
 
   function updateViewHeader(viewName) {
@@ -7045,6 +7051,7 @@
     state.selectedPropertyId = "all";
     saveState();
     renderSession();
+    setView("dashboard");
     showToast(`Viewing ${landlord.name} as Super Admin.`);
   }
 
@@ -7082,7 +7089,7 @@
     state.selectedPropertyId = portfolio.properties[0]?.id || "all";
     saveState();
     renderAll();
-    setView("properties");
+    setView(isSaasOwner() ? "platformLandlords" : "properties");
     showToast(`Opened ${ownerName(ownerId)} portfolio.`);
   }
 
