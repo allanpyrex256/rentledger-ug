@@ -85,11 +85,9 @@ When Supabase is not configured, the app runs with local browser demo data for d
 
 If you already ran an older version of the schema with UUID columns, use a fresh Supabase project or drop those prototype tables before running this schema.
 
-If sign-in shows `permission denied for table app_users`, rerun the latest `supabase-schema.sql` grant section in the Supabase SQL editor.
+For existing Supabase projects, rerun the latest `supabase-schema.sql` after pulling app updates. It is idempotent and repairs older production schemas by adding any missing tables, columns, indexes, grants, functions, and RLS policies.
 
-If saving shows `Could not find the 'move_out_balance' column of 'tenants' in the schema cache`, rerun the latest `supabase-schema.sql` tenant `alter table` section in the Supabase SQL editor. The API can continue syncing core tenant fields against an older schema, but move-out balances, damages, refunds, and notes only persist after those columns exist.
-
-For existing Supabase projects, run `supabase-support-center-migration.sql` after `supabase-schema.sql` to add the Super Admin Support Center tables, filters, audit logs, landlord messages, notification read tracking, and RLS policies.
+Run `supabase-support-center-migration.sql` for the Support Center rollout or when production shows a Supabase schema-cache error. It includes the Support Center tables plus compatibility repairs for older RentLedger tables, so the database catches up in one SQL run.
 
 ## Flutter Payment API
 

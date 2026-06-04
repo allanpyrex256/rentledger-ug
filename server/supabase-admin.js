@@ -32,6 +32,8 @@ function env() {
   return { url: url.replace(/\/$/, ""), anonKey, serviceRoleKey };
 }
 
+const OPTIONAL_WRITE_TABLES = new Set(["support_tickets", "landlord_messages", "audit_logs", "notifications"]);
+
 function assertServerSupabase() {
   const config = env();
   if (!config.url || !config.anonKey || !config.serviceRoleKey) {
@@ -218,22 +220,26 @@ async function deleteAuthUser(id) {
 }
 
 async function insertRows(table, rows) {
-  return supabaseFetch(`/rest/v1/${table}`, {
-    method: "POST",
-    prefer: "return=representation",
-    body: rows,
-  });
+  return writeRowsWithSchemaRetry(table, rows, (body) =>
+    supabaseFetch(`/rest/v1/${table}`, {
+      method: "POST",
+      prefer: "return=representation",
+      body,
+    })
+  );
 }
 
 async function upsertRows(table, rows, conflictColumn = "id") {
   const groups = groupRowsByKeys(rows);
   const results = [];
   for (const group of groups) {
-    const saved = await supabaseFetch(`/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictColumn)}`, {
-      method: "POST",
-      prefer: "resolution=merge-duplicates,return=representation",
-      body: group,
-    });
+    const saved = await writeRowsWithSchemaRetry(table, group, (body) =>
+      supabaseFetch(`/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictColumn)}`, {
+        method: "POST",
+        prefer: "resolution=merge-duplicates,return=representation",
+        body,
+      })
+    );
     results.push(...saved);
   }
   return results;
@@ -249,15 +255,106 @@ function groupRowsByKeys(rows = []) {
 }
 
 async function patchRows(table, query, values) {
-  return supabaseFetch(`/rest/v1/${table}?${query}`, {
-    method: "PATCH",
-    prefer: "return=representation",
-    body: values,
-  });
+  return writeRowsWithSchemaRetry(table, values, (body) =>
+    supabaseFetch(`/rest/v1/${table}?${query}`, {
+      method: "PATCH",
+      prefer: "return=representation",
+      body,
+    })
+  );
 }
 
 async function deleteRows(table, query) {
-  return supabaseFetch(`/rest/v1/${table}?${query}`, { method: "DELETE" });
+  try {
+    return await supabaseFetch(`/rest/v1/${table}?${query}`, { method: "DELETE" });
+  } catch (error) {
+    if (isMissingOptionalWriteTable(table, error)) return [];
+    throw error;
+  }
+}
+
+async function writeRowsWithSchemaRetry(table, initialBody, write) {
+  let body = initialBody;
+  const skippedColumns = new Set();
+
+  while (true) {
+    if (isEmptyWritePayload(body)) return [];
+    try {
+      return await write(body);
+    } catch (error) {
+      if (isMissingOptionalWriteTable(table, error)) return [];
+      const missing = missingSchemaCacheColumn(error);
+      if (!isRetryableWriteColumn(table, missing, body, skippedColumns)) throw error;
+      skippedColumns.add(missing.column);
+      body = stripColumnsFromPayload(body, skippedColumns);
+      console.warn(`Supabase ${table} table is missing ${missing.column}; retrying write without it. Run supabase-schema.sql.`);
+    }
+  }
+}
+
+function missingSchemaCacheColumn(error) {
+  const text = schemaErrorText(error);
+  const match = text.match(/Could not find the '([^']+)' column of '([^']+)' in the schema cache/i);
+  return match ? { column: match[1], table: normalizeSchemaTableName(match[2]) } : null;
+}
+
+function missingSchemaCacheTable(error) {
+  const text = schemaErrorText(error);
+  const schemaCacheMatch = text.match(/Could not find the table '([^']+)' in the schema cache/i);
+  if (schemaCacheMatch) return normalizeSchemaTableName(schemaCacheMatch[1]);
+  const relationMatch = text.match(/relation "([^"]+)" does not exist/i);
+  if (relationMatch) return normalizeSchemaTableName(relationMatch[1]);
+  return "";
+}
+
+function schemaErrorText(error) {
+  return [error?.message, error?.details, error?.hint, error?.code].filter(Boolean).join(" ");
+}
+
+function isMissingOptionalWriteTable(table, error) {
+  const normalizedTable = normalizeSchemaTableName(table);
+  return OPTIONAL_WRITE_TABLES.has(normalizedTable) && missingSchemaCacheTable(error) === normalizedTable;
+}
+
+function isRetryableWriteColumn(table, missing, body, skippedColumns = new Set()) {
+  return (
+    Boolean(missing?.column) &&
+    normalizeSchemaTableName(missing.table) === normalizeSchemaTableName(table) &&
+    payloadHasColumn(body, missing.column) &&
+    !skippedColumns.has(missing.column)
+  );
+}
+
+function payloadHasColumn(body, column) {
+  const rows = Array.isArray(body) ? body : [body];
+  return rows.some((row) => row && Object.prototype.hasOwnProperty.call(row, column));
+}
+
+function stripColumnsFromPayload(body, columns) {
+  if (Array.isArray(body)) {
+    return body.map((row) => stripColumnsFromObject(row, columns));
+  }
+  return stripColumnsFromObject(body, columns);
+}
+
+function stripColumnsFromObject(row, columns) {
+  const stripped = { ...(row || {}) };
+  columns.forEach((column) => {
+    delete stripped[column];
+  });
+  return stripped;
+}
+
+function isEmptyWritePayload(body) {
+  if (Array.isArray(body)) return body.length === 0 || body.every((row) => !row || Object.keys(row).length === 0);
+  return !body || Object.keys(body).length === 0;
+}
+
+function normalizeSchemaTableName(value) {
+  return String(value || "")
+    .replace(/"/g, "")
+    .split(".")
+    .pop();
 }
 
 async function findUserByEmailOrPhone({ email, phone }) {
@@ -318,4 +415,11 @@ module.exports = {
   sendPasswordRecovery,
   supabaseFetch,
   upsertRows,
+  _internal: {
+    isMissingOptionalWriteTable,
+    isRetryableWriteColumn,
+    missingSchemaCacheColumn,
+    missingSchemaCacheTable,
+    stripColumnsFromPayload,
+  },
 };

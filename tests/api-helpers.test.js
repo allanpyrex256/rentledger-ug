@@ -1,7 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { planCanPublishPublicListings, planLimitForPlan } = require("../server/supabase-admin");
+const supabaseAdmin = require("../server/supabase-admin");
+const { planCanPublishPublicListings, planLimitForPlan } = supabaseAdmin;
 const flutterwave = require("../server/flutterwave");
 const pesapal = require("../server/pesapal");
 const subscriptionBilling = require("../server/subscription-billing");
@@ -135,4 +136,24 @@ test("sync-state tolerates missing tenant status before migration", () => {
   );
 
   assert.equal(syncState._internal.isRetryableOptionalSchemaColumn("tenants", missing), true);
+});
+
+test("supabase writes can strip schema-cache missing columns", () => {
+  const error = new Error("Could not find the 'listing_published' column of 'units' in the schema cache");
+  const missing = supabaseAdmin._internal.missingSchemaCacheColumn(error);
+  const rows = [{ id: "unit-1", unit_number: "A1", listing_published: true }];
+
+  assert.deepEqual(missing, { column: "listing_published", table: "units" });
+  assert.equal(supabaseAdmin._internal.isRetryableWriteColumn("units", missing, rows), true);
+  assert.deepEqual(supabaseAdmin._internal.stripColumnsFromPayload(rows, new Set(["listing_published"])), [
+    { id: "unit-1", unit_number: "A1" },
+  ]);
+});
+
+test("supabase writes treat support tables as optional during migration rollout", () => {
+  const error = new Error("Could not find the table 'public.notifications' in the schema cache");
+
+  assert.equal(supabaseAdmin._internal.missingSchemaCacheTable(error), "notifications");
+  assert.equal(supabaseAdmin._internal.isMissingOptionalWriteTable("notifications", error), true);
+  assert.equal(supabaseAdmin._internal.isMissingOptionalWriteTable("payments", error), false);
 });

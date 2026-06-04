@@ -27,7 +27,102 @@ as $$
   select coalesce(private.current_role() = 'saas-owner', false)
 $$;
 
+alter table app_users drop column if exists password;
+alter table app_users add column if not exists name text;
+alter table app_users add column if not exists phone text;
+alter table app_users add column if not exists email text;
+alter table app_users add column if not exists creator_email text;
+alter table app_users add column if not exists platform_owner_id text references app_users(id) on delete set null;
+alter table app_users add column if not exists role text not null default 'landlord';
+alter table app_users add column if not exists account_status text not null default 'Trial';
+alter table app_users add column if not exists company_owner_id text references app_users(id) on delete cascade;
+alter table app_users add column if not exists assigned_property_ids text[] not null default '{}';
+alter table app_users add column if not exists invitation_status text;
+alter table app_users add column if not exists created_at timestamptz not null default now();
+alter table app_users add column if not exists verified_badge boolean not null default false;
+alter table app_users add column if not exists verification_label text;
+
+alter table subscriptions add column if not exists owner_id text references app_users(id) on delete cascade;
+alter table subscriptions add column if not exists plan text not null default 'Trial';
+alter table subscriptions add column if not exists monthly_fee numeric(12, 2) not null default 0;
+alter table subscriptions add column if not exists status text not null default 'Trial';
+alter table subscriptions add column if not exists last_payment_date date;
+alter table subscriptions add column if not exists last_payment_method text;
+alter table subscriptions add column if not exists last_payment_note text;
+alter table subscriptions add column if not exists next_billing_date date;
+alter table subscriptions add column if not exists billing_method text;
+alter table subscriptions add column if not exists billing_contact_masked text;
+alter table subscriptions add column if not exists auto_collect_authorized boolean not null default false;
+alter table subscriptions add column if not exists cancel_at_period_end boolean not null default false;
+alter table subscriptions add column if not exists cancellation_requested_at timestamptz;
+alter table subscriptions add column if not exists grace_period_end date;
+alter table subscriptions add column if not exists payment_provider text;
+alter table subscriptions add column if not exists provider_payment_reference text;
+alter table subscriptions add column if not exists provider_payment_status text;
+alter table subscriptions add column if not exists provider_checkout_url text;
+alter table subscriptions add column if not exists provider_charge_id text;
+alter table subscriptions add column if not exists provider_customer_id text;
+alter table subscriptions add column if not exists provider_payment_method_id text;
+alter table subscriptions add column if not exists provider_next_action text;
+alter table subscriptions add column if not exists created_at timestamptz not null default now();
+
+alter table properties add column if not exists owner_id text references app_users(id) on delete cascade;
+alter table properties add column if not exists property_name text not null default 'Property';
+alter table properties add column if not exists location text not null default 'Unknown';
+alter table properties add column if not exists property_type text not null default 'Apartment';
+alter table properties add column if not exists created_at timestamptz not null default now();
+
+alter table units add column if not exists property_id text references properties(id) on delete cascade;
+alter table units add column if not exists unit_number text not null default 'Unit';
+alter table units add column if not exists rent_amount numeric(12, 2) not null default 0;
+alter table units add column if not exists status text not null default 'vacant';
+alter table units add column if not exists listing_published boolean not null default false;
+alter table units add column if not exists listing_bedrooms integer not null default 1;
+alter table units add column if not exists listing_bathrooms integer not null default 1;
+alter table units add column if not exists listing_furnished boolean not null default false;
+alter table units add column if not exists listing_photo text;
+alter table units add column if not exists listing_note text;
+alter table units add column if not exists created_at timestamptz not null default now();
+
+alter table tenants add column if not exists unit_id text references units(id) on delete restrict;
+alter table tenants add column if not exists name text not null default 'Tenant';
+alter table tenants add column if not exists phone text not null default '';
+alter table tenants add column if not exists national_id text;
+alter table tenants add column if not exists rent_amount numeric(12, 2) not null default 0;
+alter table tenants add column if not exists deposit_paid numeric(12, 2) not null default 0;
+alter table tenants add column if not exists move_in_date date not null default current_date;
 alter table tenants add column if not exists status text not null default 'active';
+alter table tenants add column if not exists move_out_date date;
+alter table tenants add column if not exists move_out_balance numeric(12, 2) not null default 0;
+alter table tenants add column if not exists move_out_damages numeric(12, 2) not null default 0;
+alter table tenants add column if not exists move_out_refund numeric(12, 2) not null default 0;
+alter table tenants add column if not exists move_out_note text;
+alter table tenants add column if not exists created_at timestamptz not null default now();
+
+alter table payments add column if not exists tenant_id text references tenants(id) on delete cascade;
+alter table payments add column if not exists amount numeric(12, 2) not null default 0;
+alter table payments add column if not exists payment_method text not null default 'Cash';
+alter table payments add column if not exists payment_date date not null default current_date;
+alter table payments add column if not exists balance numeric(12, 2) not null default 0;
+alter table payments add column if not exists reference text;
+alter table payments add column if not exists receipt_number text;
+alter table payments add column if not exists payment_proof text;
+alter table payments add column if not exists verification_status text not null default 'Unverified';
+alter table payments add column if not exists created_at timestamptz not null default now();
+
+alter table expenses add column if not exists property_id text references properties(id) on delete cascade;
+alter table expenses add column if not exists type text not null default 'General';
+alter table expenses add column if not exists amount numeric(12, 2) not null default 0;
+alter table expenses add column if not exists date date not null default current_date;
+alter table expenses add column if not exists created_at timestamptz not null default now();
+
+create index if not exists idx_app_users_company_owner_id on app_users(company_owner_id);
+create index if not exists idx_subscriptions_provider_payment_reference on subscriptions(provider_payment_reference);
+create index if not exists idx_properties_owner_id on properties(owner_id);
+create index if not exists idx_units_property_id on units(property_id);
+create index if not exists idx_tenants_unit_id on tenants(unit_id);
+create index if not exists idx_payments_tenant_id on payments(tenant_id);
+create index if not exists idx_expenses_property_id on expenses(property_id);
 
 create table if not exists support_tickets (
   id text primary key,
@@ -121,8 +216,22 @@ alter table notifications enable row level security;
 
 grant usage on schema public to anon, authenticated, service_role;
 grant usage on schema private to anon, authenticated, service_role;
-grant select, insert, update, delete on support_tickets, landlord_messages, audit_logs, notifications to authenticated;
-grant all privileges on support_tickets, landlord_messages, audit_logs, notifications to service_role;
+grant select on app_users, properties, units to anon;
+grant select, insert, update, delete on
+  app_users,
+  subscriptions,
+  properties,
+  units,
+  tenants,
+  payments,
+  expenses,
+  support_tickets,
+  landlord_messages,
+  audit_logs,
+  notifications
+to authenticated;
+grant all privileges on all tables in schema public to service_role;
+grant execute on all functions in schema private to anon, authenticated, service_role;
 
 drop policy if exists support_tickets_authenticated_all on support_tickets;
 create policy support_tickets_authenticated_all on support_tickets
