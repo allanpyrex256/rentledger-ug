@@ -388,7 +388,6 @@
   const ownerNav = [
     ["superAdminDashboard", "Dashboard"],
     ["platformLandlords", "Landlords"],
-    ["properties", "Properties"],
     ["platformBilling", "Subscriptions"],
     ["platformSupport", "Support Center"],
     ["platformMessages", "Messages"],
