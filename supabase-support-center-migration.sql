@@ -27,6 +27,8 @@ as $$
   select coalesce(private.current_role() = 'saas-owner', false)
 $$;
 
+alter table tenants add column if not exists status text not null default 'active';
+
 create table if not exists support_tickets (
   id text primary key,
   owner_id text not null references app_users(id) on delete cascade,

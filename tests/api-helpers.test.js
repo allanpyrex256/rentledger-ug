@@ -128,3 +128,11 @@ test("sync-state strips additive support center columns before migration", () =>
   assert.equal(syncState._internal.isRetryableOptionalSchemaColumn("supportTickets", { ...missing, column: "subject" }), false);
   assert.equal(syncState._internal.isRetryableOptionalSchemaColumn("payments", missing), false);
 });
+
+test("sync-state tolerates missing tenant status before migration", () => {
+  const missing = syncState._internal.missingSchemaCacheColumn(
+    new Error("Could not find the 'status' column of 'tenants' in the schema cache")
+  );
+
+  assert.equal(syncState._internal.isRetryableOptionalSchemaColumn("tenants", missing), true);
+});

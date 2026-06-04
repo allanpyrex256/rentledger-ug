@@ -786,7 +786,7 @@
 
   function signInErrorMessage(error, identifier = "") {
     const message = String(error?.message || "").trim();
-    if (missingSupabaseTableName(error)) {
+    if (missingSupabaseSchemaItem(error)) {
       return "Database migration is pending. Run supabase-support-center-migration.sql in Supabase, then retry.";
     }
     if (!message || message === "Invalid login." || message === "Invalid login credentials") {
@@ -8375,6 +8375,10 @@
     return Boolean(missingTable && (!table || missingTable === normalizeSupabaseTableName(table)));
   }
 
+  function missingSupabaseSchemaItem(error) {
+    return missingSupabaseTableName(error) || missingSupabaseColumnName(error);
+  }
+
   function missingSupabaseTableName(error) {
     const text = [error?.message, error?.details, error?.hint, error?.code].filter(Boolean).join(" ");
     const schemaCacheMatch = text.match(/Could not find the table '([^']+)' in the schema cache/i);
@@ -8382,6 +8386,12 @@
     const relationMatch = text.match(/relation "([^"]+)" does not exist/i);
     if (relationMatch) return normalizeSupabaseTableName(relationMatch[1]);
     return "";
+  }
+
+  function missingSupabaseColumnName(error) {
+    const text = [error?.message, error?.details, error?.hint, error?.code].filter(Boolean).join(" ");
+    const schemaCacheMatch = text.match(/Could not find the '([^']+)' column of '([^']+)' in the schema cache/i);
+    return schemaCacheMatch ? schemaCacheMatch[1] : "";
   }
 
   function normalizeSupabaseTableName(value) {
@@ -8727,7 +8737,7 @@
       promptSupabaseSignIn("Sign in again to sync changes across devices.");
       return;
     }
-    if (missingSupabaseTableName(error)) {
+    if (missingSupabaseSchemaItem(error)) {
       showToast("Database migration is pending. Run supabase-support-center-migration.sql in Supabase.");
       return;
     }

@@ -26,7 +26,14 @@ const STATE_TABLES = [
 
 const DELETE_ORDER = ["notifications", "auditLogs", "supportMessages", "supportTickets", "expenses", "payments", "tenants", "units", "properties", "subscriptions", "users"];
 const SUPER_ADMIN_USER_ID = "user-saas-owner";
-const TENANT_OPTIONAL_SCHEMA_COLUMNS = ["move_out_date", "move_out_balance", "move_out_damages", "move_out_refund", "move_out_note"];
+const TENANT_OPTIONAL_SCHEMA_COLUMNS = [
+  "status",
+  "move_out_date",
+  "move_out_balance",
+  "move_out_damages",
+  "move_out_refund",
+  "move_out_note",
+];
 const TENANT_OPTIONAL_SCHEMA_COLUMN_SET = new Set(TENANT_OPTIONAL_SCHEMA_COLUMNS);
 const OPTIONAL_SCHEMA_TABLES = new Set(STATE_TABLES.filter((item) => item.optional).map((item) => item.table));
 const OPTIONAL_SCHEMA_COLUMNS_BY_STATE = {
