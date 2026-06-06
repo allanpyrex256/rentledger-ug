@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Neighborhood shop space">
-  <rect width="1200" height="720" fill="#edf2ef"/>
-  <rect x="138" y="138" width="924" height="452" rx="24" fill="#f8f0df"/>
-  <rect x="138" y="138" width="924" height="96" rx="24" fill="#0f766e"/>
-  <rect x="210" y="288" width="274" height="302" rx="14" fill="#102b35"/>
-  <rect x="536" y="288" width="274" height="302" rx="14" fill="#102b35"/>
-  <rect x="852" y="326" width="112" height="264" rx="12" fill="#e7b34b"/>
-  <path d="M190 622h820" stroke="#9a6b45" stroke-width="26" stroke-linecap="round"/>
-</svg>

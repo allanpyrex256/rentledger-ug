@@ -106,7 +106,7 @@
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
     return `
       <article class="public-listing-card">
-        <img src="${escapeHtml(listingPhotoForUnit(unit, property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
+        <img src="${escapeHtml(unit.listing_photo || listingPhotoForProperty(property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
         <div class="public-listing-body">
           <div class="landlord-listing-heading">
             <span class="listing-status">Available now</span>
@@ -233,30 +233,10 @@
     return `${type} - ${property.location}`;
   }
 
-  function listingPhotoForUnit(unit, property) {
-    const photo = String(unit?.listing_photo || "").trim();
-    return photo && !isLegacyListingPhoto(photo) ? photo : listingPhotoForProperty(property, unit);
-  }
-
-  function isLegacyListingPhoto(photo) {
-    return ["assets/apartment-exterior.jpg", "assets/mobile-payment.jpg", "assets/property-keys.jpg"].includes(String(photo || "").trim());
-  }
-
-  function listingPhotoForProperty(property, unit = {}) {
+  function listingPhotoForProperty(property) {
     const type = String(property.property_type || "").toLowerCase();
-    if (type.includes("shop")) return listingPhotoFromSet(property, unit, ["assets/listing-kololo-shop.svg", "assets/listing-default-shop.svg"]);
-    if (type.includes("house")) return listingPhotoFromSet(property, unit, ["assets/listing-mukono-house.svg", "assets/listing-default-house.svg"]);
-    if (type.includes("room") || type.includes("boys")) {
-      return listingPhotoFromSet(property, unit, ["assets/listing-ntinda-room.svg", "assets/listing-entebbe-double-room.svg", "assets/listing-najjera-boys-quarter.svg", "assets/listing-default-room.svg"]);
-    }
-    return listingPhotoFromSet(property, unit, ["assets/listing-default-apartment.svg", "assets/listing-default-house.svg"]);
-  }
-
-  function listingPhotoFromSet(property, unit, photos) {
-    const key = `${property?.id || ""}${property?.property_name || ""}${property?.location || ""}${unit?.id || ""}${unit?.unit_number || ""}`;
-    let hash = 0;
-    for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-    return photos[hash % photos.length];
+    if (type.includes("shop")) return "assets/property-keys.jpg";
+    return "assets/apartment-exterior.jpg";
   }
 
   function landlordIdFromPath() {

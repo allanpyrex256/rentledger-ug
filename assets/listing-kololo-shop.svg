@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Commercial shopfront for rent">
-  <rect width="1200" height="720" fill="#e8eef0"/>
-  <rect x="112" y="122" width="976" height="460" rx="24" fill="#f8f2e4"/>
-  <rect x="112" y="122" width="976" height="112" rx="24" fill="#e2ad45"/>
-  <rect x="186" y="292" width="300" height="290" rx="14" fill="#102b35"/>
-  <rect x="536" y="292" width="300" height="290" rx="14" fill="#102b35"/>
-  <rect x="874" y="326" width="124" height="256" rx="12" fill="#0f766e"/>
-  <path d="M162 612h876" stroke="#9a6b45" stroke-width="28" stroke-linecap="round"/>
-</svg>
