@@ -18,7 +18,7 @@ const {
   supabaseFetch,
 } = require("../supabase-admin");
 
-const TRIAL_DAYS = 7;
+const TRIAL_DAYS = 14;
 const VERIFIED_BADGE_REQUEST_SUBJECT = "Verified badge request";
 
 module.exports = async function handler(request, response) {
