@@ -1,6 +1,7 @@
 const routes = {
   "admin-user": require("../server/api-routes/admin-user"),
   "bootstrap-admin": require("../server/api-routes/bootstrap-admin"),
+  health: require("../server/api-routes/health"),
   "landlord-profile": require("../server/api-routes/landlord-profile"),
   "password-reset": require("../server/api-routes/password-reset"),
   payments: require("../server/api-routes/payments"),
