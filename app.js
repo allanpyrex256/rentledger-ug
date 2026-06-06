@@ -70,7 +70,7 @@
   };
 
   const SUPER_ADMIN_USER_ID = "user-saas-owner";
-  const SUPER_ADMIN_EMAIL = "allanpyrex5@gmail.com";
+  const SUPER_ADMIN_EMAIL = "rentledgerugsupport@etohubs.com";
   const DEMO_ACCOUNT_IDS = [SUPER_ADMIN_USER_ID, "user-1", "staff-1"];
   const PUBLIC_DEMO_ACCOUNT_IDS = ["user-1", "staff-1"];
   const state = loadState();

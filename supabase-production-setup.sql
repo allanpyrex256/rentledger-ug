@@ -25,5 +25,5 @@ to authenticated;
 grant all privileges on all tables in schema public to service_role;
 grant execute on all functions in schema private to anon, authenticated, service_role;
 
--- The first sign-in for allanpyrex5@gmail.com calls /api/bootstrap-admin,
+-- The first sign-in for rentledgerugsupport@etohubs.com calls /api/bootstrap-admin,
 -- which creates the app_users row with role = 'saas-owner' automatically.
