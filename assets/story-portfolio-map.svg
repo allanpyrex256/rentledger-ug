@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Property portfolio map dashboard">
+  <rect width="1200" height="720" fill="#dcefed"/>
+  <path d="M0 516 C126 460 228 560 365 488 C532 400 676 520 826 462 C986 400 1106 442 1200 392 V720 H0Z" fill="#0f766e" opacity=".22"/>
+  <g transform="translate(92 108)">
+    <rect width="488" height="448" rx="28" fill="#fffdf8"/>
+    <path d="M56 322 C152 270 202 362 292 302 C376 248 402 280 432 246" fill="none" stroke="#0f766e" stroke-width="18" stroke-linecap="round" opacity=".28"/>
+    <path d="M72 116 C142 160 188 98 262 144 C348 198 376 132 428 168" fill="none" stroke="#f0b94f" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="150" cy="248" r="30" fill="#102b35"/>
+    <circle cx="314" cy="178" r="30" fill="#102b35"/>
+    <circle cx="390" cy="346" r="30" fill="#102b35"/>
+    <circle cx="150" cy="248" r="12" fill="#f4c35e"/>
+    <circle cx="314" cy="178" r="12" fill="#f4c35e"/>
+    <circle cx="390" cy="346" r="12" fill="#f4c35e"/>
+  </g>
+  <g transform="translate(640 130)">
+    <rect x="0" y="140" width="360" height="330" rx="18" fill="#fffdf8"/>
+    <rect x="38" y="72" width="286" height="398" rx="20" fill="#e8bb54"/>
+    <rect x="82" y="118" width="64" height="70" rx="8" fill="#102b35"/>
+    <rect x="204" y="118" width="64" height="70" rx="8" fill="#102b35"/>
+    <rect x="82" y="224" width="64" height="70" rx="8" fill="#102b35"/>
+    <rect x="204" y="224" width="64" height="70" rx="8" fill="#102b35"/>
+    <rect x="132" y="344" width="96" height="126" rx="8" fill="#0f766e"/>
+  </g>
+</svg>

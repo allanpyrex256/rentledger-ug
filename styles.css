@@ -98,7 +98,7 @@ button {
   background:
     linear-gradient(90deg, rgba(5, 12, 23, 0.96) 0%, rgba(7, 15, 28, 0.86) 46%, rgba(7, 15, 28, 0.38) 100%),
     linear-gradient(180deg, rgba(7, 15, 28, 0.1), rgba(7, 15, 28, 0.84)),
-    url("assets/apartment-exterior.jpg") center / cover no-repeat;
+    url("assets/hero-rentledger-dashboard.svg") center / cover no-repeat;
   padding: clamp(52px, 8vh, 82px) clamp(18px, 5vw, 72px);
 }
 
@@ -723,7 +723,7 @@ button {
   overflow: hidden;
   background:
     linear-gradient(135deg, rgba(7, 17, 31, 0.9), rgba(24, 36, 55, 0.78)),
-    url("assets/apartment-exterior.jpg") center / cover no-repeat;
+    url("assets/walkthrough-landlord-desk.svg") center / cover no-repeat;
   padding: 20px;
 }
 

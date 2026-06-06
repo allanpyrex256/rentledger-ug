@@ -142,6 +142,7 @@ Production auth is handled by Supabase Auth. The schema enables RLS so anonymous
 
 ## Image Sources
 
+- `assets/*-*.svg` scene illustrations are local RentLedger UG interface and listing artwork generated for this project.
 - `assets/apartment-exterior.jpg` from Pexels photo `34360410`.
 - `assets/mobile-payment.jpg` from Pexels photo `5239806`.
 - `assets/property-keys.jpg` from Pexels photo `31015267`.

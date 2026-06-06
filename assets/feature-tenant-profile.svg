@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Tenant profile file">
+  <rect width="1200" height="720" fill="#e9f3f1"/>
+  <rect x="150" y="86" width="392" height="548" rx="30" fill="#fffdf8"/>
+  <circle cx="346" cy="226" r="82" fill="#f0be56"/>
+  <path d="M228 438c26-84 84-126 118-126s92 42 118 126" fill="none" stroke="#102b35" stroke-width="34" stroke-linecap="round"/>
+  <rect x="630" y="116" width="406" height="488" rx="28" fill="#ffffff"/>
+  <rect x="684" y="174" width="220" height="28" rx="14" fill="#0f766e"/>
+  <rect x="684" y="248" width="284" height="24" rx="12" fill="#d2e2df"/>
+  <rect x="684" y="310" width="250" height="24" rx="12" fill="#d2e2df"/>
+  <rect x="684" y="372" width="306" height="24" rx="12" fill="#f0be56"/>
+  <rect x="684" y="456" width="132" height="74" rx="18" fill="#0f766e"/>
+  <rect x="856" y="456" width="132" height="74" rx="18" fill="#f0be56"/>
+</svg>

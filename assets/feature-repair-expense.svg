@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Repair expense tools and invoice">
+  <rect width="1200" height="720" fill="#f5ead8"/>
+  <rect x="134" y="112" width="394" height="494" rx="30" fill="#ffffff"/>
+  <rect x="190" y="172" width="200" height="28" rx="14" fill="#0f766e"/>
+  <rect x="190" y="250" width="270" height="20" rx="10" fill="#d4e3e0"/>
+  <rect x="190" y="306" width="220" height="20" rx="10" fill="#d4e3e0"/>
+  <rect x="190" y="362" width="248" height="20" rx="10" fill="#f0bd55"/>
+  <rect x="190" y="468" width="282" height="52" rx="18" fill="#e8f1ef"/>
+  <g transform="translate(624 154)">
+    <rect x="130" y="0" width="78" height="402" rx="24" fill="#102b35" transform="rotate(38 169 201)"/>
+    <circle cx="314" cy="94" r="70" fill="none" stroke="#102b35" stroke-width="40"/>
+    <path d="M84 292 0 420" stroke="#e0aa44" stroke-width="64" stroke-linecap="round"/>
+    <path d="M384 366 260 490" stroke="#0f766e" stroke-width="54" stroke-linecap="round"/>
+  </g>
+</svg>

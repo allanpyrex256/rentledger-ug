@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="Boys quarter with secure compound">
+  <rect width="1200" height="720" fill="#e9f1e8"/>
+  <rect y="548" width="1200" height="172" fill="#7cac79"/>
+  <rect x="238" y="218" width="672" height="344" rx="20" fill="#f8f1df"/>
+  <rect x="310" y="298" width="132" height="116" rx="10" fill="#102b35"/>
+  <rect x="516" y="298" width="132" height="116" rx="10" fill="#102b35"/>
+  <rect x="720" y="330" width="112" height="232" rx="12" fill="#0f766e"/>
+  <path d="M190 238 574 98l384 140" fill="none" stroke="#e1ad45" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M112 584h976" stroke="#102b35" stroke-width="22" stroke-linecap="round"/>
+  <path d="M170 584V470M266 584V470M362 584V470M458 584V470M554 584V470M650 584V470M746 584V470M842 584V470M938 584V470M1034 584V470" stroke="#102b35" stroke-width="14" stroke-linecap="round"/>
+</svg>

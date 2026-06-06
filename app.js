@@ -1564,7 +1564,7 @@
     return `
       <article class="public-listing-card${options.featured ? " featured" : ""}">
         <div class="listing-media">
-          <img src="${escapeHtml(unit.listing_photo || listingPhotoForProperty(property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
+          <img src="${escapeHtml(listingPhotoForUnit(unit, property))}" alt="${escapeHtml(unit.unit_number)} at ${escapeHtml(property.property_name)}" />
           <div class="listing-badge-stack">
             ${options.featured ? '<span class="listing-featured-ribbon">Featured</span>' : ""}
             ${postedBadge}
@@ -1686,11 +1686,30 @@
     return `${type} - ${property.location}`;
   }
 
-  function listingPhotoForProperty(property) {
+  function listingPhotoForUnit(unit, property) {
+    const photo = String(unit?.listing_photo || "").trim();
+    return photo && !isLegacyListingPhoto(photo) ? photo : listingPhotoForProperty(property, unit);
+  }
+
+  function isLegacyListingPhoto(photo) {
+    return ["assets/apartment-exterior.jpg", "assets/mobile-payment.jpg", "assets/property-keys.jpg"].includes(String(photo || "").trim());
+  }
+
+  function listingPhotoForProperty(property, unit = {}) {
     const type = String(property.property_type || "").toLowerCase();
-    if (type.includes("shop")) return "assets/property-keys.jpg";
-    if (type.includes("room") || type.includes("boys")) return "assets/apartment-exterior.jpg";
-    return "assets/apartment-exterior.jpg";
+    if (type.includes("shop")) return listingPhotoFromSet(property, unit, ["assets/listing-kololo-shop.svg", "assets/listing-default-shop.svg"]);
+    if (type.includes("house")) return listingPhotoFromSet(property, unit, ["assets/listing-mukono-house.svg", "assets/listing-default-house.svg"]);
+    if (type.includes("room") || type.includes("boys")) {
+      return listingPhotoFromSet(property, unit, ["assets/listing-ntinda-room.svg", "assets/listing-entebbe-double-room.svg", "assets/listing-najjera-boys-quarter.svg", "assets/listing-default-room.svg"]);
+    }
+    return listingPhotoFromSet(property, unit, ["assets/listing-default-apartment.svg", "assets/listing-default-house.svg"]);
+  }
+
+  function listingPhotoFromSet(property, unit, photos) {
+    const key = `${property?.id || ""}${property?.property_name || ""}${property?.location || ""}${unit?.id || ""}${unit?.unit_number || ""}`;
+    let hash = 0;
+    for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    return photos[hash % photos.length];
   }
 
   function renderOnboardingChecklist(scope) {
@@ -6260,7 +6279,7 @@
         listing_bedrooms: 1,
         listing_bathrooms: 1,
         listing_furnished: false,
-        listing_photo: "assets/apartment-exterior.jpg",
+        listing_photo: "assets/listing-default-room.svg",
         listing_note: "Demo vacancy published from the owner dashboard.",
       },
     ];
@@ -9367,7 +9386,7 @@
           listing_bedrooms: 1,
           listing_bathrooms: 1,
           listing_furnished: false,
-          listing_photo: "assets/apartment-exterior.jpg",
+          listing_photo: "assets/listing-ntinda-room.svg",
           listing_note: "Single room near Ntinda trading center. Water and power available.",
         },
         { id: "unit-7", property_id: "property-2", unit_number: "N3", rent_amount: 420000, status: "occupied" },
@@ -9383,7 +9402,7 @@
           listing_bedrooms: 2,
           listing_bathrooms: 1,
           listing_furnished: false,
-          listing_photo: "assets/property-keys.jpg",
+          listing_photo: "assets/listing-mukono-house.svg",
           listing_note: "Standalone house with compound space in Mukono. Public listing unlocks on Professional.",
         },
         { id: "unit-11", property_id: "property-4", unit_number: "K1", rent_amount: 950000, status: "occupied" },
@@ -9401,7 +9420,7 @@
           listing_bedrooms: 1,
           listing_bathrooms: 1,
           listing_furnished: true,
-          listing_photo: "assets/property-keys.jpg",
+          listing_photo: "assets/listing-kololo-shop.svg",
           listing_note: "Empty shop space on a busy Kololo access road.",
         },
         { id: "unit-16", property_id: "property-5", unit_number: "E1", rent_amount: 520000, status: "occupied" },
@@ -9419,7 +9438,7 @@
           listing_bedrooms: 1,
           listing_bathrooms: 1,
           listing_furnished: false,
-          listing_photo: "assets/apartment-exterior.jpg",
+          listing_photo: "assets/listing-entebbe-double-room.svg",
           listing_note: "Double room close to Entebbe Road transport.",
         },
         { id: "unit-22", property_id: "property-6", unit_number: "G1", rent_amount: 700000, status: "occupied" },
@@ -9438,7 +9457,7 @@
           listing_bedrooms: 1,
           listing_bathrooms: 1,
           listing_furnished: true,
-          listing_photo: "assets/apartment-exterior.jpg",
+          listing_photo: "assets/listing-najjera-boys-quarter.svg",
           listing_note: "Boys quarter with secure compound access in Najjera.",
         },
       ],

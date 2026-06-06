@@ -100,7 +100,7 @@ async function createDemoLandlord(response, adminProfile) {
         listing_bedrooms: 1,
         listing_bathrooms: 1,
         listing_furnished: false,
-        listing_photo: "assets/apartment-exterior.jpg",
+        listing_photo: "assets/listing-default-room.svg",
         listing_note: "Demo vacancy ready to publish after upgrading to Professional.",
       },
     ]);
