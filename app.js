@@ -1198,6 +1198,7 @@
 
   async function signOut() {
     if (supabaseReady && supabaseClient) {
+      await persistStateBeforeSignOut();
       try {
         await supabaseClient.auth.signOut();
       } catch (error) {
@@ -1208,10 +1209,22 @@
     state.currentUserId = null;
     state.selectedPropertyId = "all";
     state.role = "landlord";
-    saveState();
+    saveLocalStateOnly();
     authVisible = false;
     renderSession();
     showToast("Signed out.");
+  }
+
+  async function persistStateBeforeSignOut() {
+    if (!supabaseReady || !supabaseClient || !currentUser()) return;
+    window.clearTimeout(supabaseSaveTimer);
+    supabaseSaveTimer = null;
+    try {
+      await persistSupabaseState(JSON.parse(JSON.stringify(state)));
+    } catch (error) {
+      console.error("Supabase save before sign-out failed", error);
+      showToast("Some recent changes may only be saved in this browser.");
+    }
   }
 
   function renderSession() {
