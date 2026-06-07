@@ -13,6 +13,7 @@
   let highlightedOwnerId = null;
   let unitPhotoPreviewUrl = null;
   let activeDashboardMonthKey = monthKey(new Date());
+  let dashboardMonthPinned = false;
   let activePlatformDetailType = "";
   let activePlatformDetailReturnView = "platformLandlords";
   let activeSupportTab = "tickets";
@@ -189,6 +190,12 @@
     dashboardCalendarStatus: document.getElementById("dashboardCalendarStatus"),
     dashboardCalendarSummary: document.getElementById("dashboardCalendarSummary"),
     dashboardCalendarGrid: document.getElementById("dashboardCalendarGrid"),
+    dashboardMonthPicker: document.getElementById("dashboardMonthPicker"),
+    dashboardMonthCurrent: document.getElementById("dashboardMonthCurrent"),
+    dashboardCalendarToggle: document.getElementById("dashboardCalendarToggle"),
+    dashboardMonthInsight: document.getElementById("dashboardMonthInsight"),
+    dashboardReportPaymentCount: document.getElementById("dashboardReportPaymentCount"),
+    dashboardReportPayments: document.getElementById("dashboardReportPayments"),
     onboardingPanel: document.getElementById("onboardingPanel"),
     onboardingProgressLabel: document.getElementById("onboardingProgressLabel"),
     onboardingChecklist: document.getElementById("onboardingChecklist"),
@@ -425,6 +432,7 @@
     window.setInterval(() => {
       const currentMonthKey = monthKey(new Date());
       if (currentMonthKey === activeDashboardMonthKey) return;
+      if (dashboardMonthPinned) return;
       activeDashboardMonthKey = currentMonthKey;
       setTodayDefaults();
       if (currentUser()) {
@@ -552,6 +560,15 @@
     ui.paymentAmount.addEventListener("input", updatePaymentPreview);
     if (ui.landlordSupportForm) ui.landlordSupportForm.addEventListener("submit", saveLandlordSupportTicket);
     if (ui.requestVerifiedBadgeButton) ui.requestVerifiedBadgeButton.addEventListener("click", requestVerifiedBadge);
+    if (ui.dashboardMonthPicker) {
+      ui.dashboardMonthPicker.addEventListener("change", () => {
+        activeDashboardMonthKey = ui.dashboardMonthPicker.value || monthKey(new Date());
+        dashboardMonthPinned = activeDashboardMonthKey !== monthKey(new Date());
+        renderAll();
+      });
+    }
+    if (ui.dashboardMonthCurrent) ui.dashboardMonthCurrent.addEventListener("click", setDashboardReportToCurrentMonth);
+    if (ui.dashboardCalendarToggle) ui.dashboardCalendarToggle.addEventListener("click", toggleDashboardCalendarView);
     ui.downloadRentReport.addEventListener("click", downloadMonthlyRentReport);
     ui.expenseForm.addEventListener("submit", saveExpense);
     ui.downloadExpenseReport.addEventListener("click", downloadExpenseReport);
@@ -586,6 +603,21 @@
     ui.downloadReceipt.addEventListener("click", downloadReceipt);
     ui.resetDemo.addEventListener("click", resetDemoData);
     ui.downloadBackup.addEventListener("click", downloadBackup);
+  }
+
+  function setDashboardReportToCurrentMonth() {
+    activeDashboardMonthKey = monthKey(new Date());
+    dashboardMonthPinned = false;
+    renderAll();
+  }
+
+  function toggleDashboardCalendarView() {
+    if (!ui.dashboardCalendarGrid || !ui.dashboardCalendarToggle || !ui.dashboardCalendarStatus) return;
+    const willShow = ui.dashboardCalendarGrid.classList.contains("hidden");
+    ui.dashboardCalendarGrid.classList.toggle("hidden", !willShow);
+    ui.dashboardCalendarStatus.classList.toggle("hidden", !willShow);
+    ui.dashboardCalendarToggle.textContent = willShow ? "Hide Calendar" : "Show Calendar";
+    ui.dashboardCalendarToggle.setAttribute("aria-expanded", String(willShow));
   }
 
   function handleActionClick(event) {
@@ -1828,8 +1860,8 @@
 
     ui.occupancyLabel.textContent = `${vacant} vacant`;
     ui.dueSoonLabel.textContent = `${overdueCount} late`;
-    ui.monthLabel.textContent = monthName(new Date());
-    renderDashboardCalendar(scope, rentRows);
+    ui.monthLabel.textContent = "Latest";
+    renderDashboardMonthReport(scope);
 
     ui.unitStatusGrid.innerHTML =
       vacantUnits
@@ -1943,8 +1975,8 @@
 
     ui.occupancyLabel.textContent = `${vacantUnits.length} vacant`;
     ui.dueSoonLabel.textContent = `${overdueRows.length} late`;
-    ui.monthLabel.textContent = monthName(new Date());
-    renderDashboardCalendar(scope, rentRows);
+    ui.monthLabel.textContent = "Latest";
+    renderDashboardMonthReport(scope);
 
     ui.unitStatusGrid.innerHTML =
       vacantUnits
@@ -3429,43 +3461,78 @@
     `;
   }
 
-  function renderDashboardCalendar(scope, rentRows) {
+  function renderDashboardMonthReport(scope) {
     if (!ui.dashboardCalendarGrid || !ui.dashboardCalendarSummary) return;
 
-    const today = stripTime(new Date());
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const lastDay = new Date(year, month + 1, 0).getDate();
-    const firstWeekday = new Date(year, month, 1).getDay();
-    const nextMonthStart = stripTime(new Date(year, month + 1, 1));
-    const daysUntilNextMonth = Math.max(0, Math.round((nextMonthStart - today) / 86400000));
-    const currentPayments = getCurrentMonthPayments(scope.payments || []);
-    const currentExpenses = getCurrentMonthExpenses(scope.expenses || []);
-    const paymentByDay = dayCountMap(currentPayments, "payment_date");
-    const expenseByDay = dayCountMap(currentExpenses, "date");
-    const dueByDay = rentRows.reduce((summary, row) => {
-      if (!row.dueDate || row.balance <= 0) return summary;
-      if (row.dueDate.getFullYear() === year && row.dueDate.getMonth() === month) {
-        incrementMap(summary, row.dueDate.getDate());
-      }
-      return summary;
-    }, new Map());
-    const collected = currentPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
-    const expenses = currentExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-    const unpaidDueCount = Array.from(dueByDay.values()).reduce((sum, count) => sum + count, 0);
+    const report = buildDashboardMonthReport(scope, activeDashboardMonthKey);
+    const monthLabel = monthName(report.monthStart);
+    const netAfterExpenses = report.collected - report.expensesTotal;
+    const collectionRate = report.expectedRent ? Math.round((report.collected / report.expectedRent) * 100) : 0;
+    const occupancyNote = report.totalUnits ? `${report.occupiedUnits}/${report.totalUnits} rooms occupied` : "No rooms set up";
 
+    if (ui.dashboardMonthPicker) ui.dashboardMonthPicker.value = activeDashboardMonthKey;
     if (ui.dashboardCalendarMonth) {
-      ui.dashboardCalendarMonth.textContent = `Tracking ${monthName(today)}. ${monthName(nextMonthStart)} starts ${formatDate(isoDate(nextMonthStart))}.`;
+      ui.dashboardCalendarMonth.textContent = `${monthLabel} report. ${countLabel(report.monthPayments.length, "payment")} recorded, ${formatMoney(netAfterExpenses)} net after expenses.`;
     }
     if (ui.dashboardCalendarStatus) {
-      ui.dashboardCalendarStatus.textContent = daysUntilNextMonth === 1 ? "1 day left" : `${daysUntilNextMonth} days left`;
+      ui.dashboardCalendarStatus.textContent = calendarStatusForMonth(report.monthStart);
     }
     ui.dashboardCalendarSummary.innerHTML = [
-      dashboardCalendarStat("Collected", formatMoney(collected), countLabel(currentPayments.length, "payment"), "paid"),
-      dashboardCalendarStat("Unpaid Due", unpaidDueCount, countLabel(dueByDay.size, "marked day"), "due"),
-      dashboardCalendarStat("Expenses", formatMoney(expenses), countLabel(currentExpenses.length, "record"), "expense"),
-      dashboardCalendarStat("Next Month", monthName(nextMonthStart), formatDate(isoDate(nextMonthStart)), "next"),
+      dashboardCalendarStat("Collected", formatMoney(report.collected), `${collectionRate}% of ${formatMoney(report.expectedRent)}`, "paid"),
+      dashboardCalendarStat("Unpaid Rent", formatMoney(report.unpaidRent), countLabel(report.unpaidRows.length, "tenant"), "due"),
+      dashboardCalendarStat("Expenses", formatMoney(report.expensesTotal), countLabel(report.monthExpenses.length, "record"), "expense"),
+      dashboardCalendarStat("Occupancy", `${report.occupancyRate}%`, occupancyNote, "occupancy"),
     ].join("");
+
+    if (ui.dashboardMonthInsight) {
+      ui.dashboardMonthInsight.innerHTML = `
+        <div>
+          <span>Report Month</span>
+          <strong>${escapeHtml(monthLabel)}</strong>
+          <small>${formatDate(isoDate(report.monthStart))} - ${formatDate(isoDate(report.monthEnd))}</small>
+        </div>
+        <div>
+          <span>Expected Rent</span>
+          <strong>${formatMoney(report.expectedRent)}</strong>
+          <small>${countLabel(report.monthRentRows.length, "active tenant")}</small>
+        </div>
+        <div>
+          <span>Net Collection</span>
+          <strong>${formatMoney(netAfterExpenses)}</strong>
+          <small>Collected minus expenses</small>
+        </div>
+      `;
+    }
+
+    if (ui.dashboardReportPaymentCount) {
+      ui.dashboardReportPaymentCount.textContent = countLabel(report.monthPayments.length, "payment");
+    }
+
+    if (ui.dashboardReportPayments) {
+      ui.dashboardReportPayments.innerHTML =
+        report.monthPayments
+          .slice()
+          .sort((a, b) => (parseDateValue(b.payment_date)?.getTime() || 0) - (parseDateValue(a.payment_date)?.getTime() || 0))
+          .map((payment) => dashboardReportPaymentRow(payment, scope))
+          .join("") || emptyTableRow(8, `No payments recorded for ${monthLabel}.`);
+    }
+
+    renderDashboardSecondaryCalendar(report);
+  }
+
+  function renderDashboardSecondaryCalendar(report) {
+    const year = report.monthStart.getFullYear();
+    const month = report.monthStart.getMonth();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const firstWeekday = new Date(year, month, 1).getDay();
+    const today = stripTime(new Date());
+    const paymentByDay = dayCountMap(report.monthPayments, "payment_date", report.monthKey);
+    const expenseByDay = dayCountMap(report.monthExpenses, "date", report.monthKey);
+    const dueByDay = report.monthRentRows.reduce((summary, row) => {
+      if (!row.dueDate || row.balance <= 0) return summary;
+      incrementMap(summary, row.dueDate.getDate());
+      return summary;
+    }, new Map());
 
     const weekdayHeader = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
       .map((day) => `<span class="calendar-weekday">${escapeHtml(day)}</span>`)
@@ -3505,6 +3572,125 @@
     ui.dashboardCalendarGrid.innerHTML = `${weekdayHeader}${emptyCells}${dayCells}`;
   }
 
+  function buildDashboardMonthReport(scope, targetMonthKey) {
+    const monthStart = monthDateFromKey(targetMonthKey);
+    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+    const monthPayments = getMonthPayments(scope.payments || [], targetMonthKey);
+    const monthExpenses = getMonthExpenses(scope.expenses || [], targetMonthKey);
+    const monthTenants = (scope.tenants || []).filter((tenant) => tenantActiveDuringMonth(tenant, monthStart, monthEnd));
+    const monthRentRows = getRentRowsForMonth(monthTenants, targetMonthKey, monthPayments);
+    const occupiedUnitIds = new Set(monthTenants.map((tenant) => tenant.unit_id).filter(Boolean));
+    const totalUnits = (scope.units || []).length;
+    const occupiedUnits = occupiedUnitIds.size;
+    const expectedRent = monthRentRows.reduce((sum, row) => sum + Number(row.tenant.rent_amount), 0);
+    const collected = monthPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const expensesTotal = monthExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+    const unpaidRows = monthRentRows.filter((row) => row.balance > 0);
+    const unpaidRent = unpaidRows.reduce((sum, row) => sum + Number(row.balance), 0);
+
+    return {
+      monthKey: targetMonthKey,
+      monthStart,
+      monthEnd,
+      monthPayments,
+      monthExpenses,
+      monthTenants,
+      monthRentRows,
+      unpaidRows,
+      expectedRent,
+      collected,
+      expensesTotal,
+      unpaidRent,
+      totalUnits,
+      occupiedUnits,
+      occupancyRate: totalUnits ? Math.round((occupiedUnits / totalUnits) * 100) : 0,
+    };
+  }
+
+  function dashboardReportPaymentRow(payment, scope) {
+    const tenant = (scope.tenants || []).find((item) => item.id === payment.tenant_id) || tenantById(payment.tenant_id);
+    const unit = tenant ? (scope.units || []).find((item) => item.id === tenant.unit_id) || unitById(tenant.unit_id) : null;
+    return `
+      <tr>
+        <td>${formatDate(payment.payment_date)}</td>
+        <td>${personCell(tenant ? tenant.name : "Removed tenant", tenant?.phone || payment.reference || payment.payment_method)}</td>
+        <td>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</td>
+        <td><strong>${formatMoney(payment.amount)}</strong></td>
+        <td>${escapeHtml(payment.payment_method || "-")}</td>
+        <td>${escapeHtml(payment.reference || "-")}</td>
+        <td>${statusPill(payment.verification_status || "Unverified")}</td>
+        <td><button class="text-button compact-link-button" data-payment-detail="${escapeHtml(payment.id)}" type="button">Details</button></td>
+      </tr>
+    `;
+  }
+
+  function calendarStatusForMonth(monthStart) {
+    const selectedKey = monthKey(monthStart);
+    const currentKey = monthKey(new Date());
+    if (selectedKey !== currentKey) return `${monthName(monthStart)} calendar`;
+    const today = stripTime(new Date());
+    const nextMonthStart = stripTime(new Date(today.getFullYear(), today.getMonth() + 1, 1));
+    const daysUntilNextMonth = Math.max(0, Math.round((nextMonthStart - today) / 86400000));
+    return daysUntilNextMonth === 1 ? "1 day left" : `${daysUntilNextMonth} days left`;
+  }
+
+  function getRentRowsForMonth(tenants, targetMonthKey, payments) {
+    const today = stripTime(new Date());
+    return tenants.map((tenant) => {
+      const dueDate = getMonthlyDueDateForMonth(tenant.move_in_date, targetMonthKey);
+      const monthlyRent = Number(tenant.rent_amount);
+      const paid = monthPaid(tenant.id, payments);
+      const balance = Math.max(0, monthlyRent - paid);
+      const advance = Math.max(0, paid - monthlyRent);
+      const daysUntilDue = Math.round((dueDate - today) / 86400000);
+      let status = "Paid";
+      if (advance > 0) status = "Advance";
+      if (balance > 0 && dueDate < today) status = "Overdue";
+      if (balance > 0 && dueDate >= today) status = paid > 0 ? "Partial" : "Due";
+      return {
+        tenant,
+        unit: unitById(tenant.unit_id),
+        paid,
+        balance,
+        advance,
+        carryForward: dueDate < today ? balance : 0,
+        dueDate,
+        daysUntilDue,
+        status,
+      };
+    });
+  }
+
+  function getMonthlyDueDateForMonth(moveInDate, targetMonthKey) {
+    const monthStart = monthDateFromKey(targetMonthKey);
+    const sourceDate = parseDateValue(moveInDate) || monthStart;
+    const day = Math.min(sourceDate.getDate(), 28);
+    return stripTime(new Date(monthStart.getFullYear(), monthStart.getMonth(), day));
+  }
+
+  function monthPaid(tenantId, payments) {
+    return (payments || [])
+      .filter((payment) => payment.tenant_id === tenantId)
+      .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  }
+
+  function getMonthPayments(payments, targetMonthKey) {
+    return (payments || []).filter((payment) => isMonth(payment.payment_date, targetMonthKey));
+  }
+
+  function getMonthExpenses(expenses, targetMonthKey) {
+    return (expenses || []).filter((expense) => isMonth(expense.date, targetMonthKey));
+  }
+
+  function tenantActiveDuringMonth(tenant, monthStart, monthEnd) {
+    const moveIn = parseDateValue(tenant.move_in_date) || monthStart;
+    const moveOut = parseDateValue(tenant.move_out_date);
+    if (moveIn > monthEnd) return false;
+    if (moveOut && moveOut < monthStart) return false;
+    if (!moveOut && !isActiveTenant(tenant)) return false;
+    return true;
+  }
+
   function dashboardCalendarStat(label, value, note, tone) {
     return `
       <article class="dashboard-calendar-stat ${escapeHtml(tone)}">
@@ -3515,11 +3701,12 @@
     `;
   }
 
-  function dayCountMap(records, dateKey) {
+  function dayCountMap(records, dateKey, targetMonthKey = activeDashboardMonthKey) {
     return records.reduce((summary, record) => {
       const value = record[dateKey];
-      if (!value || !isCurrentMonth(value)) return summary;
-      const date = new Date(`${value}T00:00:00`);
+      if (!value || !isMonth(value, targetMonthKey)) return summary;
+      const date = parseDateValue(value);
+      if (!date) return summary;
       incrementMap(summary, date.getDate());
       return summary;
     }, new Map());
@@ -8167,9 +8354,23 @@
   }
 
   function isCurrentMonth(value) {
-    const date = new Date(`${value}T00:00:00`);
+    const date = parseDateValue(value);
+    if (!date) return false;
     const now = new Date();
     return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  }
+
+  function isMonth(value, targetMonthKey) {
+    const date = parseDateValue(value);
+    return Boolean(date && monthKey(date) === targetMonthKey);
+  }
+
+  function parseDateValue(value) {
+    if (!value) return null;
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+    const text = String(value);
+    const date = text.includes("T") ? new Date(text) : new Date(`${text}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   function isToday(value) {
@@ -10257,8 +10458,19 @@
     return value.toLocaleDateString("en-UG", { month: "long", year: "numeric" });
   }
 
+  function monthDateFromKey(value) {
+    const [year, month] = String(value || monthKey(new Date()))
+      .split("-")
+      .map((part) => Number(part));
+    if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+      return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    }
+    return new Date(year, month - 1, 1);
+  }
+
   function monthKey(value) {
-    const date = value instanceof Date ? value : new Date(`${value}T00:00:00`);
+    const date = value instanceof Date ? value : parseDateValue(value);
+    if (!date) return monthKey(new Date());
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
   }
 

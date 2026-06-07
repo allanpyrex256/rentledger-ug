@@ -804,13 +804,43 @@
           <section class="panel dashboard-calendar-panel" aria-labelledby="dashboardCalendarTitle">
             <div class="panel-header">
               <div>
-                <h2 id="dashboardCalendarTitle">Month Calendar</h2>
+                <h2 id="dashboardCalendarTitle">Monthly Report</h2>
                 <p id="dashboardCalendarMonth" class="panel-subtitle"></p>
               </div>
-              <span id="dashboardCalendarStatus" class="pill info"></span>
+              <div class="dashboard-month-controls">
+                <label class="sr-only" for="dashboardMonthPicker">Report month</label>
+                <input id="dashboardMonthPicker" type="month" />
+                <button id="dashboardMonthCurrent" class="text-button compact-link-button" type="button">Current</button>
+                <button id="dashboardCalendarToggle" class="text-button compact-link-button" type="button" aria-expanded="false">Show Calendar</button>
+              </div>
             </div>
             <div id="dashboardCalendarSummary" class="dashboard-calendar-summary"></div>
-            <div id="dashboardCalendarGrid" class="dashboard-calendar-grid" aria-label="Dashboard month calendar"></div>
+            <div class="dashboard-month-report">
+              <div id="dashboardMonthInsight" class="dashboard-month-insight"></div>
+              <div class="dashboard-report-table-heading">
+                <h3>Payment Details</h3>
+                <span id="dashboardReportPaymentCount" class="pill success">0 payments</span>
+              </div>
+              <div class="table-wrap dashboard-report-table-wrap">
+                <table class="dashboard-report-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Tenant</th>
+                      <th>Room</th>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Reference</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboardReportPayments"></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="dashboardCalendarStatus" class="dashboard-calendar-status pill info hidden"></div>
+            <div id="dashboardCalendarGrid" class="dashboard-calendar-grid dashboard-calendar-secondary hidden" aria-label="Dashboard month calendar"></div>
           </section>
 
           <div class="content-grid two-columns">
