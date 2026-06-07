@@ -83,15 +83,15 @@ module.exports = async function handler(request, response) {
 async function enforcePlanLimits(profile, context) {
   if (profile.role !== "landlord") return;
   const rows = await supabaseFetch(`/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(profile.id)}&select=plan`);
-  context.plan = rows[0]?.plan || "Trial";
+  context.plan = strongestSyncPlan(context.plan, rows[0]?.plan);
   const limits = planLimitForPlan(context.plan);
   if (context.propertyIds.size > limits.properties) {
-    const error = new Error(`Your plan allows ${limitLabel(limits.properties)} properties. Upgrade before adding more.`);
+    const error = new Error(`Your ${context.plan} plan allows ${limitPhrase(limits.properties, "property", "properties")}. Upgrade before adding more.`);
     error.status = 403;
     throw error;
   }
   if (context.unitIds.size > limits.units) {
-    const error = new Error(`Your plan allows ${limitLabel(limits.units)} units. Upgrade before adding more.`);
+    const error = new Error(`Your ${context.plan} plan allows ${limitPhrase(limits.units, "unit", "units")}. Upgrade before adding more.`);
     error.status = 403;
     throw error;
   }
@@ -99,6 +99,37 @@ async function enforcePlanLimits(profile, context) {
 
 function limitLabel(value) {
   return Number.isFinite(value) ? String(value) : "unlimited";
+}
+
+function limitPhrase(value, singular, plural) {
+  return `${limitLabel(value)} ${value === 1 ? singular : plural}`;
+}
+
+function strongestSyncPlan(...plans) {
+  return plans.reduce((best, plan) => {
+    const normalized = normalizeKnownPlan(plan);
+    if (!normalized) return best;
+    return planLimitScore(normalized) > planLimitScore(best) ? normalized : best;
+  }, "Trial");
+}
+
+function normalizeKnownPlan(plan) {
+  const value = String(plan || "").trim();
+  return PACKAGE_OPTIONS.some((option) => option.plan === value) ? value : "";
+}
+
+function planLimitScore(plan) {
+  const limits = planLimitForPlan(plan);
+  return (
+    limitScoreValue(limits.properties) * 1_000_000_000 +
+    limitScoreValue(limits.units) * 1_000 +
+    limitScoreValue(limits.caretakers) +
+    (limits.publicListings ? 1 : 0)
+  );
+}
+
+function limitScoreValue(value) {
+  return Number.isFinite(value) ? value : 1_000_000;
 }
 
 function normalizeSnapshot(value) {
@@ -120,29 +151,65 @@ function normalizeSnapshot(value) {
 }
 
 async function buildSyncContext(profile, snapshot) {
+  const deletedPropertyIds = new Set(snapshot.deletedRowIds.properties || []);
+  const deletedUnitIds = new Set(snapshot.deletedRowIds.units || []);
+  const deletedTenantIds = new Set(snapshot.deletedRowIds.tenants || []);
+  const snapshotSubscription = subscriptionForOwner(snapshot.subscriptions, profile.id);
+  const snapshotUser = userForId(snapshot.users, profile.id);
   const ownedPropertyIds =
     profile.role === "staff"
       ? new Set(profile.assigned_property_ids || [])
-      : new Set(snapshot.properties.filter((property) => property.owner_id === profile.id).map((property) => property.id));
+      : new Set(
+          snapshot.properties
+            .filter((property) => property.owner_id === profile.id && !deletedPropertyIds.has(property.id))
+            .map((property) => property.id)
+        );
 
   if (profile.role === "landlord") {
     const remoteProperties = await supabaseFetch(`/rest/v1/properties?owner_id=eq.${encodeURIComponent(profile.id)}&select=id`);
-    remoteProperties.forEach((property) => ownedPropertyIds.add(property.id));
+    remoteProperties.forEach((property) => {
+      if (!deletedPropertyIds.has(property.id)) ownedPropertyIds.add(property.id);
+    });
   }
 
-  const unitIds = new Set(snapshot.units.filter((unit) => ownedPropertyIds.has(unit.property_id)).map((unit) => unit.id));
+  const unitIds = new Set(
+    snapshot.units
+      .filter((unit) => ownedPropertyIds.has(unit.property_id) && !deletedUnitIds.has(unit.id))
+      .map((unit) => unit.id)
+  );
   const remoteUnits = ownedPropertyIds.size
     ? await supabaseFetch(`/rest/v1/units?property_id=in.(${listValues([...ownedPropertyIds])})&select=id`)
     : [];
-  remoteUnits.forEach((unit) => unitIds.add(unit.id));
+  remoteUnits.forEach((unit) => {
+    if (!deletedUnitIds.has(unit.id)) unitIds.add(unit.id);
+  });
 
-  const tenantIds = new Set(snapshot.tenants.filter((tenant) => unitIds.has(tenant.unit_id)).map((tenant) => tenant.id));
+  const tenantIds = new Set(
+    snapshot.tenants
+      .filter((tenant) => unitIds.has(tenant.unit_id) && !deletedTenantIds.has(tenant.id))
+      .map((tenant) => tenant.id)
+  );
   const remoteTenants = unitIds.size
     ? await supabaseFetch(`/rest/v1/tenants?unit_id=in.(${listValues([...unitIds])})&select=id`)
     : [];
-  remoteTenants.forEach((tenant) => tenantIds.add(tenant.id));
+  remoteTenants.forEach((tenant) => {
+    if (!deletedTenantIds.has(tenant.id)) tenantIds.add(tenant.id);
+  });
 
-  return { propertyIds: ownedPropertyIds, unitIds, tenantIds, plan: "Trial" };
+  return {
+    propertyIds: ownedPropertyIds,
+    unitIds,
+    tenantIds,
+    plan: strongestSyncPlan(snapshotSubscription?.plan, snapshotUser?.subscription_plan, snapshotUser?.plan, profile.subscription_plan, profile.plan),
+  };
+}
+
+function subscriptionForOwner(subscriptions, ownerId) {
+  return (subscriptions || []).find((subscription) => subscription?.owner_id === ownerId) || null;
+}
+
+function userForId(users, userId) {
+  return (users || []).find((user) => user?.id === userId) || null;
 }
 
 function writableRowsForStateKey(stateKey, snapshot, profile, context) {
@@ -521,5 +588,6 @@ module.exports._internal = {
   isRetryableOptionalTenantColumn,
   isRetryableOptionalSchemaColumn,
   isRetryableOptionalSchemaTable,
+  strongestSyncPlan,
   stripColumnsFromRows,
 };

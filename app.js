@@ -5142,7 +5142,7 @@
       const limit = planLimitForOwner(user.id);
       const portfolio = ownerPortfolio(user.id);
       if (portfolio.properties.length >= limit.properties) {
-        showToast(`Your ${limit.plan} plan allows ${limitLabel(limit.properties)} properties. Upgrade to add more.`);
+        showToast(`Your ${limit.plan} plan allows ${limitPhrase(limit.properties, "property", "properties")}. Upgrade to add more.`);
         return;
       }
       state.properties.push(property);
@@ -5229,7 +5229,7 @@
     const limit = planLimitForOwner(property.owner_id);
     const portfolio = ownerPortfolio(property.owner_id);
     if (portfolio.units.length >= limit.units) {
-      showToast(`Your ${limit.plan} plan allows ${limitLabel(limit.units)} units. Upgrade before adding more rooms.`);
+      showToast(`Your ${limit.plan} plan allows ${limitPhrase(limit.units, "unit", "units")}. Upgrade before adding more rooms.`);
       return;
     }
 
@@ -7721,6 +7721,10 @@
     return Number.isFinite(value) ? String(value) : "unlimited";
   }
 
+  function limitPhrase(value, singular, plural) {
+    return `${limitLabel(value)} ${value === 1 ? singular : plural}`;
+  }
+
   function renderPlanLimitNotice() {
     if (!ui.planLimitNotice) return;
     const user = currentUser();
@@ -10107,12 +10111,12 @@
     const message = reminderMessage(row);
     return `
       <tr>
-        <td>${personCell(row.tenant.name, row.tenant.phone)}</td>
-        <td>${escapeHtml(row.unit ? row.unit.unit_number : "Unassigned")}</td>
-        <td>${statusPill(`${daysLate} day${daysLate === 1 ? "" : "s"} late`)}</td>
-        <td><strong>${formatMoney(row.balance)}</strong></td>
-        <td>
-          <div class="button-row">
+        <td class="tenant-col">${personCell(row.tenant.name, row.tenant.phone)}</td>
+        <td class="room-col">${escapeHtml(row.unit ? row.unit.unit_number : "Unassigned")}</td>
+        <td class="days-col">${statusPill(`${daysLate} day${daysLate === 1 ? "" : "s"} late`)}</td>
+        <td class="balance-col"><strong>${formatMoney(row.balance)}</strong></td>
+        <td class="actions-col">
+          <div class="button-row late-actions">
             <button class="text-button compact-link-button" data-tenant-detail="${escapeHtml(row.tenant.id)}" type="button">Details</button>
             ${tenantContactActions(row.tenant, message, { compact: true, sendLabel: "Send" })}
           </div>

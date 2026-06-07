@@ -112,6 +112,13 @@ test("sync-state tolerates missing optional tenant move-out columns", () => {
   );
 });
 
+test("sync-state uses the strongest available plan during a subscription sync", () => {
+  assert.equal(syncState._internal.strongestSyncPlan("Starter", "Professional"), "Professional");
+  assert.equal(syncState._internal.strongestSyncPlan("Professional", "Starter"), "Professional");
+  assert.equal(syncState._internal.strongestSyncPlan("Trial", "Starter"), "Starter");
+  assert.equal(syncState._internal.strongestSyncPlan("Unknown", ""), "Trial");
+});
+
 test("sync-state tolerates missing optional support center tables", () => {
   const error = new Error("Could not find the table 'public.landlord_messages' in the schema cache");
 

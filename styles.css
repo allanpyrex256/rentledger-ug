@@ -3647,6 +3647,36 @@ table {
   border-collapse: collapse;
 }
 
+.late-tenants-table {
+  table-layout: fixed;
+  min-width: 720px;
+}
+
+.late-tenants-table th:nth-child(1),
+.late-tenants-table .tenant-col {
+  width: 25%;
+}
+
+.late-tenants-table th:nth-child(2),
+.late-tenants-table .room-col {
+  width: 14%;
+}
+
+.late-tenants-table th:nth-child(3),
+.late-tenants-table .days-col {
+  width: 17%;
+}
+
+.late-tenants-table th:nth-child(4),
+.late-tenants-table .balance-col {
+  width: 16%;
+}
+
+.late-tenants-table th:nth-child(5),
+.late-tenants-table .actions-col {
+  width: 28%;
+}
+
 th,
 td {
   border-bottom: 1px solid var(--line);
@@ -3665,6 +3695,46 @@ th {
 
 td {
   color: #283241;
+}
+
+.late-tenants-table td {
+  overflow-wrap: anywhere;
+}
+
+.late-tenants-table .person-cell {
+  width: 100%;
+}
+
+.late-tenants-table .person-cell strong,
+.late-tenants-table .person-cell small,
+.late-tenants-table .room-col {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.late-tenants-table .person-cell strong,
+.late-tenants-table .person-cell small {
+  display: block;
+}
+
+.late-tenants-table .room-col {
+  white-space: normal;
+  font-weight: 750;
+}
+
+.late-tenants-table .balance-col strong {
+  display: inline-block;
+  line-height: 1.35;
+}
+
+.late-actions {
+  gap: 6px;
+}
+
+.late-actions .compact-link-button {
+  min-height: 34px;
+  padding-inline: 12px;
 }
 
 .table-subtext {
