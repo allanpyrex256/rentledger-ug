@@ -5062,7 +5062,7 @@
       ? `Hello ${sampleTenant.name}, payment received. Your rent receipt has been recorded. Thank you.`
       : "No tenant available.";
     ui.overdueTemplate.textContent = sampleTenant
-      ? `Hello ${sampleTenant.name}, your rent balance is overdue. Please clear it as soon as possible.`
+      ? `Hello ${sampleTenant.name}, this is a kind reminder that your rent balance is overdue. Kindly arrange payment at your earliest convenience. Thank you.`
       : "No tenant available.";
   }
 
@@ -8197,12 +8197,12 @@
   function reminderMessage(row) {
     const dueDate = formatDate(isoDate(row.dueDate));
     if (row.status === "Overdue") {
-      return `Hello ${row.tenant.name}, your rent balance is ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"}. It was due on ${dueDate}. Please clear it as soon as possible.`;
+      return `Hello ${row.tenant.name}, this is a kind reminder that your rent balance of ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"} was due on ${dueDate}. Kindly arrange payment at your earliest convenience, and let us know if you have already paid. Thank you.`;
     }
     if (row.daysUntilDue === 1) {
-      return `Hello ${row.tenant.name}, your rent of ${formatMoney(row.tenant.rent_amount)} is due tomorrow for ${row.unit ? row.unit.unit_number : "your room"}. Thank you.`;
+      return `Hello ${row.tenant.name}, this is a kind reminder that your rent of ${formatMoney(row.tenant.rent_amount)} for ${row.unit ? row.unit.unit_number : "your room"} is due tomorrow. Kindly prepare payment when convenient. Thank you.`;
     }
-    return `Hello ${row.tenant.name}, your rent balance is ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"}, due on ${dueDate}. Thank you.`;
+    return `Hello ${row.tenant.name}, this is a kind reminder that your rent balance of ${formatMoney(row.balance)} for ${row.unit ? row.unit.unit_number : "your room"} is due on ${dueDate}. Kindly arrange payment by the due date. Thank you.`;
   }
 
   function paymentReceiptMessage(payment) {
