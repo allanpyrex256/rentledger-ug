@@ -8,6 +8,7 @@
   let supabaseHydrating = false;
   let supabaseSaveTimer = null;
   let supabaseSessionActive = false;
+  let pendingAuthResetPromise = null;
   let authVisible = false;
   let highlightedUnitId = null;
   let highlightedOwnerId = null;
@@ -726,6 +727,7 @@
   }
 
   function showAuth(tabName, options = {}) {
+    clearRememberedAuthSession();
     authVisible = true;
     if (tabName === "signup" && options.plan && ui.accountPlan) {
       ui.accountPlan.value = options.plan;
@@ -733,6 +735,26 @@
     setAuthTab(tabName);
     renderSession();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function clearRememberedAuthSession() {
+    const hadLocalUser = Boolean(state.currentUserId);
+    state.currentUserId = null;
+    state.selectedPropertyId = "all";
+    state.role = "landlord";
+    if (hadLocalUser) saveLocalStateOnly();
+
+    if (supabaseReady && supabaseClient?.auth && supabaseSessionActive) {
+      supabaseSessionActive = false;
+      pendingAuthResetPromise = supabaseClient.auth
+        .signOut()
+        .catch((error) => {
+          console.error("Could not clear remembered Supabase session", error);
+        })
+        .finally(() => {
+          pendingAuthResetPromise = null;
+        });
+    }
   }
 
   async function requireSupabaseWriteSession(message = "Sign in again to sync changes across devices.") {
@@ -774,6 +796,7 @@
     if (supabaseReady && supabaseClient) {
       try {
         setAppLoading("Signing in");
+        if (pendingAuthResetPromise) await pendingAuthResetPromise;
         const authUserId = await authenticateSupabaseUser(loginIdentifier, password);
         if (isSuperAdminIdentifier(loginIdentifier)) await ensureSuperAdminProfile();
         const user = await openUserSession(authUserId);
