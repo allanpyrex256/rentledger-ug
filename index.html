@@ -808,15 +808,22 @@
                 <p id="dashboardCalendarMonth" class="panel-subtitle"></p>
               </div>
               <div class="dashboard-month-controls">
+                <button id="dashboardMonthPrevious" class="text-button compact-link-button dashboard-month-arrow" type="button" aria-label="Previous month">&lt;</button>
                 <label class="sr-only" for="dashboardMonthPicker">Report month</label>
                 <input id="dashboardMonthPicker" type="month" />
-                <button id="dashboardMonthCurrent" class="text-button compact-link-button" type="button">Current</button>
+                <button id="dashboardMonthNext" class="text-button compact-link-button dashboard-month-arrow" type="button" aria-label="Next month">&gt;</button>
+                <button id="dashboardMonthCurrent" class="text-button compact-link-button" type="button">Current Month</button>
+                <button id="dashboardPastMonthsToggle" class="text-button compact-link-button" type="button" aria-expanded="false">Past Months</button>
+                <button id="dashboardDownloadReport" class="text-button compact-link-button" type="button">Download Report</button>
                 <button id="dashboardCalendarToggle" class="text-button compact-link-button" type="button" aria-expanded="false">Show Calendar</button>
               </div>
             </div>
+            <div id="dashboardPastMonthsPanel" class="dashboard-past-months hidden"></div>
             <div id="dashboardCalendarSummary" class="dashboard-calendar-summary"></div>
             <div class="dashboard-month-report">
               <div id="dashboardMonthInsight" class="dashboard-month-insight"></div>
+              <div id="dashboardCollectionTrend" class="dashboard-collection-trend"></div>
+              <div id="dashboardStatusBreakdown" class="dashboard-status-breakdown"></div>
               <div class="dashboard-report-table-heading">
                 <h3>Payment Details</h3>
                 <span id="dashboardReportPaymentCount" class="pill success">0 payments</span>

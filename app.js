@@ -14,6 +14,7 @@
   let unitPhotoPreviewUrl = null;
   let activeDashboardMonthKey = monthKey(new Date());
   let dashboardMonthPinned = false;
+  let dashboardPastMonthsOpen = false;
   let activePlatformDetailType = "";
   let activePlatformDetailReturnView = "platformLandlords";
   let activeSupportTab = "tickets";
@@ -191,9 +192,16 @@
     dashboardCalendarSummary: document.getElementById("dashboardCalendarSummary"),
     dashboardCalendarGrid: document.getElementById("dashboardCalendarGrid"),
     dashboardMonthPicker: document.getElementById("dashboardMonthPicker"),
+    dashboardMonthPrevious: document.getElementById("dashboardMonthPrevious"),
+    dashboardMonthNext: document.getElementById("dashboardMonthNext"),
     dashboardMonthCurrent: document.getElementById("dashboardMonthCurrent"),
+    dashboardPastMonthsToggle: document.getElementById("dashboardPastMonthsToggle"),
+    dashboardDownloadReport: document.getElementById("dashboardDownloadReport"),
     dashboardCalendarToggle: document.getElementById("dashboardCalendarToggle"),
+    dashboardPastMonthsPanel: document.getElementById("dashboardPastMonthsPanel"),
     dashboardMonthInsight: document.getElementById("dashboardMonthInsight"),
+    dashboardCollectionTrend: document.getElementById("dashboardCollectionTrend"),
+    dashboardStatusBreakdown: document.getElementById("dashboardStatusBreakdown"),
     dashboardReportPaymentCount: document.getElementById("dashboardReportPaymentCount"),
     dashboardReportPayments: document.getElementById("dashboardReportPayments"),
     onboardingPanel: document.getElementById("onboardingPanel"),
@@ -562,12 +570,14 @@
     if (ui.requestVerifiedBadgeButton) ui.requestVerifiedBadgeButton.addEventListener("click", requestVerifiedBadge);
     if (ui.dashboardMonthPicker) {
       ui.dashboardMonthPicker.addEventListener("change", () => {
-        activeDashboardMonthKey = ui.dashboardMonthPicker.value || monthKey(new Date());
-        dashboardMonthPinned = activeDashboardMonthKey !== monthKey(new Date());
-        renderAll();
+        setDashboardReportMonth(ui.dashboardMonthPicker.value || monthKey(new Date()));
       });
     }
+    if (ui.dashboardMonthPrevious) ui.dashboardMonthPrevious.addEventListener("click", () => shiftDashboardReportMonth(-1));
+    if (ui.dashboardMonthNext) ui.dashboardMonthNext.addEventListener("click", () => shiftDashboardReportMonth(1));
     if (ui.dashboardMonthCurrent) ui.dashboardMonthCurrent.addEventListener("click", setDashboardReportToCurrentMonth);
+    if (ui.dashboardPastMonthsToggle) ui.dashboardPastMonthsToggle.addEventListener("click", toggleDashboardPastMonths);
+    if (ui.dashboardDownloadReport) ui.dashboardDownloadReport.addEventListener("click", downloadSelectedMonthlyReport);
     if (ui.dashboardCalendarToggle) ui.dashboardCalendarToggle.addEventListener("click", toggleDashboardCalendarView);
     ui.downloadRentReport.addEventListener("click", downloadMonthlyRentReport);
     ui.expenseForm.addEventListener("submit", saveExpense);
@@ -606,8 +616,24 @@
   }
 
   function setDashboardReportToCurrentMonth() {
-    activeDashboardMonthKey = monthKey(new Date());
+    setDashboardReportMonth(monthKey(new Date()));
     dashboardMonthPinned = false;
+  }
+
+  function setDashboardReportMonth(reportMonthKey) {
+    activeDashboardMonthKey = reportMonthKey || monthKey(new Date());
+    dashboardMonthPinned = activeDashboardMonthKey !== monthKey(new Date());
+    renderAll();
+  }
+
+  function shiftDashboardReportMonth(delta) {
+    const base = monthDateFromKey(activeDashboardMonthKey);
+    const next = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+    setDashboardReportMonth(monthKey(next));
+  }
+
+  function toggleDashboardPastMonths() {
+    dashboardPastMonthsOpen = !dashboardPastMonthsOpen;
     renderAll();
   }
 
@@ -660,6 +686,7 @@
       ["openNotification", openNotification],
       ["dashboardDetail", openDashboardDetail],
       ["dashboardView", openDashboardView],
+      ["dashboardReportMonth", setDashboardReportMonth],
       ["unitDetail", openUnitDetail],
       ["tenantDetail", openTenantDetail],
       ["paymentDetail", openPaymentDetail],
@@ -3471,6 +3498,12 @@
     const occupancyNote = report.totalUnits ? `${report.occupiedUnits}/${report.totalUnits} rooms occupied` : "No rooms set up";
 
     if (ui.dashboardMonthPicker) ui.dashboardMonthPicker.value = activeDashboardMonthKey;
+    if (ui.dashboardMonthNext) ui.dashboardMonthNext.disabled = activeDashboardMonthKey >= monthKey(new Date());
+    if (ui.dashboardDownloadReport) ui.dashboardDownloadReport.textContent = `Download ${report.monthStart.toLocaleDateString("en-UG", { month: "long" })} Report`;
+    if (ui.dashboardPastMonthsToggle) {
+      ui.dashboardPastMonthsToggle.textContent = dashboardPastMonthsOpen ? "Hide Past Months" : "Past Months";
+      ui.dashboardPastMonthsToggle.setAttribute("aria-expanded", String(dashboardPastMonthsOpen));
+    }
     if (ui.dashboardCalendarMonth) {
       ui.dashboardCalendarMonth.textContent = `${monthLabel} report. ${countLabel(report.monthPayments.length, "payment")} recorded, ${formatMoney(netAfterExpenses)} net after expenses.`;
     }
@@ -3504,6 +3537,10 @@
       `;
     }
 
+    renderDashboardPastMonths(scope);
+    renderDashboardCollectionTrend(scope, report);
+    renderDashboardStatusBreakdown(report);
+
     if (ui.dashboardReportPaymentCount) {
       ui.dashboardReportPaymentCount.textContent = countLabel(report.monthPayments.length, "payment");
     }
@@ -3518,6 +3555,79 @@
     }
 
     renderDashboardSecondaryCalendar(report);
+  }
+
+  function renderDashboardPastMonths(scope) {
+    if (!ui.dashboardPastMonthsPanel) return;
+    ui.dashboardPastMonthsPanel.classList.toggle("hidden", !dashboardPastMonthsOpen);
+    if (!dashboardPastMonthsOpen) return;
+    const grouped = groupReportMonthsByYear(availableReportMonths(scope));
+    ui.dashboardPastMonthsPanel.innerHTML = Object.entries(grouped)
+      .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
+      .map(([year, months]) => `
+        <section class="dashboard-past-year">
+          <h3>${escapeHtml(year)}</h3>
+          <div class="dashboard-past-month-list">
+            ${months
+              .map((key) => {
+                const date = monthDateFromKey(key);
+                const active = key === activeDashboardMonthKey ? " active" : "";
+                return `<button class="text-button compact-link-button${active}" data-dashboard-report-month="${escapeHtml(key)}" type="button">${escapeHtml(date.toLocaleDateString("en-UG", { month: "long" }))}</button>`;
+              })
+              .join("")}
+          </div>
+        </section>
+      `)
+      .join("");
+  }
+
+  function renderDashboardCollectionTrend(scope, selectedReport) {
+    if (!ui.dashboardCollectionTrend) return;
+    const months = trendMonthKeys(selectedReport.monthKey, 6);
+    const reports = months.map((key) => buildDashboardMonthReport(scope, key));
+    const maxCollected = Math.max(...reports.map((report) => report.collected), 1);
+    ui.dashboardCollectionTrend.innerHTML = `
+      <div class="dashboard-section-heading">
+        <h3>Collections Trend</h3>
+        <span class="pill neutral">Last ${reports.length} months</span>
+      </div>
+      <div class="dashboard-trend-bars">
+        ${reports
+          .map((report) => {
+            const width = Math.max(6, Math.round((report.collected / maxCollected) * 100));
+            return `
+              <button class="dashboard-trend-row${report.monthKey === selectedReport.monthKey ? " active" : ""}" data-dashboard-report-month="${escapeHtml(report.monthKey)}" type="button">
+                <span>${escapeHtml(report.monthStart.toLocaleDateString("en-UG", { month: "short" }))}</span>
+                <b><i style="width: ${width}%"></i></b>
+                <strong>${formatCompactMoney(report.collected)}</strong>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
+  function renderDashboardStatusBreakdown(report) {
+    if (!ui.dashboardStatusBreakdown) return;
+    const rows = monthlyPaymentStatusBreakdown(report);
+    ui.dashboardStatusBreakdown.innerHTML = `
+      <div class="dashboard-section-heading">
+        <h3>Payment Status</h3>
+        <span class="pill info">${countLabel(report.monthRentRows.length, "tenant")}</span>
+      </div>
+      <div class="dashboard-status-grid">
+        ${rows
+          .map((row) => `
+            <article class="dashboard-status-card ${escapeHtml(row.tone)}">
+              <span>${escapeHtml(row.label)}</span>
+              <strong>${escapeHtml(String(row.count))}</strong>
+              <small>${escapeHtml(row.note)}</small>
+            </article>
+          `)
+          .join("")}
+      </div>
+    `;
   }
 
   function renderDashboardSecondaryCalendar(report) {
@@ -3689,6 +3799,54 @@
     if (moveOut && moveOut < monthStart) return false;
     if (!moveOut && !isActiveTenant(tenant)) return false;
     return true;
+  }
+
+  function availableReportMonths(scope) {
+    const keys = new Set();
+    const current = monthDateFromKey(monthKey(new Date()));
+    for (let index = 0; index < 12; index += 1) {
+      keys.add(monthKey(new Date(current.getFullYear(), current.getMonth() - index, 1)));
+    }
+    (scope.payments || []).forEach((payment) => {
+      if (payment.payment_date) keys.add(monthKey(payment.payment_date));
+    });
+    (scope.expenses || []).forEach((expense) => {
+      if (expense.date) keys.add(monthKey(expense.date));
+    });
+    (scope.tenants || []).forEach((tenant) => {
+      if (tenant.move_in_date) keys.add(monthKey(tenant.move_in_date));
+      if (tenant.move_out_date) keys.add(monthKey(tenant.move_out_date));
+    });
+    return [...keys].sort((a, b) => b.localeCompare(a));
+  }
+
+  function groupReportMonthsByYear(monthKeys) {
+    return monthKeys.reduce((grouped, key) => {
+      const year = key.slice(0, 4);
+      grouped[year] = grouped[year] || [];
+      grouped[year].push(key);
+      return grouped;
+    }, {});
+  }
+
+  function trendMonthKeys(anchorMonthKey, count) {
+    const anchor = monthDateFromKey(anchorMonthKey);
+    return Array.from({ length: count }, (_, index) =>
+      monthKey(new Date(anchor.getFullYear(), anchor.getMonth() - (count - index - 1), 1))
+    );
+  }
+
+  function monthlyPaymentStatusBreakdown(report) {
+    const paid = report.monthRentRows.filter((row) => row.balance <= 0).length;
+    const partial = report.monthRentRows.filter((row) => row.balance > 0 && row.paid > 0).length;
+    const overdue = report.monthRentRows.filter((row) => row.balance > 0 && row.paid <= 0 && row.dueDate < stripTime(new Date())).length;
+    const vacant = Math.max(0, report.totalUnits - report.occupiedUnits);
+    return [
+      { label: "Paid", count: paid, note: countLabel(paid, "tenant"), tone: "paid" },
+      { label: "Overdue", count: overdue, note: countLabel(overdue, "tenant"), tone: "overdue" },
+      { label: "Partial", count: partial, note: countLabel(partial, "tenant"), tone: "partial" },
+      { label: "Vacant", count: vacant, note: countLabel(vacant, "unit"), tone: "vacant" },
+    ];
   }
 
   function dashboardCalendarStat(label, value, note, tone) {
@@ -7546,6 +7704,155 @@
       .replace(/\\/g, "\\\\")
       .replace(/\(/g, "\\(")
       .replace(/\)/g, "\\)");
+  }
+
+  function downloadSelectedMonthlyReport() {
+    const scope = getScopedData();
+    const report = buildDashboardMonthReport(scope, activeDashboardMonthKey);
+    const label = monthName(report.monthStart);
+    const filename = `rentledger-monthly-report-${activeDashboardMonthKey}.pdf`;
+    downloadBlobFile(filename, simpleReportPdfBlob(monthlyReportPdfLines(report, scope)), "application/pdf");
+    showToast(`${label} report downloaded.`);
+  }
+
+  function monthlyReportPdfLines(report, scope) {
+    const label = monthName(report.monthStart);
+    const net = report.collected - report.expensesTotal;
+    const vacant = Math.max(0, report.totalUnits - report.occupiedUnits);
+    const breakdown = monthlyPaymentStatusBreakdown(report);
+    const paymentLines = report.monthPayments.length
+      ? report.monthPayments.map((payment) => {
+          const tenant = (scope.tenants || []).find((item) => item.id === payment.tenant_id) || tenantById(payment.tenant_id);
+          const unit = tenant ? (scope.units || []).find((item) => item.id === tenant.unit_id) || unitById(tenant.unit_id) : null;
+          return `${formatDate(payment.payment_date)} | ${tenant ? tenant.name : "Removed tenant"} | ${unit ? unit.unit_number : "Unassigned"} | ${formatMoney(payment.amount)} | ${payment.payment_method || "-"} | ${payment.reference || "-"} | ${payment.verification_status || "Unverified"}`;
+        })
+      : ["No payments recorded for this month."];
+    const unpaidLines = report.unpaidRows.length
+      ? report.unpaidRows.map((row) => `${row.tenant.name} | ${row.unit ? row.unit.unit_number : "Unassigned"} | Paid ${formatMoney(row.paid)} | Balance ${formatMoney(row.balance)} | ${row.status}`)
+      : ["No outstanding tenant balances for this month."];
+    const expenseLines = report.monthExpenses.length
+      ? report.monthExpenses.map((expense) => {
+          const property = (scope.properties || []).find((item) => item.id === expense.property_id) || propertyById(expense.property_id);
+          return `${formatDate(expense.date)} | ${property ? property.property_name : "Unknown property"} | ${expense.type} | ${formatMoney(expense.amount)}`;
+        })
+      : ["No expenses recorded for this month."];
+
+    return [
+      "RentLedger UG Monthly Report",
+      label,
+      "",
+      "Summary",
+      `Total rent expected: ${formatMoney(report.expectedRent)}`,
+      `Total collected: ${formatMoney(report.collected)}`,
+      `Outstanding balance: ${formatMoney(report.unpaidRent)}`,
+      `Expenses: ${formatMoney(report.expensesTotal)}`,
+      `Net after expenses: ${formatMoney(net)}`,
+      `Occupancy rate: ${report.occupancyRate}% (${report.occupiedUnits}/${report.totalUnits} units occupied)`,
+      "",
+      "Payment Status Breakdown",
+      ...breakdown.map((row) => `${row.label}: ${row.count} ${row.label === "Vacant" ? "units" : "tenants"}`),
+      "",
+      "Payment History",
+      "Date | Tenant | Room | Amount | Method | Reference | Status",
+      ...paymentLines,
+      "",
+      "Outstanding Balances",
+      "Tenant | Room | Paid | Balance | Status",
+      ...unpaidLines,
+      "",
+      "Expenses",
+      "Date | Property | Type | Amount",
+      ...expenseLines,
+      "",
+      "Property Summary",
+      `Properties: ${(scope.properties || []).length}`,
+      `Units: ${report.totalUnits}`,
+      `Occupied units: ${report.occupiedUnits}`,
+      `Vacant units: ${vacant}`,
+    ];
+  }
+
+  function simpleReportPdfBlob(lines) {
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const left = 44;
+    const top = 790;
+    const lineHeight = 16;
+    const maxLinesPerPage = 43;
+    const wrappedLines = wrapPdfLines(lines, 92);
+    const pages = [];
+    for (let index = 0; index < wrappedLines.length; index += maxLinesPerPage) {
+      pages.push(wrappedLines.slice(index, index + maxLinesPerPage));
+    }
+    if (!pages.length) pages.push(["No report data."]);
+
+    const pageObjects = [];
+    const contentObjects = [];
+    pages.forEach((pageLines, index) => {
+      const content = reportPdfContent(pageLines, { left, top, lineHeight, pageNumber: index + 1, pageCount: pages.length });
+      const pageObjectId = 4 + index * 2;
+      const contentObjectId = pageObjectId + 1;
+      pageObjects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentObjectId} 0 R >>`);
+      contentObjects.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+    });
+
+    const pageKids = pages.map((_, index) => `${4 + index * 2} 0 R`).join(" ");
+    const objects = [
+      "<< /Type /Catalog /Pages 2 0 R >>",
+      `<< /Type /Pages /Kids [${pageKids}] /Count ${pages.length} >>`,
+      "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ];
+    pages.forEach((_, index) => {
+      objects.push(pageObjects[index], contentObjects[index]);
+    });
+
+    let pdf = "%PDF-1.4\n";
+    const offsets = [0];
+    objects.forEach((object, index) => {
+      offsets.push(pdf.length);
+      pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    });
+    const xrefOffset = pdf.length;
+    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    offsets.slice(1).forEach((offset) => {
+      pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+    });
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    return new Blob([pdf], { type: "application/pdf" });
+  }
+
+  function reportPdfContent(lines, options) {
+    const body = lines
+      .map((line, index) => {
+        const text = index === 0 ? `/F1 13 Tf\n(${escapePdfText(line)}) Tj` : `0 -${options.lineHeight} Td\n/F1 9 Tf\n(${escapePdfText(line)}) Tj`;
+        return text;
+      })
+      .join("\n");
+    return [
+      "BT",
+      `${options.left} ${options.top} Td`,
+      body,
+      `0 -${options.lineHeight * 1.5} Td`,
+      `/F1 8 Tf`,
+      `(Page ${options.pageNumber} of ${options.pageCount}) Tj`,
+      "ET",
+    ].join("\n");
+  }
+
+  function wrapPdfLines(lines, maxLength) {
+    return lines.flatMap((line) => {
+      const text = String(line || " ");
+      if (text.length <= maxLength) return [text];
+      const chunks = [];
+      let remaining = text;
+      while (remaining.length > maxLength) {
+        const splitAt = Math.max(remaining.lastIndexOf(" ", maxLength), Math.floor(maxLength * 0.75));
+        chunks.push(remaining.slice(0, splitAt).trim());
+        remaining = remaining.slice(splitAt).trim();
+      }
+      if (remaining) chunks.push(remaining);
+      return chunks;
+    });
   }
 
   function downloadMonthlyRentReport() {
