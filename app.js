@@ -9428,16 +9428,20 @@
       promptSupabaseSignIn("Sign in again to sync changes across devices.");
       return;
     }
+    const limitMessage = planLimitErrorMessage(error);
+    if (limitMessage) {
+      showCustomerSyncToast(limitMessage);
+      return;
+    }
     if (!isSaasOwner()) {
-      const message = planLimitErrorMessage(error) || customerSafeSyncMessage("Saved on this device. Online backup will retry automatically.");
-      showCustomerSyncToast(message);
+      showCustomerSyncToast("Saved on this device. Online backup will retry automatically.");
       return;
     }
     if (missingSupabaseSchemaItem(error)) {
       showToast("Database migration is pending. Run supabase-support-center-migration.sql in Supabase.");
       return;
     }
-    showToast(`Could not save to Supabase: ${error.message || "Browser copy kept."}`);
+    showToast(`Could not save changes: ${error.message || "Browser copy kept."}`);
   }
 
   function customerSafeSyncMessage(customerMessage, adminMessage = "") {
