@@ -109,7 +109,7 @@ function strongestSyncPlan(...plans) {
   return plans.reduce((best, plan) => {
     const normalized = normalizeKnownPlan(plan);
     if (!normalized) return best;
-    return planLimitScore(normalized) > planLimitScore(best) ? normalized : best;
+    return planTierScore(normalized) > planTierScore(best) ? normalized : best;
   }, "Trial");
 }
 
@@ -118,18 +118,8 @@ function normalizeKnownPlan(plan) {
   return PACKAGE_OPTIONS.some((option) => option.plan === value) ? value : "";
 }
 
-function planLimitScore(plan) {
-  const limits = planLimitForPlan(plan);
-  return (
-    limitScoreValue(limits.properties) * 1_000_000_000 +
-    limitScoreValue(limits.units) * 1_000 +
-    limitScoreValue(limits.caretakers) +
-    (limits.publicListings ? 1 : 0)
-  );
-}
-
-function limitScoreValue(value) {
-  return Number.isFinite(value) ? value : 1_000_000;
+function planTierScore(plan) {
+  return PACKAGE_OPTIONS.findIndex((option) => option.plan === plan);
 }
 
 function normalizeSnapshot(value) {

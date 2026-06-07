@@ -11,7 +11,12 @@ const signup = require("../server/api-routes/signup");
 const syncState = require("../server/api-routes/sync-state");
 
 test("plan limits match public package promises", () => {
-  assert.deepEqual(planLimitForPlan("Starter"), { properties: 1, units: 20, caretakers: 1, publicListings: false });
+  assert.deepEqual(planLimitForPlan("Starter"), {
+    properties: Number.POSITIVE_INFINITY,
+    units: 20,
+    caretakers: 1,
+    publicListings: false,
+  });
   assert.deepEqual(planLimitForPlan("Professional"), { properties: 5, units: 100, caretakers: 10, publicListings: true });
   assert.equal(planLimitForPlan("Enterprise").units, Number.POSITIVE_INFINITY);
   assert.deepEqual(planLimitForPlan("Unknown"), { properties: 1, units: 5, caretakers: 0, publicListings: false });

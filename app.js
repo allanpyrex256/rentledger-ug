@@ -8,6 +8,8 @@
   let supabaseHydrating = false;
   let supabaseSaveTimer = null;
   let supabaseSessionActive = false;
+  let lastCustomerSyncToastAt = 0;
+  let lastCustomerSyncToastMessage = "";
   let pendingAuthResetPromise = null;
   let authVisible = false;
   let highlightedUnitId = null;
@@ -62,7 +64,7 @@
 
   const PLAN_LIMITS = {
     Trial: { properties: 1, units: 5, caretakers: 0, publicListings: false },
-    Starter: { properties: 1, units: 20, caretakers: 1, publicListings: false },
+    Starter: { properties: Number.POSITIVE_INFINITY, units: 20, caretakers: 1, publicListings: false },
     Professional: { properties: 5, units: 100, caretakers: 10, publicListings: true },
     Enterprise: {
       properties: Number.POSITIVE_INFINITY,
@@ -870,6 +872,9 @@
   function signInErrorMessage(error, identifier = "") {
     const message = String(error?.message || "").trim();
     if (missingSupabaseSchemaItem(error)) {
+      if (!isSuperAdminIdentifier(identifier)) {
+        return "We are updating accounts right now. Please try again shortly or contact support.";
+      }
       return "Database migration is pending. Run supabase-support-center-migration.sql in Supabase, then retry.";
     }
     if (!message || message === "Invalid login." || message === "Invalid login credentials") {
@@ -882,6 +887,9 @@
       return "Server login is not configured. Add Supabase service credentials.";
     }
     if (message.includes("permission denied for table")) {
+      if (!isSuperAdminIdentifier(identifier)) {
+        return "Account access is being updated. Please try again shortly or contact support.";
+      }
       return "Database permissions need updating. Run the latest Supabase schema grants.";
     }
     return message;
@@ -8950,7 +8958,12 @@
     } catch (error) {
       console.error("Supabase sync failed", error);
       saveLocalStateOnly();
-      showToast("Could not refresh Supabase. Your browser copy is still saved.");
+      showToast(
+        customerSafeSyncMessage(
+          "We could not refresh online records. Your saved browser copy is still available.",
+          "Could not refresh Supabase. Your browser copy is still saved."
+        )
+      );
     } finally {
       supabaseHydrating = false;
     }
@@ -8969,7 +8982,7 @@
 
     const loaded = await loadSupabaseLibrary();
     if (!loaded || !window.supabase?.createClient) {
-      showToast("Supabase library could not load.");
+      showToast("Online sync could not load. Refresh and try again.");
       return null;
     }
 
@@ -9415,11 +9428,34 @@
       promptSupabaseSignIn("Sign in again to sync changes across devices.");
       return;
     }
+    if (!isSaasOwner()) {
+      const message = planLimitErrorMessage(error) || customerSafeSyncMessage("Saved on this device. Online backup will retry automatically.");
+      showCustomerSyncToast(message);
+      return;
+    }
     if (missingSupabaseSchemaItem(error)) {
       showToast("Database migration is pending. Run supabase-support-center-migration.sql in Supabase.");
       return;
     }
     showToast(`Could not save to Supabase: ${error.message || "Browser copy kept."}`);
+  }
+
+  function customerSafeSyncMessage(customerMessage, adminMessage = "") {
+    return isSaasOwner() ? adminMessage || customerMessage : customerMessage;
+  }
+
+  function showCustomerSyncToast(message) {
+    if (!message) return;
+    const now = Date.now();
+    if (message === lastCustomerSyncToastMessage && now - lastCustomerSyncToastAt < 45000) return;
+    lastCustomerSyncToastAt = now;
+    lastCustomerSyncToastMessage = message;
+    showToast(message);
+  }
+
+  function planLimitErrorMessage(error) {
+    const message = String(error?.message || "").trim();
+    return /plan allows|upgrade before adding|upgrade to add more/i.test(message) ? message : "";
   }
 
   function isSignInRequiredError(error) {
@@ -9460,7 +9496,12 @@
       await persistSupabaseState(JSON.parse(JSON.stringify(state)));
     } catch (error) {
       console.error("Pending Supabase deletes failed", error);
-      showToast("Could not finish syncing deleted rows. Browser copy kept.");
+      showToast(
+        customerSafeSyncMessage(
+          "Saved on this device. Online backup will retry automatically.",
+          "Could not finish syncing deleted rows. Browser copy kept."
+        )
+      );
     }
   }
 
