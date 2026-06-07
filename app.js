@@ -459,8 +459,9 @@
     });
 
     document.querySelectorAll("[data-scroll-target]").forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", (event) => {
         const target = document.getElementById(button.dataset.scrollTarget);
+        if (target) event.preventDefault();
         if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
@@ -596,6 +597,7 @@
       ["cyclePlan", cycleSubscriptionPackage],
       ["toggleVerifiedBadge", toggleVerifiedBadge],
       ["endOwnerTrial", endOwnerTrial],
+      ["activateOwnerAccount", activateOwnerAccount],
       ["deleteOwnerAccount", deleteOwnerAccount],
       ["currentSubscriptionPay", startCurrentUserSubscriptionPayment],
       ["subscriptionCollect", startSubscriptionCollection],
@@ -3312,10 +3314,21 @@
     return Boolean(subscription?.id && subscriptionPlanFee(subscription) > 0 && !isPaidSubscription(subscription));
   }
 
+  function canActivateEndedTrialAccount(user, subscription = subscriptionByOwner(user?.id)) {
+    if (!user || user.role !== "landlord" || isPaidSubscription(subscription)) return false;
+    const status = billingSubscriptionStatus(subscription);
+    return Boolean(
+      trialHasEnded(user, subscription) ||
+        ["Pending", "Overdue", "Expired", "Cancelled", "Paused"].includes(status)
+    );
+  }
+
   function adminBillingActions(user, subscription = subscriptionByOwner(user?.id)) {
     if (!user || user.role !== "landlord") return "";
     const actions = [];
-    if (canStartBillingAccount(user, subscription)) {
+    if (canActivateEndedTrialAccount(user, subscription)) {
+      actions.push(`<button class="text-button" data-activate-owner-account="${escapeHtml(user.id)}" type="button">Activate</button>`);
+    } else if (canStartBillingAccount(user, subscription)) {
       const label = isTrialAccount(user) ? "End Trial" : "Start Billing";
       actions.push(`<button class="text-button" data-end-owner-trial="${escapeHtml(user.id)}" type="button">${label}</button>`);
     }
@@ -3677,8 +3690,7 @@
           const nextAction = accessStatus === "Suspended" || accessStatus === "Inactive" ? "Approve" : "Suspend";
           const hasVerifiedBadge = ownerHasVerifiedBadge(user);
           const badgeRequest = verifiedBadgeRequestForOwner(user.id);
-          const badgeAction = hasVerifiedBadge ? "Remove Badge" : badgeRequest ? "Approve Badge" : "No Request";
-          const badgeActionDisabled = !hasVerifiedBadge && !badgeRequest ? "disabled" : "";
+          const badgeAction = hasVerifiedBadge ? "Remove Badge" : "Verify";
           const billingActions = adminBillingActions(user, subscription);
           return `
             <tr data-owner-row="${escapeHtml(user.id)}" class="${user.id === highlightedOwnerId ? "row-highlight" : ""}">
@@ -3702,7 +3714,7 @@
                 <div class="button-row">
                   <button class="text-button" data-toggle-account-status="${user.id}" type="button">${nextAction}</button>
                   <button class="text-button" data-cycle-plan="${user.id}" type="button">Package</button>
-                  <button class="text-button" data-toggle-verified-badge="${user.id}" ${badgeActionDisabled} type="button">${badgeAction}</button>
+                  <button class="text-button" data-toggle-verified-badge="${user.id}" type="button">${badgeAction}</button>
                   ${billingActions}
                   <button class="text-button" data-impersonate-landlord="${escapeHtml(user.id)}" type="button">Login As Landlord</button>
                   <button class="text-button" data-admin-reset-user="${user.id}" type="button">Send Reset OTP</button>
@@ -4054,7 +4066,7 @@
                 <textarea class="ticket-response-message" rows="2" placeholder="Optional response to send to landlord"></textarea>
               </label>
               <div class="button-row">
-                <button class="text-button" data-focus-landlord="${escapeHtml(ticketOwnerId(ticket))}" type="button">View Account</button>
+                <button class="text-button" data-impersonate-landlord="${escapeHtml(ticketOwnerId(ticket))}" type="button">Open Account</button>
                 <button class="primary-button" data-update-ticket="${escapeHtml(ticket.id)}" type="button">Update Ticket</button>
               </div>
             </article>
@@ -4696,7 +4708,7 @@
       showToast("Choose a landlord first.");
       return;
     }
-    focusLandlordAccount(ownerId);
+    startLandlordImpersonation(ownerId);
   }
 
   function renderProperties() {
@@ -6392,12 +6404,7 @@
       showToast("Landlord account was not found.");
       return;
     }
-    const request = verifiedBadgeRequestForOwner(userId);
     const nextVerified = !ownerHasVerifiedBadge(user);
-    if (nextVerified && !request) {
-      showToast("This landlord must send a verified badge request before approval.");
-      return;
-    }
 
     if (supabaseReady) {
       try {
@@ -6624,6 +6631,106 @@
     saveState();
     renderAll();
     showToast(`${owner.name}'s trial ended. Subscription request sent.`);
+  }
+
+  async function activateOwnerAccount(ownerId) {
+    if (!isSaasOwner()) {
+      showToast("Only the super admin can activate landlord accounts.");
+      return;
+    }
+
+    const owner = userById(ownerId);
+    if (!owner || owner.role !== "landlord") {
+      showToast("Landlord account was not found.");
+      return;
+    }
+
+    const subscription = subscriptionByOwner(ownerId);
+    const paidPlan = paidPlanForEndedTrial(subscription);
+    if (!paidPlan) {
+      showToast("No paid package is available.");
+      return;
+    }
+
+    if (supabaseReady) {
+      try {
+        setAppLoading("Activating account");
+        const result = await apiRequest("/api/admin-user", { action: "activate-account", ownerId });
+        await refreshSupabaseState();
+        addAuditLog({
+          landlord_id: ownerId,
+          action: "Super Admin activated landlord account",
+          old_value: subscription?.status || owner.account_status || "Unknown",
+          new_value: result.status || "Active",
+        });
+        saveState();
+        showToast(`${owner.name}'s account is active.`);
+      } catch (error) {
+        console.error("Account activation failed", error);
+        showToast(error.message || "Could not activate account.");
+      } finally {
+        clearAppLoading();
+      }
+      return;
+    }
+
+    const today = isoDate(new Date());
+    const activePlan = subscription?.plan && subscription.plan !== "Trial" ? subscription.plan : paidPlan.plan;
+    const monthlyFee = packageFee(activePlan) || subscriptionPlanFee(subscription) || paidPlan.fee;
+    const nextBillingDate = addMonths(today, 1);
+
+    if (subscription) {
+      state.subscriptions = state.subscriptions.map((item) =>
+        item.id === subscription.id
+          ? {
+              ...item,
+              plan: activePlan,
+              monthly_fee: monthlyFee,
+              status: "Active",
+              last_payment_date: today,
+              last_payment_method: "Manual",
+              last_payment_note: "Account activated manually by super admin after trial ended.",
+              next_billing_date: nextBillingDate,
+              grace_period_end: null,
+              cancel_at_period_end: false,
+              cancellation_requested_at: null,
+              provider_payment_status: "Manual",
+              provider_next_action: "",
+            }
+          : item
+      );
+    } else {
+      state.subscriptions = state.subscriptions || [];
+      state.subscriptions.push({
+        id: makeId("subscription"),
+        owner_id: ownerId,
+        plan: activePlan,
+        monthly_fee: monthlyFee,
+        status: "Active",
+        last_payment_date: today,
+        last_payment_method: "Manual",
+        last_payment_note: "Account activated manually by super admin after trial ended.",
+        next_billing_date: nextBillingDate,
+        provider_payment_status: "Manual",
+      });
+    }
+
+    state.users = state.users.map((item) => (item.id === ownerId ? { ...item, account_status: "Active" } : item));
+    addNotification({
+      user_id: ownerId,
+      type: "billing",
+      title: "Subscription activated",
+      message: `The super admin activated your ${activePlan} plan until ${formatDate(nextBillingDate)}.`,
+    });
+    addAuditLog({
+      landlord_id: ownerId,
+      action: "Super Admin activated landlord account",
+      old_value: subscription?.status || owner.account_status || "Unknown",
+      new_value: "Active",
+    });
+    saveState();
+    renderAll();
+    showToast(`${owner.name}'s account is active.`);
   }
 
   async function deleteOwnerAccount(ownerId) {
@@ -7009,7 +7116,7 @@
           <div class="button-row">
             ${
               ticket.owner_id
-                ? `<button class="text-button" data-focus-landlord="${escapeHtml(ticket.owner_id)}" type="button">View Account</button>`
+                ? `<button class="text-button" data-impersonate-landlord="${escapeHtml(ticket.owner_id)}" type="button">Open Account</button>`
                 : ""
             }
             <button class="${resolved ? "text-button" : "primary-button"}" data-toggle-ticket="${escapeHtml(ticket.id)}" type="button">
@@ -7031,7 +7138,7 @@
     renderAll();
     setView("platformLandlords");
     revealOwnerRow(ownerId);
-    showToast(`Opened Account Management for ${user.name}.`);
+    showToast(`Highlighted Account Management for ${user.name}.`);
   }
 
   function revealOwnerRow(ownerId) {
@@ -7871,8 +7978,11 @@
   }
 
   function openNotification(id) {
-    const item = platformNotifications().find((notification) => notification.id === id);
-    if (!item) return;
+    const item = findNotificationById(id);
+    if (!item) {
+      showToast("Notification no longer available.");
+      return;
+    }
     ui.notificationModalTitle.textContent = item.title;
     ui.notificationModalMeta.textContent = `${notificationTypeLabel(item.type)} - ${timeAgo(item.created_at || item.date)}`;
     ui.notificationModalMessage.textContent = item.message;
@@ -7882,12 +7992,21 @@
     ui.notificationToggle.setAttribute("aria-expanded", "false");
   }
 
+  function findNotificationById(id) {
+    return (
+      platformNotifications().find((notification) => notification.id === id) ||
+      (state.notifications || []).find((notification) => notification.id === id) ||
+      null
+    );
+  }
+
   function closeNotificationModal() {
     ui.notificationModal.classList.add("hidden");
   }
 
   function markNotificationRead(id) {
-    if (String(id).startsWith("notification")) {
+    const storedNotification = (state.notifications || []).some((item) => item.id === id);
+    if (storedNotification) {
       state.notifications = (state.notifications || []).map((item) =>
         item.id === id ? { ...item, read: true, is_read: true } : item
       );
@@ -7896,6 +8015,11 @@
     }
     saveState();
     renderNotifications();
+    if (isSaasOwner()) {
+      renderPlatformDetailPage();
+      renderPlatformSupport();
+      renderPlatformReports();
+    }
   }
 
   function markNotificationsRead() {
@@ -8433,7 +8557,7 @@
       await Promise.all([
         client.from("units").select("*").eq("status", "vacant").eq("listing_published", true),
         client.from("properties").select("id,owner_id,property_name,location,property_type"),
-        client.from("app_users").select("id,name,phone,email,account_status,created_at"),
+        client.from("app_users").select("id,name,phone,email,account_status,verified_badge,verification_label,created_at"),
         client.from("subscriptions").select("id,owner_id,plan,status,monthly_fee"),
       ]);
 
@@ -8844,6 +8968,8 @@
         company_owner_id: row.company_owner_id || null,
         assigned_property_ids: row.assigned_property_ids || [],
         invitation_status: row.invitation_status || null,
+        verified_badge: Boolean(row.verified_badge),
+        verification_label: row.verification_label || null,
       };
     }
     if (stateKey === "subscriptions") {

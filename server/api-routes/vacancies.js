@@ -19,7 +19,7 @@ module.exports = async function handler(request, response) {
     const ownerIds = unique(properties.map((property) => property.owner_id));
     const owners = ownerIds.length
       ? await supabaseFetch(
-          `/rest/v1/app_users?id=in.(${ownerIds.map(encodeListValue).join(",")})&select=id,name,phone,account_status,created_at`
+          `/rest/v1/app_users?id=in.(${ownerIds.map(encodeListValue).join(",")})&select=id,name,phone,account_status,verified_badge,verification_label,created_at`
         )
       : [];
     const ownerProperties = ownerIds.length
@@ -52,7 +52,13 @@ module.exports = async function handler(request, response) {
     const ownerById = new Map(
       owners.map((owner) => [
         owner.id,
-        publicLandlordProfile(owner, ownerProperties, ownerUnits, subscriptionByOwnerId.get(owner.id), verifiedOwnerIds.has(owner.id)),
+        publicLandlordProfile(
+          owner,
+          ownerProperties,
+          ownerUnits,
+          subscriptionByOwnerId.get(owner.id),
+          Boolean(owner.verified_badge) || Boolean(owner.verified) || verifiedOwnerIds.has(owner.id)
+        ),
       ])
     );
     const listings = units
@@ -94,7 +100,7 @@ function publicLandlordProfile(owner, properties, units, subscription = null, ve
     subscription_plan: plan,
     verified,
     verified_badge: verified,
-    verification_label: verified ? "Verified" : "RentLedger profile",
+    verification_label: verified ? owner.verification_label || "Verified" : "RentLedger profile",
     profile_photo: "",
     property_count: ownedPropertyIds.size,
     occupied_units_count: ownedUnits.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,

@@ -87,6 +87,22 @@ button {
   text-decoration: none;
 }
 
+.landing-links a:visited,
+.landing-links a:active,
+.landing-links a:focus {
+  color: #d7e1ec;
+}
+
+.landing-links a:focus-visible,
+.landing-links button:focus-visible {
+  outline: 2px solid rgba(248, 250, 252, 0.58);
+  outline-offset: 4px;
+}
+
+.landing-links button:active {
+  transform: none;
+}
+
 .hero-section {
   position: relative;
   min-height: clamp(560px, calc(100vh - 116px), 760px);
@@ -2029,22 +2045,44 @@ button {
 }
 
 .auth-screen {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 24px;
+  overflow: hidden;
+  background: #0f2f2b;
+}
+
+.auth-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: url("assets/apartment-exterior.jpg") center / cover no-repeat;
+  transform: scale(1.03);
+}
+
+.auth-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background:
-    linear-gradient(135deg, rgba(15, 118, 110, 0.14), rgba(245, 158, 11, 0.14)),
-    var(--bg);
+    linear-gradient(90deg, rgba(8, 24, 22, 0.54), rgba(15, 47, 43, 0.24) 42%, rgba(255, 250, 236, 0.44)),
+    linear-gradient(180deg, rgba(8, 24, 22, 0.26), rgba(8, 24, 22, 0.42));
 }
 
 .auth-card {
+  position: relative;
   width: min(440px, 100%);
-  border: 1px solid #b8d8ca;
+  border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 8px;
-  background: #fffdf8;
-  box-shadow: var(--shadow);
+  background: rgba(255, 253, 248, 0.94);
+  box-shadow: 0 24px 70px rgba(6, 22, 20, 0.34);
   padding: 22px;
+  backdrop-filter: blur(18px);
 }
 
 .auth-brand {

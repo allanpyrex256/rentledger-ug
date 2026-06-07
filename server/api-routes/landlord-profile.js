@@ -12,7 +12,7 @@ module.exports = async function handler(request, response) {
     if (!ownerId) return send(response, 400, { error: "Landlord id is required." });
 
     const owners = await supabaseFetch(
-      `/rest/v1/app_users?id=eq.${encodeURIComponent(ownerId)}&role=eq.landlord&select=id,name,phone,account_status,created_at`
+      `/rest/v1/app_users?id=eq.${encodeURIComponent(ownerId)}&role=eq.landlord&select=id,name,phone,account_status,verified_badge,verification_label,created_at`
     );
     const owner = owners[0];
     if (!owner || !profileIsPublic(owner)) return send(response, 404, { error: "Landlord profile was not found." });
@@ -38,7 +38,13 @@ module.exports = async function handler(request, response) {
     const publicUnits = planCanPublishPublicListings(subscription?.plan || "Trial") ? units.filter(isPublishedVacancy) : [];
     if (!publicUnits.length) return send(response, 404, { error: "This landlord has no published vacancies." });
 
-    const profile = publicLandlordProfile(owner, properties, units, subscription, Boolean(verifiedTickets.length));
+    const profile = publicLandlordProfile(
+      owner,
+      properties,
+      units,
+      subscription,
+      Boolean(owner.verified_badge) || Boolean(owner.verified) || Boolean(verifiedTickets.length)
+    );
     const propertyById = new Map(properties.map((property) => [property.id, property]));
     const listings = publicUnits
       .map((unit) => {
@@ -74,7 +80,7 @@ function publicLandlordProfile(owner, properties, units, subscription = null, ve
     subscription_plan: plan,
     verified,
     verified_badge: verified,
-    verification_label: verified ? "Verified" : "RentLedger profile",
+    verification_label: verified ? owner.verification_label || "Verified" : "RentLedger profile",
     profile_photo: "",
     property_count: properties.length,
     occupied_units_count: units.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,

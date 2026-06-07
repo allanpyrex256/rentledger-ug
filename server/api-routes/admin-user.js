@@ -33,6 +33,7 @@ module.exports = async function handler(request, response) {
     if (body.action === "toggle-verified-badge") return await toggleVerifiedBadge(response, body.userId);
     if (body.action === "cycle-package") return await cyclePackage(response, body.ownerId);
     if (body.action === "end-trial") return await endTrial(response, body.ownerId);
+    if (body.action === "activate-account") return await activateAccount(response, body.ownerId);
     if (body.action === "delete-account") return await deleteAccount(response, body.ownerId);
     if (body.action === "password-reset") return await sendReset(response, body.userId);
 
@@ -174,11 +175,13 @@ async function toggleVerifiedBadge(response, userId) {
   if (!user || user.role !== "landlord") return send(response, 404, { error: "Landlord not found." });
 
   const approvedRequests = await resolvedVerifiedBadgeRequestsForOwner(userId);
-  const nextVerified = !approvedRequests.length;
+  const currentVerified = Boolean(user.verified_badge) || Boolean(user.verified) || Boolean(approvedRequests.length);
+  const nextVerified = !currentVerified;
   const requests = await verifiedBadgeRequestsForOwner(userId);
-  if (nextVerified && !requests.length) {
-    return send(response, 400, { error: "This landlord must send a verified badge request before approval." });
-  }
+  await patchRows(`app_users`, `id=eq.${encodeURIComponent(userId)}`, {
+    verified_badge: nextVerified,
+    verification_label: nextVerified ? "Verified" : null,
+  });
   if (nextVerified) {
     await Promise.all(
       requests.map((request) =>
@@ -332,6 +335,65 @@ async function endTrial(response, ownerId) {
   ]);
 
   return send(response, 200, { plan: paidPackage.plan, monthly_fee: paidPackage.fee, status: "Pending" });
+}
+
+async function activateAccount(response, ownerId) {
+  if (!ownerId) return send(response, 400, { error: "Owner is required." });
+
+  const ownerRows = await supabaseFetch(`/rest/v1/app_users?id=eq.${encodeURIComponent(ownerId)}&select=*`);
+  const owner = ownerRows[0];
+  if (!owner || owner.role !== "landlord") return send(response, 404, { error: "Landlord not found." });
+
+  const rows = await supabaseFetch(`/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(ownerId)}&select=*`);
+  const subscription = rows[0];
+  const paidPackage = paidPackageForEndedTrial(subscription);
+  if (!paidPackage) return send(response, 400, { error: "No paid package is available." });
+
+  const today = isoDate(new Date());
+  const activePlan = subscription?.plan && subscription.plan !== "Trial" ? subscription.plan : paidPackage.plan;
+  const monthlyFee = PACKAGE_OPTIONS.find((option) => option.plan === activePlan)?.fee || Number(subscription?.monthly_fee || paidPackage.fee || 0);
+  const nextBillingDate = addMonths(today, 1);
+  const subscriptionPatch = {
+    plan: activePlan,
+    monthly_fee: monthlyFee,
+    status: "Active",
+    last_payment_date: today,
+    last_payment_method: "Manual",
+    last_payment_note: "Account activated manually by super admin after trial ended.",
+    next_billing_date: nextBillingDate,
+    grace_period_end: null,
+    cancel_at_period_end: false,
+    cancellation_requested_at: null,
+    provider_payment_status: "Manual",
+    provider_next_action: null,
+  };
+
+  if (subscription) {
+    await patchRows("subscriptions", `id=eq.${encodeURIComponent(subscription.id)}`, subscriptionPatch);
+  } else {
+    await insertRows("subscriptions", [
+      {
+        id: makeId("subscription"),
+        owner_id: ownerId,
+        ...subscriptionPatch,
+      },
+    ]);
+  }
+
+  await patchRows("app_users", `id=eq.${encodeURIComponent(ownerId)}`, { account_status: "Active" });
+  await insertRows("notifications", [
+    {
+      id: makeId("notification"),
+      user_id: ownerId,
+      type: "billing",
+      title: "Subscription activated",
+      message: `The super admin activated your ${activePlan} plan until ${nextBillingDate}.`,
+      read: false,
+      created_at: new Date().toISOString(),
+    },
+  ]);
+
+  return send(response, 200, { plan: activePlan, monthly_fee: monthlyFee, status: "Active", next_billing_date: nextBillingDate });
 }
 
 async function deleteAccount(response, ownerId) {

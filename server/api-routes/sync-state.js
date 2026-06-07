@@ -366,6 +366,8 @@ function toSupabaseRow(stateKey, row, profile, context = {}) {
         "company_owner_id",
         "assigned_property_ids",
         "invitation_status",
+        "verified_badge",
+        "verification_label",
       ]
     );
   }

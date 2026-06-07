@@ -1,6 +1,22 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": ".",
+  "redirects": [
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": {
+            "suf": ".vercel.app"
+          }
+        }
+      ],
+      "destination": "https://rentledgerug.etohubs.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/api/:route", "destination": "/api/[...route]?route=:route" },
     { "source": "/vacancies", "destination": "/vacancies.html" },
