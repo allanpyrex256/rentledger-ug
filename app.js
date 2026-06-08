@@ -6795,47 +6795,50 @@
       showToast("Landlord account was not found.");
       return;
     }
-    const nextVerified = !ownerHasVerifiedBadge(user);
+    const previousVerified = ownerHasVerifiedBadge(user);
+    const nextVerified = !previousVerified;
 
     if (supabaseReady) {
+      const originalLabel = button?.textContent || "";
       try {
+        if (button) {
+          button.disabled = true;
+          button.textContent = nextVerified ? "Verifying" : "Removing";
+        }
+        setAppLoading(nextVerified ? "Verifying landlord" : "Removing badge");
         const result = await apiRequest("/api/admin-user", { action: "toggle-verified-badge", userId });
         await refreshSupabaseState();
+        applyVerifiedBadgeState(userId, Boolean(result.verified_badge));
         addAuditLog({
           landlord_id: userId,
           action: "Super Admin modified verified badge",
-          old_value: ownerHasVerifiedBadge(user) ? "Verified" : "Unverified",
+          old_value: previousVerified ? "Verified" : "Unverified",
           new_value: result.verified_badge ? "Verified" : "Unverified",
         });
         saveState();
+        renderAll();
         showToast(`${user.name} ${result.verified_badge ? "now has" : "no longer has"} a verified badge.`);
       } catch (error) {
         console.error("Verified badge update failed", error);
         showToast(error.message || "Could not update verified badge.");
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalLabel || (nextVerified ? "Verify" : "Remove Badge");
+        }
+        clearAppLoading();
       }
       return;
     }
 
-    state.users = state.users.map((item) =>
-      item.id === userId
-        ? {
-            ...item,
-            verified_badge: nextVerified,
-            verified: nextVerified,
-            verification_label: nextVerified ? "Verified" : "",
-          }
-        : item
-    );
+    applyVerifiedBadgeState(userId, nextVerified);
     if (nextVerified) {
-      resolveVerifiedBadgeRequests(userId);
       addNotification({
         user_id: userId,
         type: "support",
         title: "Verified badge approved",
         message: "The super admin approved your verified landlord badge.",
       });
-    } else {
-      reopenVerifiedBadgeRequests(userId);
     }
     addAuditLog({
       landlord_id: userId,
@@ -6846,6 +6849,46 @@
     saveState();
     renderAll();
     showToast(`${user.name} ${nextVerified ? "now has" : "no longer has"} a verified badge.`);
+  }
+
+  function applyVerifiedBadgeState(userId, verified) {
+    state.users = state.users.map((item) =>
+      item.id === userId
+        ? {
+            ...item,
+            verified_badge: verified,
+            verified,
+            verification_label: verified ? "Verified" : "",
+          }
+        : item
+    );
+    if (verified) {
+      ensureResolvedVerifiedBadgeRequest(userId);
+      resolveVerifiedBadgeRequests(userId);
+    } else {
+      reopenVerifiedBadgeRequests(userId);
+    }
+  }
+
+  function ensureResolvedVerifiedBadgeRequest(ownerId) {
+    state.supportTickets = state.supportTickets || [];
+    const hasRequest = state.supportTickets.some((ticket) => ticket.owner_id === ownerId && isVerifiedBadgeRequest(ticket));
+    if (hasRequest) return;
+    const now = new Date().toISOString();
+    state.supportTickets.push({
+      id: makeId("ticket"),
+      owner_id: ownerId,
+      landlord_id: ownerId,
+      subject: VERIFIED_BADGE_REQUEST_SUBJECT,
+      description: "Verified badge approved directly by the super admin.",
+      priority: "High",
+      status: "Resolved",
+      note: "Verified badge approved directly by the super admin.",
+      admin_note: "Verified badge approved directly by the super admin.",
+      created_at: now,
+      updated_at: isoDate(new Date()),
+      resolved_at: now,
+    });
   }
 
   async function cycleSubscriptionPackage(ownerId) {

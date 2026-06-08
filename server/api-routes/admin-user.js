@@ -20,6 +20,7 @@ const {
 
 const TRIAL_DAYS = 14;
 const VERIFIED_BADGE_REQUEST_SUBJECT = "Verified badge request";
+const VERIFIED_BADGE_APPROVAL_NOTE = "Verified badge approved directly by the super admin.";
 
 module.exports = async function handler(request, response) {
   if (request.method !== "POST") return send(response, 405, { error: "Method not allowed" });
@@ -183,14 +184,11 @@ async function toggleVerifiedBadge(response, userId) {
     verification_label: nextVerified ? "Verified" : null,
   });
   if (nextVerified) {
-    await Promise.all(
-      requests.map((request) =>
-        patchRows("support_tickets", `id=eq.${encodeURIComponent(request.id)}`, {
-          status: "Resolved",
-          updated_at: isoDate(new Date()),
-        })
-      )
-    );
+    if (requests.length) {
+      await Promise.all(requests.map((request) => resolveVerifiedBadgeRequest(request.id)));
+    } else if (!approvedRequests.length) {
+      await createResolvedVerifiedBadgeRequest(userId);
+    }
     await insertRows("notifications", [
       {
         id: makeId("notification"),
@@ -213,6 +211,35 @@ async function toggleVerifiedBadge(response, userId) {
     );
   }
   return send(response, 200, { verified_badge: nextVerified });
+}
+
+async function resolveVerifiedBadgeRequest(requestId) {
+  return patchRows("support_tickets", `id=eq.${encodeURIComponent(requestId)}`, {
+    status: "Resolved",
+    admin_note: VERIFIED_BADGE_APPROVAL_NOTE,
+    updated_at: isoDate(new Date()),
+    resolved_at: new Date().toISOString(),
+  });
+}
+
+async function createResolvedVerifiedBadgeRequest(ownerId) {
+  const now = new Date().toISOString();
+  return insertRows("support_tickets", [
+    {
+      id: makeId("ticket"),
+      owner_id: ownerId,
+      landlord_id: ownerId,
+      subject: VERIFIED_BADGE_REQUEST_SUBJECT,
+      description: VERIFIED_BADGE_APPROVAL_NOTE,
+      priority: "High",
+      status: "Resolved",
+      note: VERIFIED_BADGE_APPROVAL_NOTE,
+      admin_note: VERIFIED_BADGE_APPROVAL_NOTE,
+      updated_at: isoDate(new Date()),
+      resolved_at: now,
+      created_at: now,
+    },
+  ]);
 }
 
 async function verifiedBadgeRequestsForOwner(ownerId) {
