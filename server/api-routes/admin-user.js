@@ -18,7 +18,7 @@ const {
   supabaseFetch,
 } = require("../supabase-admin");
 
-const TRIAL_DAYS = 14;
+const TRIAL_DAYS = 30;
 const VERIFIED_BADGE_REQUEST_SUBJECT = "Verified badge request";
 const VERIFIED_BADGE_APPROVAL_NOTE = "Verified badge approved directly by the super admin.";
 

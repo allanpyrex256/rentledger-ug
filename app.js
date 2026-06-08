@@ -57,7 +57,7 @@
     { plan: "Professional", fee: 120000, status: "Active" },
     { plan: "Enterprise", fee: 500000, status: "Active" },
   ];
-  const TRIAL_DAYS = 14;
+  const TRIAL_DAYS = 30;
   const VERIFIED_BADGE_REQUEST_SUBJECT = "Verified badge request";
   const VERIFIED_BADGE_REQUEST_NOTE =
     "Please review my landlord account and public rental listings for a verified landlord badge.";
@@ -1176,7 +1176,7 @@
       return;
     }
     if (!selectedPlanOption) {
-      showToast("Choose Starter or Professional before starting the 14-day free trial.");
+      showToast("Choose Starter or Professional before starting the 30-day free trial.");
       return;
     }
     if (!paymentMethod) {
@@ -1196,7 +1196,7 @@
       return;
     }
     if (!ui.accountBillingConsent.checked) {
-      showToast("Accept the terms and privacy policy to start the 14-day free trial.");
+      showToast("Accept the terms and privacy policy to start the 30-day free trial.");
       return;
     }
 
@@ -1220,7 +1220,7 @@
       ui.createAccountForm.reset();
       updateSignupBillingSummary();
       setView("properties");
-      showToast(`${selectedPlanOption.plan} 14-day free trial opened.`);
+      showToast(`${selectedPlanOption.plan} 30-day free trial opened.`);
     } catch (error) {
       console.error("Account creation failed", error);
       showToast(error.message || "Could not create account.");
@@ -1544,7 +1544,7 @@
     ui.subscriptionLockDueDate.textContent = formatOptionalDate(dueDate);
     ui.subscriptionLockMethod.textContent = method;
     ui.subscriptionLockMessage.textContent = canPay
-      ? `Your 14-day trial has ended. Subscribe to ${plan} at ${formatMoney(billableMonthlyFee)}/month to continue using RentLedger UG.`
+      ? `Your 30-day trial has ended. Subscribe to ${plan} at ${formatMoney(billableMonthlyFee)}/month to continue using RentLedger UG.`
       : "Your trial has ended, but billing is not ready for this account. Contact support to activate a paid plan.";
     ui.subscriptionLockPay.disabled = !canPay;
     ui.subscriptionLockPay.textContent = canPay ? "Subscribe" : "Billing setup needed";
@@ -6399,19 +6399,19 @@
 
     if (!planOption) {
       ui.accountTrialSummary.textContent =
-        "Select Starter or Professional, choose a payment method, and confirm your details before starting the 14-day free trial. No charges are made today.";
+        "Select Starter or Professional, choose a payment method, and confirm your details before starting the 30-day free trial. No charges are made today.";
       return;
     }
     if (!paymentMethod) {
       ui.accountTrialSummary.textContent =
-        `${planOption.plan} selected. Choose a payment method to confirm how subscription billing works after the 14-day trial. No charges are made today.`;
+        `${planOption.plan} selected. Choose a payment method to confirm how subscription billing works after the 30-day trial. No charges are made today.`;
       return;
     }
 
     const billingContact = ui.accountBillingContact?.value.trim();
     const contactLabel = billingContact ? ` from ${maskBillingContact(billingContact)}` : "";
     ui.accountTrialSummary.textContent =
-      `${planOption.plan} starts with a 14-day free trial. No charges are made today. After ${formatDate(nextBillingDate)}, the subscription is ${formatMoney(planOption.fee)}/month by ${signupPaymentMethodLabel(paymentMethod)}${contactLabel} unless you cancel before renewal.`;
+      `${planOption.plan} starts with a 30-day free trial. No charges are made today. After ${formatDate(nextBillingDate)}, the subscription is ${formatMoney(planOption.fee)}/month by ${signupPaymentMethodLabel(paymentMethod)}${contactLabel} unless you cancel before renewal.`;
   }
 
   function signupPaymentMethodLabel(method) {
