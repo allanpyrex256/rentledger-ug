@@ -8046,49 +8046,7 @@
       "",
       "This receipt confirms rent payment captured in RentLedger UG.",
     ];
-    return simplePdfBlob(lines);
-  }
-
-  function simplePdfBlob(lines) {
-    const pageWidth = 595;
-    const pageHeight = 842;
-    const content = [
-      "BT",
-      "/F1 18 Tf",
-      "50 790 Td",
-      ...pdfTextLines(lines, pageHeight),
-      "ET",
-    ].join("\n");
-    const objects = [
-      "<< /Type /Catalog /Pages 2 0 R >>",
-      "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>`,
-      "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-      `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
-    ];
-    let pdf = "%PDF-1.4\n";
-    const offsets = [0];
-    objects.forEach((object, index) => {
-      offsets.push(pdf.length);
-      pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
-    });
-    const xrefOffset = pdf.length;
-    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-    offsets.slice(1).forEach((offset) => {
-      pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
-    });
-    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-    return new Blob([pdf], { type: "application/pdf" });
-  }
-
-  function pdfTextLines(lines) {
-    return lines
-      .map((line, index) => {
-        const fontCommand = index === 0 ? "" : index === 1 ? "/F1 13 Tf\n" : index === 2 ? "/F1 11 Tf\n" : "";
-        const move = index === 0 ? "" : "0 -24 Td\n";
-        return `${fontCommand}${move}(${escapePdfText(line)}) Tj`;
-      })
-      .join("\n");
+    return simpleReportPdfBlob(lines);
   }
 
   function escapePdfText(value) {
@@ -8491,8 +8449,13 @@
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = filename;
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
     anchor.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      anchor.remove();
+    }, 1000);
   }
 
   function currentUser() {
