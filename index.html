@@ -1089,12 +1089,14 @@
                 </label>
                 <div class="split-fields">
                   <label>
-                    Rent Amount
+                    Monthly Rent
                     <input id="tenantRent" name="tenantRent" type="number" min="0" step="1000" required />
+                    <small class="form-helper">This is the rent charged each month. It is not a payment record.</small>
                   </label>
                   <label>
-                    Deposit Paid
-                    <input id="tenantDeposit" name="tenantDeposit" type="number" min="0" step="1000" required />
+                    Security Deposit Paid
+                    <input id="tenantDeposit" name="tenantDeposit" type="number" min="0" step="1000" placeholder="0" />
+                    <small class="form-helper">Optional. Deposits are tracked separately and do not count as rent paid.</small>
                   </label>
                 </div>
                 <label>
@@ -1125,8 +1127,8 @@
                       <th>Name</th>
                       <th>Phone</th>
                       <th>Room</th>
-                      <th>Rent</th>
-                      <th>Deposit</th>
+                      <th>Monthly Rent</th>
+                      <th>Security Deposit</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -1207,8 +1209,9 @@
                 </label>
                 <div class="split-fields">
                   <label>
-                    Amount
+                    Rent Payment Amount
                     <input id="paymentAmount" name="paymentAmount" type="number" min="0" step="1000" required />
+                    <small class="form-helper">Enter only rent received. Do not repeat the tenant's security deposit here.</small>
                   </label>
                   <label>
                     Date
