@@ -3539,20 +3539,191 @@ h1 {
   text-align: center;
 }
 
-.analytics-chart-grid {
+.combined-analytics-chart {
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
-.mini-chart {
+.analytics-chart-header {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  min-width: 0;
 }
 
-.mini-chart > strong {
+.analytics-chart-header span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  background: #f8fffc;
+  padding: 10px 12px;
+}
+
+.analytics-chart-header b {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.analytics-chart-header strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-line-chart {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.multi-line-graph {
+  width: 100%;
+  min-height: 320px;
+  display: block;
+  overflow: visible;
+}
+
+.multi-line-bg {
+  fill: #f8fffc;
+  stroke: #dbe3ec;
+  stroke-width: 1;
+}
+
+.multi-line-grid {
+  stroke: #dbe3ec;
+  stroke-width: 1;
+}
+
+.multi-line-x-guide {
+  stroke: rgba(71, 85, 105, 0.14);
+  stroke-dasharray: 4 5;
+  stroke-width: 1;
+}
+
+.multi-line-axis,
+.multi-line-x-label {
+  fill: #475569;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.multi-line-path {
+  fill: none;
+  stroke: var(--series-color);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.multi-line-point circle {
+  fill: #fffdf8;
+  stroke: var(--series-color);
+  stroke-width: 3;
+}
+
+.multi-line-legend {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.multi-line-legend span {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 3px;
+  align-items: center;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  background: #fffdf8;
+  padding: 9px 10px;
+}
+
+.multi-line-legend i,
+.multi-line-data-row strong i {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  border-radius: 999px;
+  background: var(--series-color);
+}
+
+.multi-line-legend b,
+.multi-line-legend strong,
+.multi-line-legend small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-line-legend b {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.multi-line-legend strong,
+.multi-line-legend small {
+  grid-column: 2;
+}
+
+.multi-line-legend strong {
   font-size: 13px;
+}
+
+.multi-line-legend small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.multi-line-data {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.multi-line-data-row {
+  min-width: 620px;
+  display: grid;
+  gap: 6px;
+  align-items: center;
+}
+
+.multi-line-data-row > b,
+.multi-line-data-row > span,
+.multi-line-data-row > strong {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  background: #fffdf8;
+  padding: 8px;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-line-data-row > b {
+  color: var(--muted);
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.multi-line-data-row > strong {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--ink);
 }
 
 .line-chart {
@@ -3663,19 +3834,6 @@ h1 {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.mini-chart .line-graph {
-  min-height: 194px;
-}
-
-.mini-chart .line-chart-summary {
-  grid-template-columns: 1fr;
-}
-
-.mini-chart .line-chart-summary span {
-  grid-template-columns: 52px minmax(0, 1fr);
-  align-items: center;
 }
 
 .activity-list {
@@ -5107,8 +5265,7 @@ button.admin-metric-card {
   .expense-summary,
   .template-grid,
   .owner-summary-grid,
-  .chart-summary-grid,
-  .analytics-chart-grid {
+  .chart-summary-grid {
     grid-template-columns: 1fr;
   }
 
@@ -5159,6 +5316,11 @@ button.admin-metric-card {
 
   .admin-card {
     padding: 14px;
+  }
+
+  .analytics-chart-header,
+  .multi-line-legend {
+    grid-template-columns: 1fr;
   }
 
   .admin-month-dates {

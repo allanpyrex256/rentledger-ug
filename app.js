@@ -3988,40 +3988,177 @@
   }
 
   function renderAdminAnalyticsCharts(subscriptions, landlords, tickets) {
-    const packageTotals = PACKAGE_OPTIONS.map((option) => ({
-      label: option.plan.slice(0, 5),
-      total: subscriptions
-        .filter((subscription) => subscription.plan === option.plan && isPaidSubscription(subscription))
-        .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0),
-    }));
-    const accountMix = [
-      { label: "Paid", total: landlords.filter((user) => isPaidSubscription(subscriptionByOwner(user.id))).length },
-      { label: "Trial", total: landlords.filter((user) => isTrialAccount(user)).length },
-      { label: "Pend", total: landlords.filter((user) => platformAccountDisplayStatus(user) === "Pending").length },
-      { label: "Expired", total: expiredSubscriptions().length },
-      { label: "Paused", total: landlords.filter((user) => accountStatus(user) === "Suspended").length },
+    const trendMonths = trendMonthKeys(monthKey(new Date()), 6);
+    const monthLabels = trendMonths.map(adminTrendMonthLabel);
+    const series = [
+      {
+        name: "Revenue",
+        color: "#0f766e",
+        valueType: "money",
+        values: trendMonths.map((key) => adminRevenueForMonth(subscriptions, key)),
+      },
+      {
+        name: "Paid Accounts",
+        color: "#2457a6",
+        valueType: "count",
+        values: trendMonths.map((key) => adminPaidAccountsForMonth(landlords, key)),
+      },
+      {
+        name: "Trial Accounts",
+        color: "#b45309",
+        valueType: "count",
+        values: trendMonths.map((key) => adminTrialAccountsForMonth(landlords, key)),
+      },
+      {
+        name: "Support Tickets",
+        color: "#b42318",
+        valueType: "count",
+        values: trendMonths.map((key) => adminSupportTicketsForMonth(tickets, key)),
+      },
     ];
-    const supportMix = [
-      { label: "Open", total: tickets.filter((ticket) => ticket.status === "Open").length },
-      { label: "Prog", total: tickets.filter((ticket) => ticket.status === "In Progress").length },
-      { label: "Done", total: tickets.filter((ticket) => ticket.status === "Resolved").length },
-      { label: "High", total: tickets.filter((ticket) => ticket.priority === "High" && ticket.status !== "Resolved").length },
-    ];
+    const currentRevenue = subscriptions.filter(isPaidSubscription).reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
+    const openSupport = tickets.filter((ticket) => ticket.status !== "Resolved").length;
 
     return `
-      <div class="analytics-chart-grid">
-        <article class="mini-chart">
-          <strong>Revenue by Package</strong>
-          ${chartMarkup(packageTotals, "Package revenue")}
-        </article>
-        <article class="mini-chart">
-          <strong>Account Status</strong>
-          ${chartMarkup(accountMix, "Account status", { valueType: "count" })}
-        </article>
-        <article class="mini-chart">
-          <strong>Support Load</strong>
-          ${chartMarkup(supportMix, "Support load", { valueType: "count" })}
-        </article>
+      <div class="combined-analytics-chart">
+        <div class="analytics-chart-header">
+          <span><b>MRR</b><strong>${formatCompactMoney(currentRevenue)}</strong></span>
+          <span><b>Landlords</b><strong>${landlords.length}</strong></span>
+          <span><b>Open Support</b><strong>${openSupport}</strong></span>
+        </div>
+        ${multiSeriesLineChartMarkup(monthLabels, series, "SaaS analytics trend")}
+      </div>
+    `;
+  }
+
+  function adminTrendMonthLabel(key) {
+    return monthDateFromKey(key).toLocaleDateString("en-UG", { month: "short" });
+  }
+
+  function adminRevenueForMonth(subscriptions, targetMonthKey) {
+    return subscriptions
+      .filter(isPaidSubscription)
+      .filter((subscription) => subscriptionTrendStartKey(subscription) <= targetMonthKey)
+      .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
+  }
+
+  function adminPaidAccountsForMonth(landlords, targetMonthKey) {
+    return landlords.filter((user) => userTrendStartKey(user) <= targetMonthKey && isPaidSubscription(subscriptionByOwner(user.id))).length;
+  }
+
+  function adminTrialAccountsForMonth(landlords, targetMonthKey) {
+    return landlords.filter((user) => userTrendStartKey(user) <= targetMonthKey && isTrialAccount(user)).length;
+  }
+
+  function adminSupportTicketsForMonth(tickets, targetMonthKey) {
+    return tickets.filter((ticket) => monthKey(ticket.created_at || ticket.updated_at) === targetMonthKey).length;
+  }
+
+  function subscriptionTrendStartKey(subscription) {
+    return monthKey(subscription.created_at || subscription.last_payment_date || subscription.next_billing_date || new Date());
+  }
+
+  function userTrendStartKey(user) {
+    return monthKey(user.created_at || new Date());
+  }
+
+  function multiSeriesLineChartMarkup(labels, series, caption) {
+    const width = 760;
+    const height = 320;
+    const pad = { top: 24, right: 24, bottom: 52, left: 58 };
+    const plotWidth = width - pad.left - pad.right;
+    const plotHeight = height - pad.top - pad.bottom;
+    const baseline = pad.top + plotHeight;
+    const tickValues = [100, 75, 50, 25, 0];
+    const xFor = (index) => (labels.length === 1 ? pad.left + plotWidth / 2 : pad.left + (plotWidth / (labels.length - 1)) * index);
+    const preparedSeries = series.map((item) => {
+      const max = Math.max(...item.values.map((value) => Number(value || 0)), 1);
+      const points = item.values.map((value, index) => {
+        const normalized = (Number(value || 0) / max) * 100;
+        return {
+          value: Number(value || 0),
+          normalized,
+          x: xFor(index),
+          y: baseline - (normalized / 100) * plotHeight,
+        };
+      });
+      return { ...item, max, points };
+    });
+
+    return `
+      <div class="multi-line-chart" aria-label="${escapeHtml(caption)}">
+        <svg class="multi-line-graph" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${chartId(caption)}">
+          <title id="${chartId(caption)}">${escapeHtml(caption)}</title>
+          <rect class="multi-line-bg" x="${pad.left}" y="${pad.top}" width="${plotWidth}" height="${plotHeight}" rx="8"></rect>
+          ${tickValues
+            .map((tick) => {
+              const y = baseline - (tick / 100) * plotHeight;
+              return `
+                <line class="multi-line-grid" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}"></line>
+                <text class="multi-line-axis" x="${pad.left - 9}" y="${(y + 4).toFixed(1)}" text-anchor="end">${tick}%</text>
+              `;
+            })
+            .join("")}
+          ${labels
+            .map((label, index) => {
+              const x = xFor(index);
+              return `
+                <line class="multi-line-x-guide" x1="${x.toFixed(1)}" y1="${pad.top}" x2="${x.toFixed(1)}" y2="${baseline}"></line>
+                <text class="multi-line-x-label" x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(label)}</text>
+              `;
+            })
+            .join("")}
+          ${preparedSeries
+            .map((item) => {
+              const path = item.points.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+              return `
+                <path class="multi-line-path" d="${path}" style="--series-color: ${item.color}"></path>
+                ${item.points
+                  .map(
+                    (point, index) => `
+                      <g class="multi-line-point" style="--series-color: ${item.color}">
+                        <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4.5"></circle>
+                        <title>${escapeHtml(`${item.name} - ${labels[index]}: ${chartValueLabel(point.value, item.valueType)}`)}</title>
+                      </g>
+                    `
+                  )
+                  .join("")}
+              `;
+            })
+            .join("")}
+        </svg>
+        <div class="multi-line-legend">
+          ${preparedSeries
+            .map((item) => {
+              const currentValue = item.values[item.values.length - 1] || 0;
+              const peakValue = Math.max(...item.values.map((value) => Number(value || 0)), 0);
+              return `
+                <span style="--series-color: ${item.color}">
+                  <i></i>
+                  <b>${escapeHtml(item.name)}</b>
+                  <strong>${escapeHtml(chartValueLabel(currentValue, item.valueType))}</strong>
+                  <small>Peak ${escapeHtml(chartValueLabel(peakValue, item.valueType))}</small>
+                </span>
+              `;
+            })
+            .join("")}
+        </div>
+        <div class="multi-line-data">
+          <div class="multi-line-data-row" style="grid-template-columns: minmax(130px, 1.3fr) repeat(${labels.length}, minmax(62px, 1fr));">
+            <b>Metric</b>
+            ${labels.map((label) => `<b>${escapeHtml(label)}</b>`).join("")}
+          </div>
+          ${preparedSeries
+            .map(
+              (item) => `
+                <div class="multi-line-data-row" style="grid-template-columns: minmax(130px, 1.3fr) repeat(${labels.length}, minmax(62px, 1fr));">
+                  <strong style="--series-color: ${item.color}"><i></i>${escapeHtml(item.name)}</strong>
+                  ${item.values.map((value) => `<span>${escapeHtml(chartValueLabel(value, item.valueType))}</span>`).join("")}
+                </div>
+              `
+            )
+            .join("")}
+        </div>
       </div>
     `;
   }
