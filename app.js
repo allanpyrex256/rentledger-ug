@@ -4016,34 +4016,114 @@
         </article>
         <article class="mini-chart">
           <strong>Account Status</strong>
-          ${chartMarkup(accountMix, "Account status")}
+          ${chartMarkup(accountMix, "Account status", { valueType: "count" })}
         </article>
         <article class="mini-chart">
           <strong>Support Load</strong>
-          ${chartMarkup(supportMix, "Support load")}
+          ${chartMarkup(supportMix, "Support load", { valueType: "count" })}
         </article>
       </div>
     `;
   }
 
-  function chartMarkup(buckets, caption) {
-    const max = Math.max(...buckets.map((bucket) => bucket.total), 1);
+  function chartMarkup(buckets, caption, options = {}) {
+    const rows = buckets.map((bucket) => ({
+      label: String(bucket.label || ""),
+      total: Number(bucket.total || 0),
+    }));
+    if (!rows.length) return `<div class="chart-empty-note">No ${escapeHtml(caption.toLowerCase())} data yet.</div>`;
+
+    const valueType = options.valueType || "money";
+    const width = 420;
+    const height = 210;
+    const pad = { top: 18, right: 22, bottom: 38, left: 50 };
+    const plotWidth = width - pad.left - pad.right;
+    const plotHeight = height - pad.top - pad.bottom;
+    const values = rows.map((row) => row.total);
+    const max = chartScaleMax(Math.max(...values, 0), valueType);
+    const baseline = pad.top + plotHeight;
+    const xFor = (index) => (rows.length === 1 ? pad.left + plotWidth / 2 : pad.left + (plotWidth / (rows.length - 1)) * index);
+    const yFor = (value) => baseline - (Number(value || 0) / max) * plotHeight;
+    const points = rows.map((row, index) => ({ ...row, x: xFor(index), y: yFor(row.total) }));
+    const linePath = points.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+    const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${baseline} L ${points[0].x.toFixed(1)} ${baseline} Z`;
+    const tickValues = chartTickValues(max, valueType);
+    const total = values.reduce((sum, value) => sum + value, 0);
+    const peak = rows.reduce((best, row) => (row.total > best.total ? row : best), rows[0]);
+    const average = rows.length ? total / rows.length : 0;
+
     return `
-      <div class="bar-chart" aria-label="${escapeHtml(caption)} chart">
-        ${buckets
-          .map((bucket) => {
-            const height = bucket.total > 0 ? Math.max(5, Math.round((bucket.total / max) * 100)) : 0;
-            return `
-              <div class="bar-item ${bucket.total > 0 ? "" : "is-zero"}">
-                <div class="bar-track"><span style="height:${height}%"></span></div>
-                <strong>${escapeHtml(bucket.label)}</strong>
-                <small>${formatCompactMoney(bucket.total)}</small>
-              </div>
-            `;
-          })
-          .join("")}
+      <div class="line-chart" aria-label="${escapeHtml(caption)} line chart">
+        <svg class="line-graph" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${chartId(caption)}">
+          <title id="${chartId(caption)}">${escapeHtml(caption)} line chart</title>
+          <rect class="line-graph-bg" x="${pad.left}" y="${pad.top}" width="${plotWidth}" height="${plotHeight}" rx="8"></rect>
+          ${tickValues
+            .map((tick) => {
+              const y = yFor(tick);
+              return `
+                <line class="line-grid" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}"></line>
+                <text class="line-axis-label" x="${pad.left - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml(chartValueLabel(tick, valueType))}</text>
+              `;
+            })
+            .join("")}
+          ${points
+            .map((point) => `<line class="line-x-guide" x1="${point.x.toFixed(1)}" y1="${pad.top}" x2="${point.x.toFixed(1)}" y2="${baseline}"></line>`)
+            .join("")}
+          <path class="line-area" d="${areaPath}"></path>
+          <path class="line-path" d="${linePath}"></path>
+          ${points
+            .map(
+              (point) => `
+                <g class="line-point">
+                  <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4.5"></circle>
+                  <text x="${point.x.toFixed(1)}" y="${Math.max(pad.top + 12, point.y - 10).toFixed(1)}" text-anchor="middle">${escapeHtml(chartValueLabel(point.total, valueType))}</text>
+                  <text class="line-x-label" x="${point.x.toFixed(1)}" y="${height - 10}" text-anchor="middle">${escapeHtml(shortChartLabel(point.label))}</text>
+                  <title>${escapeHtml(`${point.label}: ${chartValueLabel(point.total, valueType)}`)}</title>
+                </g>
+              `
+            )
+            .join("")}
+        </svg>
+        <div class="line-chart-summary">
+          <span><b>Total</b><strong>${escapeHtml(chartValueLabel(total, valueType))}</strong></span>
+          <span><b>Peak</b><strong>${escapeHtml(`${shortChartLabel(peak.label)} ${chartValueLabel(peak.total, valueType)}`)}</strong></span>
+          <span><b>Average</b><strong>${escapeHtml(chartValueLabel(average, valueType))}</strong></span>
+        </div>
+        <div class="line-data-row">
+          ${rows
+            .map((row) => `<span><b>${escapeHtml(shortChartLabel(row.label))}</b><strong>${escapeHtml(chartValueLabel(row.total, valueType))}</strong></span>`)
+            .join("")}
+        </div>
       </div>
     `;
+  }
+
+  function chartScaleMax(maxValue, valueType) {
+    if (valueType === "count") return Math.max(1, Math.ceil(maxValue));
+    if (maxValue <= 0) return 1;
+    const magnitude = 10 ** Math.floor(Math.log10(maxValue));
+    return Math.ceil(maxValue / magnitude) * magnitude;
+  }
+
+  function chartTickValues(maxValue, valueType) {
+    if (valueType === "count") {
+      return [...new Set([maxValue, Math.round(maxValue * 0.75), Math.round(maxValue * 0.5), Math.round(maxValue * 0.25), 0])];
+    }
+    return [maxValue, maxValue * 0.75, maxValue * 0.5, maxValue * 0.25, 0];
+  }
+
+  function chartValueLabel(value, valueType) {
+    if (valueType === "count") return Number(value || 0).toLocaleString("en-UG", { maximumFractionDigits: 0 });
+    return formatCompactMoney(value);
+  }
+
+  function shortChartLabel(label) {
+    const text = String(label || "");
+    return text.length > 8 ? `${text.slice(0, 7)}.` : text;
+  }
+
+  function chartId(caption) {
+    return `chart-${String(caption || "metric").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
   }
 
   function renderPlatformLandlords() {

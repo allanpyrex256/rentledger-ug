@@ -3539,45 +3539,6 @@ h1 {
   text-align: center;
 }
 
-.bar-chart {
-  min-height: 250px;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(46px, 1fr));
-  gap: 12px;
-  align-items: end;
-}
-
-.bar-item {
-  min-width: 0;
-  display: grid;
-  gap: 8px;
-  align-items: end;
-  text-align: center;
-}
-
-.bar-track {
-  height: 168px;
-  display: flex;
-  align-items: end;
-  border: 1px solid #dbe3ec;
-  border-radius: 8px;
-  background: #f8fffc;
-  overflow: hidden;
-}
-
-.bar-track span {
-  width: 100%;
-  min-height: 0;
-  display: block;
-  border-radius: 8px 8px 0 0;
-  background: linear-gradient(180deg, #f59e0b, #0f766e);
-  transition: height 280ms ease;
-}
-
-.bar-item.is-zero .bar-track span {
-  display: none;
-}
-
 .analytics-chart-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3594,23 +3555,127 @@ h1 {
   font-size: 13px;
 }
 
-.mini-chart .bar-chart {
-  min-height: 210px;
-  grid-template-columns: repeat(4, minmax(42px, 1fr));
+.line-chart {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
 }
 
-.mini-chart .bar-track {
-  height: 130px;
+.line-graph {
+  width: 100%;
+  min-height: 224px;
+  display: block;
+  overflow: visible;
 }
 
-.bar-item strong {
-  font-size: 12px;
+.line-graph-bg {
+  fill: #f8fffc;
+  stroke: #dbe3ec;
+  stroke-width: 1;
 }
 
-.bar-item small {
-  color: var(--muted);
+.line-grid {
+  stroke: #dbe3ec;
+  stroke-width: 1;
+}
+
+.line-x-guide {
+  stroke: rgba(15, 118, 110, 0.16);
+  stroke-dasharray: 4 5;
+  stroke-width: 1;
+}
+
+.line-area {
+  fill: rgba(15, 118, 110, 0.12);
+}
+
+.line-path {
+  fill: none;
+  stroke: #0f766e;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.line-point circle {
+  fill: #fffdf8;
+  stroke: #f59e0b;
+  stroke-width: 3;
+}
+
+.line-point text,
+.line-axis-label,
+.line-x-label {
+  fill: #42526a;
   font-size: 11px;
+  font-weight: 750;
+}
+
+.line-point text {
+  fill: #0f172a;
+}
+
+.line-x-label {
+  fill: #475569;
+  font-size: 10px;
+}
+
+.line-chart-summary,
+.line-data-row {
+  display: grid;
+  gap: 8px;
+}
+
+.line-chart-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.line-chart-summary span,
+.line-data-row span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  background: #fffdf8;
+  padding: 8px;
+}
+
+.line-data-row {
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+}
+
+.line-chart-summary b,
+.line-data-row b {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+
+.line-chart-summary strong,
+.line-data-row strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-chart .line-graph {
+  min-height: 194px;
+}
+
+.mini-chart .line-chart-summary {
+  grid-template-columns: 1fr;
+}
+
+.mini-chart .line-chart-summary span {
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
 }
 
 .activity-list {
@@ -5102,10 +5167,6 @@ button.admin-metric-card {
 
   .admin-chart-panel {
     min-height: 220px;
-  }
-
-  .bar-chart {
-    grid-template-columns: repeat(3, minmax(64px, 1fr));
   }
 
   .split-fields,
