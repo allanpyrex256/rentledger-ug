@@ -2877,6 +2877,7 @@
     const landlords = landlordUsers();
     const subscriptions = state.subscriptions || [];
     const tickets = state.supportTickets || [];
+    const properties = state.properties || [];
     const activeAccounts = landlords.filter((user) => isPaidSubscription(subscriptionByOwner(user.id)));
     const newSignups = newLandlordSignups();
     const openTickets = tickets.filter((ticket) => ticket.status !== "Resolved");
@@ -2899,7 +2900,7 @@
       adminMetricCard("Expired Accounts", expiredAccounts.length, `${expiringPlans} plans expiring soon`, "slate", "adminExpiredAccounts"),
     ].join("");
 
-    ui.adminAnalyticsChart.innerHTML = renderAdminAnalyticsCharts(subscriptions, landlords, tickets);
+    ui.adminAnalyticsChart.innerHTML = renderAdminAnalyticsCharts(subscriptions, landlords, tickets, properties);
 
     ui.adminSubscriptionCountLabel.textContent = `${pendingPayments + expiredAccounts.length + expiringPlans} alerts`;
     ui.adminSubscriptionTable.innerHTML =
@@ -3980,17 +3981,22 @@
   }
 
   function renderOwnerChart(subscriptions) {
-    const buckets = subscriptions.map((subscription) => ({
-      label: subscription.plan.slice(0, 4),
-      total: Number(subscription.monthly_fee),
+    const totalsByPlan = new Map(PACKAGE_OPTIONS.map((option) => [option.plan, 0]));
+    subscriptions.forEach((subscription) => {
+      if (!totalsByPlan.has(subscription.plan)) return;
+      totalsByPlan.set(subscription.plan, totalsByPlan.get(subscription.plan) + Number(subscription.monthly_fee));
+    });
+    const buckets = PACKAGE_OPTIONS.map((option) => ({
+      label: packageDisplayName(option.plan),
+      total: totalsByPlan.get(option.plan) || 0,
     }));
-    return chartMarkup(buckets, "MRR");
+    return chartMarkup(buckets, "MRR", { fullMoneyLabels: true });
   }
 
-  function renderAdminAnalyticsCharts(subscriptions, landlords, tickets) {
+  function renderAdminAnalyticsCharts(subscriptions, landlords, tickets, properties = []) {
     const trendMonths = trendMonthKeys(monthKey(new Date()), 6);
     const monthLabels = trendMonths.map(adminTrendMonthLabel);
-    const financialSeries = [
+    const growthSeries = [
       {
         name: "Revenue",
         color: "#0f766e",
@@ -3998,46 +4004,35 @@
         values: trendMonths.map((key) => adminRevenueForMonth(subscriptions, key)),
       },
       {
-        name: "MRR",
-        color: "#4f46e5",
-        valueType: "money",
-        values: trendMonths.map((key) => adminMrrForMonth(subscriptions, key)),
-      },
-    ];
-    const operationsSeries = [
-      {
-        name: "Paid Accounts",
-        color: "#0369a1",
+        name: "Active Subscriptions",
+        color: "#2563eb",
         valueType: "count",
-        values: trendMonths.map((key) => adminPaidAccountsForMonth(landlords, key)),
-      },
-      {
-        name: "Trial Accounts",
-        color: "#b45309",
-        valueType: "count",
-        values: trendMonths.map((key) => adminTrialAccountsForMonth(landlords, key)),
+        values: trendMonths.map((key) => adminActiveSubscriptionsForMonth(subscriptions, key)),
       },
       {
         name: "Support Tickets",
-        color: "#b42318",
+        color: "#f97316",
         valueType: "count",
         values: trendMonths.map((key) => adminSupportTicketsForMonth(tickets, key)),
       },
+      {
+        name: "New Landlords",
+        color: "#7c3aed",
+        valueType: "count",
+        values: trendMonths.map((key) => adminNewLandlordsForMonth(landlords, key)),
+      },
     ];
     const currentRevenue = subscriptions.filter(isPaidSubscription).reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
-    const openSupport = tickets.filter((ticket) => ticket.status !== "Resolved").length;
+    const activeSubscriptions = subscriptions.filter((subscription) => isPaidSubscription(subscription) && !isSubscriptionExpired(subscription)).length;
 
     return `
       <div class="combined-analytics-chart">
         <div class="analytics-chart-header">
-          <span><b>MRR</b><strong>${formatCompactMoney(currentRevenue)}</strong></span>
-          <span><b>Landlords</b><strong>${landlords.length}</strong></span>
-          <span><b>Open Support</b><strong>${openSupport}</strong></span>
+          <span><b>Revenue</b><strong>${formatCompactMoney(currentRevenue)}</strong></span>
+          <span><b>Subscribers</b><strong>${activeSubscriptions}</strong></span>
+          <span><b>Properties</b><strong>${properties.length}</strong></span>
         </div>
-        <div class="analytics-chart-list">
-          ${multiSeriesLineChartMarkup(monthLabels, financialSeries, "Revenue Analytics", "money")}
-          ${multiSeriesLineChartMarkup(monthLabels, operationsSeries, "Account & Support Metrics", "count")}
-        </div>
+        ${multiSeriesLineChartMarkup(monthLabels, growthSeries, "Multi-line Growth Chart")}
       </div>
     `;
   }
@@ -4049,27 +4044,20 @@
   function adminRevenueForMonth(subscriptions, targetMonthKey) {
     return subscriptions
       .filter(isPaidSubscription)
-      .filter((subscription) => subscription.last_payment_date && monthKey(subscription.last_payment_date) === targetMonthKey)
-      .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
-  }
-
-  function adminMrrForMonth(subscriptions, targetMonthKey) {
-    return subscriptions
-      .filter(isPaidSubscription)
       .filter((subscription) => subscriptionTrendStartKey(subscription) <= targetMonthKey)
       .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
   }
 
-  function adminPaidAccountsForMonth(landlords, targetMonthKey) {
-    return landlords.filter((user) => userTrendStartKey(user) <= targetMonthKey && isPaidSubscription(subscriptionByOwner(user.id))).length;
-  }
-
-  function adminTrialAccountsForMonth(landlords, targetMonthKey) {
-    return landlords.filter((user) => userTrendStartKey(user) <= targetMonthKey && isTrialAccount(user)).length;
+  function adminActiveSubscriptionsForMonth(subscriptions, targetMonthKey) {
+    return subscriptions.filter((subscription) => isPaidSubscription(subscription) && subscriptionTrendStartKey(subscription) <= targetMonthKey).length;
   }
 
   function adminSupportTicketsForMonth(tickets, targetMonthKey) {
     return tickets.filter((ticket) => monthKey(ticket.created_at || ticket.updated_at) === targetMonthKey).length;
+  }
+
+  function adminNewLandlordsForMonth(landlords, targetMonthKey) {
+    return landlords.filter((user) => monthKey(user.created_at || new Date()) === targetMonthKey).length;
   }
 
   function subscriptionTrendStartKey(subscription) {
@@ -4080,28 +4068,31 @@
     return monthKey(user.created_at || new Date());
   }
 
-  function multiSeriesLineChartMarkup(labels, series, caption, valueType) {
+  function multiSeriesLineChartMarkup(labels, series, caption) {
     const width = 760;
-    const height = 310;
-    const axisValueType = valueType || series[0]?.valueType || "money";
-    const pad = { top: 42, right: 24, bottom: 52, left: axisValueType === "money" ? 82 : 56 };
+    const height = 320;
+    const pad = { top: 42, right: 24, bottom: 52, left: 62 };
     const plotWidth = width - pad.left - pad.right;
     const plotHeight = height - pad.top - pad.bottom;
     const baseline = pad.top + plotHeight;
-    const maxValue = Math.max(...series.flatMap((item) => item.values.map((value) => Number(value || 0))), 0);
-    const axisMax = axisValueType === "count" ? Math.max(4, chartScaleMax(maxValue, axisValueType)) : chartScaleMax(maxValue, axisValueType);
-    const tickValues = chartTickValues(axisMax, axisValueType);
+    const axisMax = 100;
+    const tickValues = [100, 75, 50, 25, 0];
     const xFor = (index) => (labels.length === 1 ? pad.left + plotWidth / 2 : pad.left + (plotWidth / (labels.length - 1)) * index);
     const yFor = (value) => baseline - (Number(value || 0) / axisMax) * plotHeight;
     const preparedSeries = series.map((item) => {
+      const peakValue = Math.max(...item.values.map((value) => Number(value || 0)), 0);
+      const scaleMax = Math.max(peakValue, 1);
       const points = item.values.map((value, index) => {
+        const actualValue = Number(value || 0);
+        const indexedValue = (actualValue / scaleMax) * axisMax;
         return {
-          value: Number(value || 0),
+          value: actualValue,
+          indexedValue,
           x: xFor(index),
-          y: yFor(value),
+          y: yFor(indexedValue),
         };
       });
-      return { ...item, points };
+      return { ...item, peakValue, points };
     });
 
     return `
@@ -4110,15 +4101,15 @@
           <h3>${escapeHtml(caption)}</h3>
         </div>
         <svg class="multi-line-graph" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${chartId(caption)}">
-          <title id="${chartId(caption)}">${escapeHtml(caption)}</title>
+          <title id="${chartId(caption)}">${escapeHtml(`${caption}. Lines are scaled to each metric's peak value.`)}</title>
           <rect class="multi-line-bg" x="${pad.left}" y="${pad.top}" width="${plotWidth}" height="${plotHeight}" rx="8"></rect>
-          <text class="multi-line-axis-title" x="${pad.left}" y="24" text-anchor="start">${axisValueType === "money" ? "USh" : "Count"}</text>
+          <text class="multi-line-axis-title" x="${pad.left}" y="24" text-anchor="start">Growth Index</text>
           ${tickValues
             .map((tick) => {
               const y = yFor(tick);
               return `
                 <line class="multi-line-grid" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}"></line>
-                <text class="multi-line-axis" x="${pad.left - 9}" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml(chartValueLabel(tick, axisValueType))}</text>
+                <text class="multi-line-axis" x="${pad.left - 9}" y="${(y + 4).toFixed(1)}" text-anchor="end">${tick}</text>
               `;
             })
             .join("")}
@@ -4154,13 +4145,12 @@
           ${preparedSeries
             .map((item) => {
               const currentValue = item.values[item.values.length - 1] || 0;
-              const peakValue = Math.max(...item.values.map((value) => Number(value || 0)), 0);
               return `
                 <span style="--series-color: ${item.color}">
                   <i></i>
                   <b>${escapeHtml(item.name)}</b>
                   <strong>${escapeHtml(chartValueLabel(currentValue, item.valueType))}</strong>
-                  <small>Peak ${escapeHtml(chartValueLabel(peakValue, item.valueType))}</small>
+                  <small>Peak ${escapeHtml(chartValueLabel(item.peakValue, item.valueType))}</small>
                 </span>
               `;
             })
@@ -4194,6 +4184,8 @@
     if (!rows.length) return `<div class="chart-empty-note">No ${escapeHtml(caption.toLowerCase())} data yet.</div>`;
 
     const valueType = options.valueType || "money";
+    const labelFor = (label) => shortChartLabel(label);
+    const detailValueLabel = (value) => (valueType === "money" && options.fullMoneyLabels ? formatMoney(value) : chartValueLabel(value, valueType));
     const width = 420;
     const height = 210;
     const pad = { top: 18, right: 22, bottom: 38, left: 50 };
@@ -4237,21 +4229,21 @@
                 <g class="line-point">
                   <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4.5"></circle>
                   <text x="${point.x.toFixed(1)}" y="${Math.max(pad.top + 12, point.y - 10).toFixed(1)}" text-anchor="middle">${escapeHtml(chartValueLabel(point.total, valueType))}</text>
-                  <text class="line-x-label" x="${point.x.toFixed(1)}" y="${height - 10}" text-anchor="middle">${escapeHtml(shortChartLabel(point.label))}</text>
-                  <title>${escapeHtml(`${point.label}: ${chartValueLabel(point.total, valueType)}`)}</title>
+                  <text class="line-x-label" x="${point.x.toFixed(1)}" y="${height - 10}" text-anchor="middle">${escapeHtml(labelFor(point.label))}</text>
+                  <title>${escapeHtml(`${point.label}: ${detailValueLabel(point.total)}`)}</title>
                 </g>
               `
             )
             .join("")}
         </svg>
         <div class="line-chart-summary">
-          <span><b>Total</b><strong>${escapeHtml(chartValueLabel(total, valueType))}</strong></span>
-          <span><b>Peak</b><strong>${escapeHtml(`${shortChartLabel(peak.label)} ${chartValueLabel(peak.total, valueType)}`)}</strong></span>
-          <span><b>Average</b><strong>${escapeHtml(chartValueLabel(average, valueType))}</strong></span>
+          <span><b>Total</b><strong>${escapeHtml(detailValueLabel(total))}</strong></span>
+          <span><b>Peak</b><strong>${escapeHtml(`${labelFor(peak.label)} ${detailValueLabel(peak.total)}`)}</strong></span>
+          <span><b>Average</b><strong>${escapeHtml(detailValueLabel(average))}</strong></span>
         </div>
         <div class="line-data-row">
           ${rows
-            .map((row) => `<span><b>${escapeHtml(shortChartLabel(row.label))}</b><strong>${escapeHtml(chartValueLabel(row.total, valueType))}</strong></span>`)
+            .map((row) => `<span><b>${escapeHtml(row.label)}</b><strong>${escapeHtml(detailValueLabel(row.total))}</strong></span>`)
             .join("")}
         </div>
       </div>
@@ -4279,7 +4271,12 @@
 
   function shortChartLabel(label) {
     const text = String(label || "");
-    return text.length > 8 ? `${text.slice(0, 7)}.` : text;
+    return text.length > 18 ? `${text.slice(0, 17)}.` : text;
+  }
+
+  function packageDisplayName(plan) {
+    const text = String(plan || "");
+    return PACKAGE_OPTIONS.some((option) => option.plan === text) ? `${text} Plan` : text;
   }
 
   function chartId(caption) {

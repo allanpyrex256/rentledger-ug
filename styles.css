@@ -3545,12 +3545,6 @@ h1 {
   gap: 14px;
 }
 
-.analytics-chart-list {
-  min-width: 0;
-  display: grid;
-  gap: 18px;
-}
-
 .analytics-chart-header {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3835,7 +3829,7 @@ h1 {
 }
 
 .line-data-row {
-  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
 }
 
 .line-chart-summary b,
@@ -3847,6 +3841,11 @@ h1 {
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+.line-data-row b {
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .line-chart-summary strong,
