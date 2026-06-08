@@ -4064,38 +4064,51 @@
 
   function multiSeriesLineChartMarkup(labels, series, caption) {
     const width = 760;
-    const height = 320;
-    const pad = { top: 24, right: 24, bottom: 52, left: 58 };
+    const height = 330;
+    const pad = { top: 34, right: 72, bottom: 52, left: 76 };
     const plotWidth = width - pad.left - pad.right;
     const plotHeight = height - pad.top - pad.bottom;
     const baseline = pad.top + plotHeight;
-    const tickValues = [100, 75, 50, 25, 0];
+    const valueMax = (valueType) =>
+      Math.max(
+        ...series
+          .filter((item) => item.valueType === valueType)
+          .flatMap((item) => item.values.map((value) => Number(value || 0))),
+        0
+      );
+    const moneyMax = chartScaleMax(valueMax("money"), "money");
+    const countMax = Math.max(4, chartScaleMax(valueMax("count"), "count"));
+    const tickRatios = [1, 0.75, 0.5, 0.25, 0];
     const xFor = (index) => (labels.length === 1 ? pad.left + plotWidth / 2 : pad.left + (plotWidth / (labels.length - 1)) * index);
+    const yFor = (value, valueType) => {
+      const axisMax = valueType === "money" ? moneyMax : countMax;
+      return baseline - (Number(value || 0) / axisMax) * plotHeight;
+    };
     const preparedSeries = series.map((item) => {
-      const max = Math.max(...item.values.map((value) => Number(value || 0)), 1);
       const points = item.values.map((value, index) => {
-        const normalized = (Number(value || 0) / max) * 100;
         return {
           value: Number(value || 0),
-          normalized,
           x: xFor(index),
-          y: baseline - (normalized / 100) * plotHeight,
+          y: yFor(value, item.valueType),
         };
       });
-      return { ...item, max, points };
+      return { ...item, axisLabel: item.valueType === "money" ? "Left axis" : "Right axis", points };
     });
 
     return `
       <div class="multi-line-chart" aria-label="${escapeHtml(caption)}">
         <svg class="multi-line-graph" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${chartId(caption)}">
-          <title id="${chartId(caption)}">${escapeHtml(caption)}</title>
+          <title id="${chartId(caption)}">${escapeHtml(`${caption}. Revenue uses the left axis. Accounts and support use the right axis.`)}</title>
           <rect class="multi-line-bg" x="${pad.left}" y="${pad.top}" width="${plotWidth}" height="${plotHeight}" rx="8"></rect>
-          ${tickValues
-            .map((tick) => {
-              const y = baseline - (tick / 100) * plotHeight;
+          <text class="multi-line-axis-title" x="${pad.left}" y="18" text-anchor="start">Revenue</text>
+          <text class="multi-line-axis-title multi-line-axis-title-right" x="${width - pad.right}" y="18" text-anchor="end">Counts</text>
+          ${tickRatios
+            .map((ratio) => {
+              const y = baseline - ratio * plotHeight;
               return `
                 <line class="multi-line-grid" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}"></line>
-                <text class="multi-line-axis" x="${pad.left - 9}" y="${(y + 4).toFixed(1)}" text-anchor="end">${tick}%</text>
+                <text class="multi-line-axis" x="${pad.left - 9}" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml(chartValueLabel(moneyMax * ratio, "money"))}</text>
+                <text class="multi-line-axis multi-line-axis-right" x="${width - pad.right + 9}" y="${(y + 4).toFixed(1)}" text-anchor="start">${escapeHtml(chartValueLabel(countMax * ratio, "count"))}</text>
               `;
             })
             .join("")}
@@ -4137,7 +4150,7 @@
                   <i></i>
                   <b>${escapeHtml(item.name)}</b>
                   <strong>${escapeHtml(chartValueLabel(currentValue, item.valueType))}</strong>
-                  <small>Peak ${escapeHtml(chartValueLabel(peakValue, item.valueType))}</small>
+                  <small>${escapeHtml(item.axisLabel)}; peak ${escapeHtml(chartValueLabel(peakValue, item.valueType))}</small>
                 </span>
               `;
             })
