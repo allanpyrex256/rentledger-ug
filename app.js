@@ -514,6 +514,7 @@
     if (ui.demoLogin) ui.demoLogin.addEventListener("click", signInDemoAccount);
     ui.logoutButton.addEventListener("click", signOut);
     document.addEventListener("click", handleActionClick);
+    document.addEventListener("keydown", handleTenantRowKeydown);
 
     ui.sideNav.addEventListener("click", navigateFromEvent);
     ui.mobileTabs.addEventListener("click", navigateFromEvent);
@@ -653,64 +654,83 @@
 
   function handleActionClick(event) {
     const button = event.target.closest("button");
-    if (!button || button.disabled) return;
-    const actions = [
-      ["openActivity", openActivity],
-      ["toggleAccountStatus", toggleLandlordAccountStatus],
-      ["cyclePlan", cycleSubscriptionPackage],
-      ["toggleVerifiedBadge", toggleVerifiedBadge],
-      ["endOwnerTrial", endOwnerTrial],
-      ["activateOwnerAccount", activateOwnerAccount],
-      ["deleteOwnerAccount", deleteOwnerAccount],
-      ["currentSubscriptionPay", startCurrentUserSubscriptionPayment],
-      ["subscriptionCollect", startSubscriptionCollection],
-      ["subscriptionCancel", toggleSubscriptionCancellation],
-      ["adminResetUser", createAdminPasswordReset],
-      ["focusLandlord", focusLandlordAccount],
-      ["openTicket", openSupportTicket],
-      ["toggleTicket", toggleSupportTicket],
-      ["updateTicket", updateSupportTicket],
-      ["supportTab", setSupportCenterTab],
-      ["impersonateLandlord", startLandlordImpersonation],
-      ["exitImpersonation", exitLandlordImpersonation],
-      ["platformDetailPage", openPlatformDetailPage],
-      ["platformDetailBack", closePlatformDetailPage],
-      ["editProperty", startPropertyEdit],
-      ["removeProperty", removeProperty],
-      ["removeUnit", removeUnit],
-      ["unitPhoto", startUnitPhotoUpdate],
-      ["toggleListing", togglePublicListing],
-      ["editTenant", startTenantEdit],
-      ["moveOutTenant", startTenantMoveOut],
-      ["removeTenant", removeTenant],
-      ["copyStaffLogin", copyStaffLogin],
-      ["removeStaff", removeStaff],
-      ["sendWhatsapp", sendWhatsAppMessage],
-      ["receiptPayment", openReceipt],
-      ["removeExpense", removeExpense],
-      ["openNotification", openNotification],
-      ["dashboardDetail", openDashboardDetail],
-      ["dashboardView", openDashboardView],
-      ["dashboardReportMonth", setDashboardReportMonth],
-      ["unitDetail", openUnitDetail],
-      ["tenantDetail", openTenantDetail],
-      ["paymentDetail", openPaymentDetail],
-      ["expenseDetail", openExpenseDetail],
-      ["closeMoveOut", closeMoveOutModal],
-    ];
+    if (button) {
+      if (button.disabled) return;
+      const actions = [
+        ["openActivity", openActivity],
+        ["toggleAccountStatus", toggleLandlordAccountStatus],
+        ["cyclePlan", cycleSubscriptionPackage],
+        ["toggleVerifiedBadge", toggleVerifiedBadge],
+        ["endOwnerTrial", endOwnerTrial],
+        ["activateOwnerAccount", activateOwnerAccount],
+        ["deleteOwnerAccount", deleteOwnerAccount],
+        ["currentSubscriptionPay", startCurrentUserSubscriptionPayment],
+        ["subscriptionCollect", startSubscriptionCollection],
+        ["subscriptionCancel", toggleSubscriptionCancellation],
+        ["adminResetUser", createAdminPasswordReset],
+        ["focusLandlord", focusLandlordAccount],
+        ["openTicket", openSupportTicket],
+        ["toggleTicket", toggleSupportTicket],
+        ["updateTicket", updateSupportTicket],
+        ["supportTab", setSupportCenterTab],
+        ["impersonateLandlord", startLandlordImpersonation],
+        ["exitImpersonation", exitLandlordImpersonation],
+        ["platformDetailPage", openPlatformDetailPage],
+        ["platformDetailBack", closePlatformDetailPage],
+        ["editProperty", startPropertyEdit],
+        ["removeProperty", removeProperty],
+        ["removeUnit", removeUnit],
+        ["unitPhoto", startUnitPhotoUpdate],
+        ["toggleListing", togglePublicListing],
+        ["editTenant", startTenantEdit],
+        ["moveOutTenant", startTenantMoveOut],
+        ["removeTenant", removeTenant],
+        ["copyStaffLogin", copyStaffLogin],
+        ["removeStaff", removeStaff],
+        ["sendWhatsapp", sendWhatsAppMessage],
+        ["receiptPayment", openReceipt],
+        ["removeExpense", removeExpense],
+        ["openNotification", openNotification],
+        ["dashboardDetail", openDashboardDetail],
+        ["dashboardView", openDashboardView],
+        ["dashboardReportMonth", setDashboardReportMonth],
+        ["unitDetail", openUnitDetail],
+        ["tenantDetail", openTenantDetail],
+        ["paymentDetail", openPaymentDetail],
+        ["expenseDetail", openExpenseDetail],
+        ["closeMoveOut", closeMoveOutModal],
+      ];
 
-    for (const [key, handler] of actions) {
-      const value = button.dataset[key];
-      if (value === undefined) continue;
-      event.preventDefault();
-      handler(value, button);
-      return;
+      for (const [key, handler] of actions) {
+        const value = button.dataset[key];
+        if (value === undefined) continue;
+        event.preventDefault();
+        handler(value, button);
+        return;
+      }
+
+      if (button.dataset.copyMessage !== undefined) {
+        event.preventDefault();
+        copyText(decodeURIComponent(button.dataset.copyMessage));
+        return;
+      }
     }
 
-    if (button.dataset.copyMessage !== undefined) {
+    if (event.target.closest("button, a, input, select, textarea")) return;
+    const tenantRow = event.target.closest("[data-tenant-row-detail]");
+    if (tenantRow) {
       event.preventDefault();
-      copyText(decodeURIComponent(button.dataset.copyMessage));
+      openTenantDetail(tenantRow.dataset.tenantRowDetail);
     }
+  }
+
+  function handleTenantRowKeydown(event) {
+    if (!["Enter", " "].includes(event.key)) return;
+    if (event.target.closest("button, a, input, select, textarea")) return;
+    const tenantRow = event.target.closest("[data-tenant-row-detail]");
+    if (!tenantRow) return;
+    event.preventDefault();
+    openTenantDetail(tenantRow.dataset.tenantRowDetail);
   }
 
   function navigateFromEvent(event) {
@@ -2504,6 +2524,8 @@
       .filter((payment) => payment.tenant_id === tenant.id)
       .sort((a, b) => new Date(b.created_at || b.payment_date) - new Date(a.created_at || a.payment_date))
       .slice(0, 6);
+    const latestPayment = payments[0];
+    const paymentPosition = tenantPaymentPosition(tenant, rentRow);
     openDashboardDetailModal(
       tenant.name,
       `${property ? property.property_name : "Unknown property"}${unit ? ` - ${unit.unit_number}` : ""}`,
@@ -2511,14 +2533,20 @@
         detailGrid([
           ["Phone", tenant.phone],
           ["National ID", tenant.national_id || "-"],
+          ["Property", property ? property.property_name : "Unknown"],
           ["Room", unit ? unit.unit_number : "Unassigned"],
           ["Monthly rent", formatMoney(tenant.rent_amount)],
           ["Deposit", formatMoney(tenant.deposit_paid)],
           ["Move-in date", formatDate(tenant.move_in_date)],
           ["Tenant status", tenantStatusLabel(tenant)],
           ["Rent status", rentRow ? rentRow.status : "-"],
-          ["Balance", rentRow ? formatMoney(rentRow.balance) : "-"],
+          ["Paid this month", rentRow ? formatMoney(rentRow.paid) : "-"],
+          ["Current balance", paymentPosition.balance],
+          ["Advance paid", paymentPosition.advance],
+          ["Payment position", paymentPosition.note],
+          ["Last payment", latestPayment ? `${formatMoney(latestPayment.amount)} on ${formatDate(latestPayment.payment_date)}` : "-"],
           ["Move-out date", tenant.move_out_date ? formatDate(tenant.move_out_date) : "-"],
+          ["Move-out balance", tenant.move_out_balance ? formatMoney(tenant.move_out_balance) : "-"],
           ["Move-out refund", tenant.move_out_refund ? formatMoney(tenant.move_out_refund) : "-"],
         ]),
         paymentDetailList(payments, "No payment history for this tenant yet."),
@@ -2529,6 +2557,42 @@
           : detailActions([["tenants", "Open Tenants"]]),
       ].join("")
     );
+  }
+
+  function tenantPaymentPosition(tenant, rentRow) {
+    if (rentRow) {
+      if (rentRow.advance > 0) {
+        return {
+          balance: formatMoney(0),
+          advance: formatMoney(rentRow.advance),
+          note: `Paid in advance by ${formatMoney(rentRow.advance)}`,
+        };
+      }
+      if (rentRow.balance > 0) {
+        return {
+          balance: formatMoney(rentRow.balance),
+          advance: "-",
+          note: `${formatMoney(rentRow.balance)} still unpaid`,
+        };
+      }
+      return {
+        balance: formatMoney(0),
+        advance: "-",
+        note: "Fully paid for the current month",
+      };
+    }
+    if (tenant.move_out_balance > 0) {
+      return {
+        balance: formatMoney(tenant.move_out_balance),
+        advance: "-",
+        note: "Moved out with a remaining balance",
+      };
+    }
+    return {
+      balance: "-",
+      advance: "-",
+      note: isActiveTenant(tenant) ? "No balance data available" : "Tenant is moved out",
+    };
   }
 
   function openPaymentDetail(id) {
@@ -5441,8 +5505,11 @@
           const removeDisabled = state.role === "caretaker" || currentUser()?.role === "staff" ? "disabled" : "";
           const movedOut = !isActiveTenant(tenant);
           return `
-            <tr>
-              <td>${escapeHtml(tenant.name)}</td>
+            <tr class="clickable-table-row" data-tenant-row-detail="${escapeHtml(tenant.id)}" tabindex="0" aria-label="Open details for ${escapeHtml(tenant.name)}">
+              <td>
+                <strong>${escapeHtml(tenant.name)}</strong>
+                <small class="table-subtext">${escapeHtml(movedOut ? "Moved out tenant" : "Active tenant")}</small>
+              </td>
               <td>${escapeHtml(tenant.phone)}</td>
               <td>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</td>
               <td>${formatMoney(tenant.rent_amount)}</td>
