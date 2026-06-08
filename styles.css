@@ -3545,6 +3545,12 @@ h1 {
   gap: 14px;
 }
 
+.analytics-chart-list {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+
 .analytics-chart-header {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3579,12 +3585,20 @@ h1 {
 .multi-line-chart {
   min-width: 0;
   display: grid;
-  gap: 12px;
+  gap: 10px;
+}
+
+.multi-line-chart-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 850;
+  letter-spacing: 0;
 }
 
 .multi-line-graph {
   width: 100%;
-  min-height: 340px;
+  min-height: 318px;
   display: block;
   overflow: visible;
 }
@@ -3613,20 +3627,12 @@ h1 {
   font-weight: 750;
 }
 
-.multi-line-axis-right {
-  fill: #64748b;
-}
-
 .multi-line-axis-title {
   fill: var(--ink);
   font-size: 11px;
   font-weight: 850;
   letter-spacing: 0;
   text-transform: uppercase;
-}
-
-.multi-line-axis-title-right {
-  fill: #64748b;
 }
 
 .multi-line-path {
@@ -3645,7 +3651,7 @@ h1 {
 
 .multi-line-legend {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
 }
 

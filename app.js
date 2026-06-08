@@ -3990,7 +3990,7 @@
   function renderAdminAnalyticsCharts(subscriptions, landlords, tickets) {
     const trendMonths = trendMonthKeys(monthKey(new Date()), 6);
     const monthLabels = trendMonths.map(adminTrendMonthLabel);
-    const series = [
+    const financialSeries = [
       {
         name: "Revenue",
         color: "#0f766e",
@@ -3998,8 +3998,16 @@
         values: trendMonths.map((key) => adminRevenueForMonth(subscriptions, key)),
       },
       {
+        name: "MRR",
+        color: "#4f46e5",
+        valueType: "money",
+        values: trendMonths.map((key) => adminMrrForMonth(subscriptions, key)),
+      },
+    ];
+    const operationsSeries = [
+      {
         name: "Paid Accounts",
-        color: "#2457a6",
+        color: "#0369a1",
         valueType: "count",
         values: trendMonths.map((key) => adminPaidAccountsForMonth(landlords, key)),
       },
@@ -4026,7 +4034,10 @@
           <span><b>Landlords</b><strong>${landlords.length}</strong></span>
           <span><b>Open Support</b><strong>${openSupport}</strong></span>
         </div>
-        ${multiSeriesLineChartMarkup(monthLabels, series, "SaaS analytics trend")}
+        <div class="analytics-chart-list">
+          ${multiSeriesLineChartMarkup(monthLabels, financialSeries, "Revenue Analytics", "money")}
+          ${multiSeriesLineChartMarkup(monthLabels, operationsSeries, "Account & Support Metrics", "count")}
+        </div>
       </div>
     `;
   }
@@ -4036,6 +4047,13 @@
   }
 
   function adminRevenueForMonth(subscriptions, targetMonthKey) {
+    return subscriptions
+      .filter(isPaidSubscription)
+      .filter((subscription) => subscription.last_payment_date && monthKey(subscription.last_payment_date) === targetMonthKey)
+      .reduce((sum, subscription) => sum + Number(subscription.monthly_fee), 0);
+  }
+
+  function adminMrrForMonth(subscriptions, targetMonthKey) {
     return subscriptions
       .filter(isPaidSubscription)
       .filter((subscription) => subscriptionTrendStartKey(subscription) <= targetMonthKey)
@@ -4062,53 +4080,45 @@
     return monthKey(user.created_at || new Date());
   }
 
-  function multiSeriesLineChartMarkup(labels, series, caption) {
+  function multiSeriesLineChartMarkup(labels, series, caption, valueType) {
     const width = 760;
-    const height = 330;
-    const pad = { top: 34, right: 72, bottom: 52, left: 76 };
+    const height = 310;
+    const axisValueType = valueType || series[0]?.valueType || "money";
+    const pad = { top: 42, right: 24, bottom: 52, left: axisValueType === "money" ? 82 : 56 };
     const plotWidth = width - pad.left - pad.right;
     const plotHeight = height - pad.top - pad.bottom;
     const baseline = pad.top + plotHeight;
-    const valueMax = (valueType) =>
-      Math.max(
-        ...series
-          .filter((item) => item.valueType === valueType)
-          .flatMap((item) => item.values.map((value) => Number(value || 0))),
-        0
-      );
-    const moneyMax = chartScaleMax(valueMax("money"), "money");
-    const countMax = Math.max(4, chartScaleMax(valueMax("count"), "count"));
-    const tickRatios = [1, 0.75, 0.5, 0.25, 0];
+    const maxValue = Math.max(...series.flatMap((item) => item.values.map((value) => Number(value || 0))), 0);
+    const axisMax = axisValueType === "count" ? Math.max(4, chartScaleMax(maxValue, axisValueType)) : chartScaleMax(maxValue, axisValueType);
+    const tickValues = chartTickValues(axisMax, axisValueType);
     const xFor = (index) => (labels.length === 1 ? pad.left + plotWidth / 2 : pad.left + (plotWidth / (labels.length - 1)) * index);
-    const yFor = (value, valueType) => {
-      const axisMax = valueType === "money" ? moneyMax : countMax;
-      return baseline - (Number(value || 0) / axisMax) * plotHeight;
-    };
+    const yFor = (value) => baseline - (Number(value || 0) / axisMax) * plotHeight;
     const preparedSeries = series.map((item) => {
       const points = item.values.map((value, index) => {
         return {
           value: Number(value || 0),
           x: xFor(index),
-          y: yFor(value, item.valueType),
+          y: yFor(value),
         };
       });
-      return { ...item, axisLabel: item.valueType === "money" ? "Left axis" : "Right axis", points };
+      return { ...item, points };
     });
 
     return `
       <div class="multi-line-chart" aria-label="${escapeHtml(caption)}">
+        <div class="multi-line-chart-heading">
+          <h3>${escapeHtml(caption)}</h3>
+        </div>
         <svg class="multi-line-graph" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${chartId(caption)}">
-          <title id="${chartId(caption)}">${escapeHtml(`${caption}. Revenue uses the left axis. Accounts and support use the right axis.`)}</title>
+          <title id="${chartId(caption)}">${escapeHtml(caption)}</title>
           <rect class="multi-line-bg" x="${pad.left}" y="${pad.top}" width="${plotWidth}" height="${plotHeight}" rx="8"></rect>
-          <text class="multi-line-axis-title" x="${pad.left}" y="18" text-anchor="start">Revenue</text>
-          <text class="multi-line-axis-title multi-line-axis-title-right" x="${width - pad.right}" y="18" text-anchor="end">Counts</text>
-          ${tickRatios
-            .map((ratio) => {
-              const y = baseline - ratio * plotHeight;
+          <text class="multi-line-axis-title" x="${pad.left}" y="24" text-anchor="start">${axisValueType === "money" ? "USh" : "Count"}</text>
+          ${tickValues
+            .map((tick) => {
+              const y = yFor(tick);
               return `
                 <line class="multi-line-grid" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}"></line>
-                <text class="multi-line-axis" x="${pad.left - 9}" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml(chartValueLabel(moneyMax * ratio, "money"))}</text>
-                <text class="multi-line-axis multi-line-axis-right" x="${width - pad.right + 9}" y="${(y + 4).toFixed(1)}" text-anchor="start">${escapeHtml(chartValueLabel(countMax * ratio, "count"))}</text>
+                <text class="multi-line-axis" x="${pad.left - 9}" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml(chartValueLabel(tick, axisValueType))}</text>
               `;
             })
             .join("")}
@@ -4150,7 +4160,7 @@
                   <i></i>
                   <b>${escapeHtml(item.name)}</b>
                   <strong>${escapeHtml(chartValueLabel(currentValue, item.valueType))}</strong>
-                  <small>${escapeHtml(item.axisLabel)}; peak ${escapeHtml(chartValueLabel(peakValue, item.valueType))}</small>
+                  <small>Peak ${escapeHtml(chartValueLabel(peakValue, item.valueType))}</small>
                 </span>
               `;
             })
