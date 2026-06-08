@@ -29,6 +29,14 @@ test("signup masks billing contacts before storing subscription metadata", () =>
   assert.equal(signup._internal.maskBillingContact("landlord@example.com"), "la***@example.com");
   assert.equal(signup._internal.normalizeSignupPaymentProvider("flutterwave"), "flutterwave");
   assert.equal(signup._internal.normalizeSignupPaymentProvider("anything"), "pesapal");
+  assert.deepEqual(signup._internal.normalizeSignupOnboardingDetails({ property_name: "  Kira   Road  ", unit_count: "12" }), {
+    propertyName: "Kira Road",
+    unitCount: 12,
+  });
+  assert.match(
+    signup._internal.signupOnboardingNote({ propertyName: "Kira Road", unitCount: 12 }),
+    /Property\/business: Kira Road; Units: 12/
+  );
 });
 
 test("payment proof and verification helpers normalize user input", () => {

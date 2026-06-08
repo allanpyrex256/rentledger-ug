@@ -518,6 +518,7 @@
         </form>
 
         <form id="createAccountForm" class="stacked-form auth-form hidden">
+          <div class="form-section-title">Account Information</div>
           <label>
             Full Name
             <input id="accountName" autocomplete="name" required />
@@ -538,34 +539,53 @@
             Confirm Password
             <input id="accountConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
           </label>
+          <div class="form-section-title">Choose Your Plan</div>
           <label>
-            14-Day Trial Plan
+            Plan
             <select id="accountPlan" required>
-              <option value="">Select a paid plan</option>
-              <option value="Starter">Starter - USh 50,000/month after 14-day trial</option>
-              <option value="Professional">Professional - USh 120,000/month after 14-day trial</option>
+              <option value="">Select a plan</option>
+              <option value="Starter">Starter Plan - USh 50,000/month</option>
+              <option value="Professional">Professional Plan - USh 120,000/month</option>
             </select>
           </label>
+          <div class="trial-reassurance">
+            <strong>14-Day Free Trial</strong>
+            <span>Start with a free 14-day trial. No payment is charged during the trial period.</span>
+          </div>
+          <div class="form-section-title">
+            Payment Setup
+            <span>Required after trial</span>
+          </div>
           <label>
             Payment Method
             <select id="accountPaymentMethod" required>
               <option value="">Select payment method</option>
-              <option value="MTN MoMo">MTN MoMo</option>
+              <option value="MTN MoMo">MTN Mobile Money</option>
               <option value="Airtel Money">Airtel Money</option>
               <option value="Visa / Mastercard">Visa / Mastercard</option>
             </select>
           </label>
           <label>
-            Billing Phone / Authorization Reference
-            <input id="accountBillingContact" autocomplete="tel" placeholder="e.g. 0772123456" required />
-            <small class="form-helper">Used after the 14-day free trial. Do not enter a full card number.</small>
+            Mobile Money Number or Card Authorization Reference
+            <input id="accountBillingContact" autocomplete="tel" placeholder="Example: 0772123456" required />
+            <small class="form-helper">This payment method will be used only after your 14-day free trial ends. No charges are made today.</small>
           </label>
+          <div class="form-section-title">Property Information</div>
+          <label>
+            Property / Business Name
+            <input id="accountPropertyName" autocomplete="organization" />
+          </label>
+          <label>
+            Number of Units (Optional)
+            <input id="accountUnitCount" type="number" min="1" step="1" inputmode="numeric" placeholder="Example: 12" />
+          </label>
+          <div class="form-section-title">Agreement</div>
           <label class="checkbox-consent">
             <input id="accountBillingConsent" type="checkbox" required />
-            <span>I agree to the RentLedger UG <a href="company.html#terms">Terms and Conditions</a>.</span>
+            <span>I agree to the RentLedger UG <a href="company.html#terms">Terms and Conditions</a> and <a href="company.html#privacy">Privacy Policy</a>.</span>
           </label>
-          <div id="accountTrialSummary" class="billing-summary-note">Terms and Conditions: select Starter or Professional, choose a payment method, and confirm your details before starting the 14-day free trial.</div>
-          <button class="primary-button" type="submit">Start 14-Day Free Trial</button>
+          <div id="accountTrialSummary" class="billing-summary-note">Select Starter or Professional, choose a payment method, and confirm your details before starting the 14-day free trial. No charges are made today.</div>
+          <button class="primary-button" type="submit">&#128640; Start Free Trial</button>
         </form>
 
         <form id="forgotPasswordForm" class="stacked-form auth-form hidden">

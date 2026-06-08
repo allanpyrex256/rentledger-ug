@@ -52,6 +52,11 @@ module.exports = async function handler(request, response) {
       return send(response, 400, { error: "Terms and conditions must be accepted to start the 14-day free trial." });
     }
 
+    const onboardingDetails = normalizeSignupOnboardingDetails(body);
+    if (onboardingDetails.error) {
+      return send(response, 400, { error: onboardingDetails.error });
+    }
+
     const email = normalizeEmail(body.email);
     const existing = await findUserByEmailOrPhone({ email, phone: body.phone });
     if (existing) {
@@ -85,6 +90,7 @@ module.exports = async function handler(request, response) {
       const today = isoDate(new Date());
       const nextBillingDate = addDays(today, TRIAL_DAYS);
       const maskedBillingContact = maskBillingContact(billingContact);
+      const onboardingNote = signupOnboardingNote(onboardingDetails);
 
       await insertRows("app_users", [user]);
       await insertRows("subscriptions", [
@@ -96,7 +102,7 @@ module.exports = async function handler(request, response) {
           status: "Trial",
           last_payment_date: today,
           last_payment_method: paymentMethod,
-          last_payment_note: `14-day free trial opened from public signup. Terms and conditions accepted for ${paymentMethod} subscription billing after the trial unless cancelled.`,
+          last_payment_note: `14-day free trial opened from public signup. Terms and conditions accepted for ${paymentMethod} subscription billing after the trial unless cancelled.${onboardingNote}`,
           next_billing_date: nextBillingDate,
           billing_method: paymentMethod,
           billing_contact_masked: maskedBillingContact,
@@ -140,6 +146,30 @@ function billingAuthorizationAccepted(value) {
   return ["true", "yes", "on", "1"].includes(String(value || "").trim().toLowerCase());
 }
 
+function normalizeSignupOnboardingDetails(body = {}) {
+  const propertyName = String(body.property_name || body.propertyName || body.business_name || body.businessName || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 120);
+  const rawUnitCount = body.unit_count ?? body.unitCount ?? body.number_of_units ?? body.numberOfUnits ?? "";
+  const unitCountText = String(rawUnitCount || "").trim();
+
+  if (!unitCountText) return { propertyName, unitCount: null };
+
+  const unitCount = Number(unitCountText);
+  if (!Number.isInteger(unitCount) || unitCount < 1) {
+    return { propertyName, unitCount: null, error: "Enter a valid number of units." };
+  }
+  return { propertyName, unitCount };
+}
+
+function signupOnboardingNote(details = {}) {
+  const parts = [];
+  if (details.propertyName) parts.push(`Property/business: ${details.propertyName}`);
+  if (details.unitCount) parts.push(`Units: ${details.unitCount}`);
+  return parts.length ? ` Onboarding: ${parts.join("; ")}.` : "";
+}
+
 function looksLikeFullCardNumber(value) {
   const digits = String(value || "").replace(/\D/g, "");
   return digits.length >= 12;
@@ -158,7 +188,9 @@ function maskBillingContact(value) {
 
 module.exports._internal = {
   maskBillingContact,
+  normalizeSignupOnboardingDetails,
   normalizeSignupPaymentProvider,
+  signupOnboardingNote,
   signupPlanOption,
   normalizeSignupPaymentMethod,
 };

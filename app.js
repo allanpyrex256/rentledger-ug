@@ -109,6 +109,8 @@
     accountPlan: document.getElementById("accountPlan"),
     accountPaymentMethod: document.getElementById("accountPaymentMethod"),
     accountBillingContact: document.getElementById("accountBillingContact"),
+    accountPropertyName: document.getElementById("accountPropertyName"),
+    accountUnitCount: document.getElementById("accountUnitCount"),
     accountBillingConsent: document.getElementById("accountBillingConsent"),
     accountTrialSummary: document.getElementById("accountTrialSummary"),
     demoLogin: document.getElementById("demoLogin"),
@@ -1148,6 +1150,9 @@
     const selectedPlanOption = signupPlanOption(selectedPlan);
     const paymentMethod = ui.accountPaymentMethod.value;
     const billingContact = ui.accountBillingContact.value.trim();
+    const propertyName = ui.accountPropertyName?.value.trim() || "";
+    const unitCountText = ui.accountUnitCount?.value.trim() || "";
+    const unitCount = unitCountText ? Number(unitCountText) : null;
     const normalizedPhone = normalizeLoginPhone(phone);
     const normalizedEmail = normalizeLoginEmail(email);
     const duplicatePhone = state.users.some((user) => normalizeLoginPhone(user.phone) === normalizedPhone);
@@ -1179,15 +1184,19 @@
       return;
     }
     if (!billingContact) {
-      showToast("Add the billing phone or authorization reference.");
+      showToast("Add the Mobile Money number or card authorization reference.");
       return;
     }
     if (paymentMethod === "Visa / Mastercard" && looksLikeFullCardNumber(billingContact)) {
       showToast("Use a card authorization reference, not a full card number.");
       return;
     }
+    if (unitCountText && (!Number.isInteger(unitCount) || unitCount < 1)) {
+      showToast("Enter a valid number of units.");
+      return;
+    }
     if (!ui.accountBillingConsent.checked) {
-      showToast("Accept the terms and conditions to start the 14-day free trial.");
+      showToast("Accept the terms and privacy policy to start the 14-day free trial.");
       return;
     }
 
@@ -1201,6 +1210,8 @@
         plan: selectedPlan,
         payment_method: paymentMethod,
         billing_contact: billingContact,
+        property_name: propertyName,
+        unit_count: unitCount,
         auto_collect_authorized: true,
       });
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -6308,19 +6319,23 @@
 
     if (!planOption) {
       ui.accountTrialSummary.textContent =
-        "Terms and Conditions: select Starter or Professional, choose a payment method, and confirm your details before starting the 14-day free trial.";
+        "Select Starter or Professional, choose a payment method, and confirm your details before starting the 14-day free trial. No charges are made today.";
       return;
     }
     if (!paymentMethod) {
       ui.accountTrialSummary.textContent =
-        `Terms and Conditions: ${planOption.plan} selected. Choose a payment method to confirm how subscription billing works after the 14-day trial.`;
+        `${planOption.plan} selected. Choose a payment method to confirm how subscription billing works after the 14-day trial. No charges are made today.`;
       return;
     }
 
     const billingContact = ui.accountBillingContact?.value.trim();
     const contactLabel = billingContact ? ` from ${maskBillingContact(billingContact)}` : "";
     ui.accountTrialSummary.textContent =
-      `Terms and Conditions: ${planOption.plan} starts with a 14-day free trial. After ${formatDate(nextBillingDate)}, the subscription is ${formatMoney(planOption.fee)}/month by ${paymentMethod}${contactLabel} unless you cancel before renewal.`;
+      `${planOption.plan} starts with a 14-day free trial. No charges are made today. After ${formatDate(nextBillingDate)}, the subscription is ${formatMoney(planOption.fee)}/month by ${signupPaymentMethodLabel(paymentMethod)}${contactLabel} unless you cancel before renewal.`;
+  }
+
+  function signupPaymentMethodLabel(method) {
+    return method === "MTN MoMo" ? "MTN Mobile Money" : method;
   }
 
   function maskBillingContact(value) {
