@@ -1913,7 +1913,7 @@
       .filter((row) => row.status === "Overdue")
       .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
     const overdueCount = overdueRows.length;
-    const dueSoonCount = rentRows.filter((row) => row.daysUntilDue >= 0 && row.daysUntilDue <= 3).length;
+    const dueSoonCount = rentRows.filter(isRentDueSoonRow).length;
 
     ui.dashboardPrimaryTitle.textContent = "Vacant Rooms";
     ui.dashboardSecondaryTitle.textContent = "Late Tenants";
@@ -1943,7 +1943,7 @@
 
     ui.dailyOpsGrid.innerHTML = [
       dailyOpsCard("Came in today", formatMoney(collectedToday), `${todayPayments.length} rent payments recorded`, "success", "todayPayments"),
-      dailyOpsCard("Rent due soon", dueSoonCount, "Tenants due in the next 3 days", "warning", "dueSoon"),
+      dailyOpsCard("Rent due soon", dueSoonCount, "Unpaid balances due in the next 3 days", "warning", "dueSoon"),
       dailyOpsCard("Vacant rentals", vacant, vacantUnitSummary(vacantUnits), "info", "vacantRooms"),
     ].join("");
 
@@ -2026,7 +2026,7 @@
       .filter((row) => row.status === "Overdue")
       .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
     const dueSoonRows = rentRows
-      .filter((row) => row.daysUntilDue >= 0 && row.daysUntilDue <= 3)
+      .filter(isRentDueSoonRow)
       .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
     const vacantUnits = scope.units.filter((unit) => unit.status === "vacant");
 
@@ -2058,7 +2058,7 @@
 
     ui.dailyOpsGrid.innerHTML = [
       dailyOpsCard("Collected today", formatMoney(collectedToday), `${todayPayments.length} payments in assigned rooms`, "success", "todayPayments"),
-      dailyOpsCard("Due soon", dueSoonRows.length, "Tenants due in the next 3 days", "warning", "dueSoon"),
+      dailyOpsCard("Due soon", dueSoonRows.length, "Unpaid balances due in the next 3 days", "warning", "dueSoon"),
       dailyOpsCard("Vacant assigned", vacantUnits.length, vacantUnitSummary(vacantUnits), "info", "vacantRooms"),
     ].join("");
 
@@ -2126,7 +2126,7 @@
       .filter((row) => row.status === "Overdue")
       .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
     const dueSoonRows = rentRows
-      .filter((row) => row.daysUntilDue >= 0 && row.daysUntilDue <= 3)
+      .filter(isRentDueSoonRow)
       .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
     return {
       scope,
@@ -2208,9 +2208,9 @@
     if (type === "dueSoon") {
       openDashboardDetailModal(
         "Rent Due Soon",
-        `${data.dueSoonRows.length} tenants due in the next 3 days`,
+        `${data.dueSoonRows.length} unpaid tenants due in the next 3 days`,
         [
-          tenantBalanceDetailList(data.dueSoonRows, "No tenants are due in the next 3 days."),
+          tenantBalanceDetailList(data.dueSoonRows, "No unpaid tenants are due in the next 3 days."),
           detailActions([["rent", "Open Rent Collection"]]),
         ].join("")
       );
@@ -8964,6 +8964,10 @@
         status,
       };
     });
+  }
+
+  function isRentDueSoonRow(row) {
+    return row.balance > 0 && row.daysUntilDue >= 0 && row.daysUntilDue <= 3;
   }
 
   function rentDueRow(row) {
