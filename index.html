@@ -1087,18 +1087,11 @@
                   Room / Shop / House
                   <select id="tenantUnit" name="tenantUnit" required></select>
                 </label>
-                <div class="split-fields">
-                  <label>
-                    Monthly Rent
-                    <input id="tenantRent" name="tenantRent" type="number" min="0" step="1000" required />
-                    <small class="form-helper">This is the rent charged each month. It is not a payment record.</small>
-                  </label>
-                  <label>
-                    Security Deposit Paid
-                    <input id="tenantDeposit" name="tenantDeposit" type="number" min="0" step="1000" placeholder="0" />
-                    <small class="form-helper">Optional. Deposits are tracked separately and do not count as rent paid.</small>
-                  </label>
-                </div>
+                <label>
+                  Monthly Rent
+                  <input id="tenantRent" name="tenantRent" type="number" min="0" step="1000" required />
+                  <small class="form-helper">This is the rent charged each month. It is not a payment record.</small>
+                </label>
                 <label>
                   Move-in Date
                   <input id="tenantMoveIn" name="tenantMoveIn" type="date" required />
@@ -1128,7 +1121,6 @@
                       <th>Phone</th>
                       <th>Room</th>
                       <th>Monthly Rent</th>
-                      <th>Security Deposit</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>

@@ -241,7 +241,6 @@
     tenantNationalId: document.getElementById("tenantNationalId"),
     tenantUnit: document.getElementById("tenantUnit"),
     tenantRent: document.getElementById("tenantRent"),
-    tenantDeposit: document.getElementById("tenantDeposit"),
     tenantMoveIn: document.getElementById("tenantMoveIn"),
     tenantTable: document.getElementById("tenantTable"),
     tenantSearch: document.getElementById("tenantSearch"),
@@ -2536,7 +2535,6 @@
           ["Property", property ? property.property_name : "Unknown"],
           ["Room", unit ? unit.unit_number : "Unassigned"],
           ["Monthly rent", formatMoney(tenant.rent_amount)],
-          ["Deposit", formatMoney(tenant.deposit_paid)],
           ["Move-in date", formatDate(tenant.move_in_date)],
           ["Tenant status", tenantStatusLabel(tenant)],
           ["Rent status", rentRow ? rentRow.status : "-"],
@@ -5513,7 +5511,6 @@
               <td>${escapeHtml(tenant.phone)}</td>
               <td>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</td>
               <td>${formatMoney(tenant.rent_amount)}</td>
-              <td>${formatMoney(tenant.deposit_paid)}</td>
               <td>
                 ${statusPill(tenantStatusLabel(tenant))}
                 ${movedOut ? `<small class="table-subtext">Moved out ${formatDate(tenant.move_out_date)}</small>` : ""}
@@ -5528,7 +5525,7 @@
             </tr>
           `;
         })
-        .join("") || emptyTableRow(7, "No tenants match this view.");
+        .join("") || emptyTableRow(6, "No tenants match this view.");
 
   }
 
@@ -6115,7 +6112,7 @@
       phone: ui.tenantPhone.value.trim(),
       national_id: ui.tenantNationalId.value.trim(),
       rent_amount: Number(ui.tenantRent.value),
-      deposit_paid: Number(ui.tenantDeposit.value),
+      deposit_paid: previous?.deposit_paid || 0,
       move_in_date: ui.tenantMoveIn.value,
       status: previous?.status || "active",
       move_out_date: previous?.move_out_date || null,
@@ -6170,7 +6167,6 @@
     ui.tenantPhone.value = tenant.phone;
     ui.tenantNationalId.value = tenant.national_id;
     ui.tenantRent.value = tenant.rent_amount;
-    ui.tenantDeposit.value = tenant.deposit_paid;
     ui.tenantMoveIn.value = tenant.move_in_date;
     populateDynamicSelects();
     ui.tenantUnit.value = tenant.unit_id;
