@@ -4891,6 +4891,10 @@ button.admin-metric-card {
 }
 
 @media (max-width: 760px) {
+  :root {
+    --mobile-tabbar-height: calc(62px + env(safe-area-inset-bottom));
+  }
+
   .landing-nav {
     position: static;
     display: grid;
@@ -5096,6 +5100,9 @@ button.admin-metric-card {
 
   .app-shell {
     display: block;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
   }
 
   .sidebar {
@@ -5103,17 +5110,42 @@ button.admin-metric-card {
   }
 
   .main-panel {
-    padding: 16px 16px 92px;
+    height: calc(100dvh - var(--mobile-tabbar-height));
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px 14px 24px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .topbar {
     display: grid;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .topbar h1 {
+    font-size: 27px;
+    line-height: 1.12;
+  }
+
+  #viewSubtitle {
+    margin-top: 4px;
+    font-size: 14px;
+    line-height: 1.35;
   }
 
   .topbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     min-width: 0;
     width: 100%;
     align-items: stretch;
+    gap: 8px;
+  }
+
+  .topbar-actions #globalSearch,
+  .topbar-actions #propertyFilter {
+    grid-column: 1 / -1;
   }
 
   .topbar-actions select,
@@ -5124,15 +5156,21 @@ button.admin-metric-card {
     width: 100%;
   }
 
+  .topbar-actions .ghost-button,
+  .notification-button {
+    justify-content: center;
+  }
+
   .notification-panel {
     left: 0;
     right: auto;
+    width: min(360px, calc(100vw - 28px));
   }
 
   .mobile-tabs {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(82px, 1fr);
+    grid-auto-columns: minmax(82px, max-content);
     gap: 8px;
     position: fixed;
     left: 0;
@@ -5140,11 +5178,19 @@ button.admin-metric-card {
     bottom: 0;
     z-index: 25;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
     margin: 0;
     border-top: 1px solid var(--line);
     background: #fffdf8;
     box-shadow: 0 -10px 28px rgba(27, 39, 54, 0.12);
+    min-height: var(--mobile-tabbar-height);
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .mobile-tab {
@@ -5152,7 +5198,9 @@ button.admin-metric-card {
     color: #374151;
     background: #fff;
     border-color: var(--line);
+    padding: 0 14px;
     text-align: center;
+    scroll-snap-align: start;
   }
 
   .mobile-tab.active {
@@ -5174,6 +5222,28 @@ button.admin-metric-card {
   .owner-summary-grid,
   .chart-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .active-view {
+    gap: 14px;
+  }
+
+  .metric-grid,
+  .daily-ops-grid {
+    gap: 12px;
+  }
+
+  .metric-card {
+    min-height: 104px;
+    padding: 14px;
+  }
+
+  .metric-value {
+    font-size: 25px;
+  }
+
+  .panel {
+    padding: 14px;
   }
 
   .subscription-lock-view.active-view {
