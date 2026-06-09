@@ -459,6 +459,7 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") flushPendingSupabaseSave();
     });
+    document.addEventListener("click", showButtonLoadingFeedback, true);
 
     document.querySelectorAll("[data-open-auth]").forEach((button) => {
       button.addEventListener("click", () =>
@@ -1378,17 +1379,37 @@
 
   function setAppLoading(message) {
     if (!ui.loadingBar) return;
+    setAppLoading.token = (setAppLoading.token || 0) + 1;
     ui.loadingBar.querySelector("strong").textContent = message;
     ui.loadingBar.classList.remove("hidden");
     window.clearTimeout(setAppLoading.timer);
+    return setAppLoading.token;
   }
 
-  function clearAppLoading() {
+  function clearAppLoading(token) {
     if (!ui.loadingBar) return;
+    if (token && token !== setAppLoading.token) return;
     window.clearTimeout(setAppLoading.timer);
     setAppLoading.timer = window.setTimeout(() => {
       ui.loadingBar.classList.add("hidden");
     }, 380);
+  }
+
+  function showButtonLoadingFeedback(event) {
+    const button = event.target.closest("button");
+    if (!button || button.disabled || button.classList.contains("button-loading")) return;
+    if (button.type === "submit" && button.form && !button.form.checkValidity()) return;
+
+    button.classList.add("button-loading");
+    button.setAttribute("aria-busy", "true");
+    const loadingToken = setAppLoading("Loading");
+
+    window.clearTimeout(button.loadingFeedbackTimer);
+    button.loadingFeedbackTimer = window.setTimeout(() => {
+      button.classList.remove("button-loading");
+      button.removeAttribute("aria-busy");
+      clearAppLoading(loadingToken);
+    }, 720);
   }
 
   function renderNavigation() {

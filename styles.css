@@ -4348,6 +4348,36 @@ div.empty-row::before {
   border-color: #fac2bc;
 }
 
+button.button-loading {
+  position: relative;
+  overflow: hidden;
+  cursor: progress;
+}
+
+button.button-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(15, 118, 110, 0.18) 45%, transparent 78%);
+  animation: button-loading-sweep 900ms ease-in-out infinite;
+}
+
+.primary-button.button-loading::after,
+.mobile-tab.active.button-loading::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.34) 45%, transparent 78%);
+}
+
+@keyframes button-loading-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
 .button-row {
   display: flex;
   gap: 8px;
