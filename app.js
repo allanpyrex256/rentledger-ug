@@ -425,6 +425,7 @@
 
   async function initialize() {
     try {
+      updateAppViewportHeight();
       await hydrateStateFromBrowserStore();
       await hydrateStateFromSupabase();
       toggleProductionDemoControls();
@@ -455,6 +456,11 @@
   }
 
   function bindEvents() {
+    window.addEventListener("resize", updateAppViewportHeight);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", updateAppViewportHeight);
+      window.visualViewport.addEventListener("scroll", updateAppViewportHeight);
+    }
     window.addEventListener("pagehide", flushPendingSupabaseSave);
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") flushPendingSupabaseSave();
@@ -619,6 +625,12 @@
     ui.downloadReceipt.addEventListener("click", downloadReceipt);
     ui.resetDemo.addEventListener("click", resetDemoData);
     ui.downloadBackup.addEventListener("click", downloadBackup);
+  }
+
+  function updateAppViewportHeight() {
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    if (!viewportHeight) return;
+    document.documentElement.style.setProperty("--app-viewport-height", `${Math.round(viewportHeight)}px`);
   }
 
   function setDashboardReportToCurrentMonth() {
