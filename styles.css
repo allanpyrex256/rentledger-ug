@@ -744,8 +744,12 @@ button {
 
 .walkthrough-stage {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
   min-height: 0;
+  padding: clamp(10px, 1.5vw, 18px);
   overflow: hidden;
   background: #050b14;
 }
@@ -753,9 +757,104 @@ button {
 .walkthrough-video {
   width: 100%;
   height: 100%;
+  min-width: 0;
   display: block;
+  border-radius: 6px;
   background: #050b14;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+}
+
+.walkthrough-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #07111f;
+  padding: 10px 12px;
+}
+
+.walkthrough-controls[hidden] {
+  display: none;
+}
+
+.walkthrough-icon-button {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(215, 225, 236, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.walkthrough-icon-button:hover,
+.walkthrough-icon-button:focus-visible {
+  border-color: rgba(248, 211, 109, 0.58);
+  background: rgba(245, 158, 11, 0.14);
+  color: #f8d36d;
+}
+
+.control-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-play,
+.icon-pause {
+  fill: currentColor;
+  stroke: none;
+}
+
+.icon-pause,
+.icon-volume-off,
+.walkthrough-controls.is-playing .icon-play,
+.walkthrough-controls.is-muted .icon-volume {
+  display: none;
+}
+
+.walkthrough-controls.is-playing .icon-pause,
+.walkthrough-controls.is-muted .icon-volume-off {
+  display: block;
+}
+
+.walkthrough-progress {
+  min-width: 96px;
+  flex: 1 1 160px;
+  accent-color: #f59e0b;
+  cursor: pointer;
+}
+
+.walkthrough-time {
+  min-width: 86px;
+  color: #d7e1ec;
+  font-size: 12px;
+  font-weight: 750;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.walkthrough-video-card:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.walkthrough-video-card:fullscreen .walkthrough-stage {
+  aspect-ratio: auto;
+  padding: clamp(12px, 2vw, 28px);
 }
 
 .workflow-animation {
@@ -5101,6 +5200,19 @@ button.admin-metric-card {
 
   .walkthrough-video-topbar {
     padding-inline: 14px;
+  }
+
+  .walkthrough-controls {
+    flex-wrap: wrap;
+  }
+
+  .walkthrough-progress {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .walkthrough-time {
+    margin-left: auto;
   }
 
   .workflow-animation {

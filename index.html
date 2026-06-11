@@ -7,7 +7,7 @@
     <link rel="canonical" href="https://rentledgerug.etohubs.com/" />
     <meta property="og:url" content="https://rentledgerug.etohubs.com/" />
     <link rel="icon" type="image/png" href="assets/rentledger-logo-icon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260604-feature-images" />
+    <link rel="stylesheet" href="styles.css?v=20260611-walkthrough-safe-frame" />
   </head>
   <body>
     <section id="landingScreen" class="landing-page">
@@ -219,13 +219,46 @@
               <video
                 class="walkthrough-video"
                 controls
+                data-walkthrough-video
                 playsinline
                 preload="metadata"
-                poster="video/how%20to%20add%20property%20and%20room/how%20to%20add%20property%20and%20room-Cover.jpg"
+                poster="video/0608%281%29/0608%281%29-Cover.jpg"
               >
-                <source src="video/how%20to%20add%20property%20and%20room/how%20to%20add%20property%20and%20room-web.mp4" type="video/mp4" />
+                <source src="video/0608%281%29/0608%281%29.mp4" type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
+            </div>
+            <div class="walkthrough-controls" data-walkthrough-controls hidden>
+              <button class="walkthrough-icon-button" data-video-toggle type="button" aria-label="Play video">
+                <svg class="control-icon icon-play" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 5v14l11-7z"></path>
+                </svg>
+                <svg class="control-icon icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 5h3v14H8z"></path>
+                  <path d="M13 5h3v14h-3z"></path>
+                </svg>
+              </button>
+              <input class="walkthrough-progress" data-video-progress type="range" min="0" max="1000" step="1" value="0" aria-label="Video progress" />
+              <span class="walkthrough-time" data-video-time>0:00 / 0:00</span>
+              <button class="walkthrough-icon-button" data-video-mute type="button" aria-label="Mute video">
+                <svg class="control-icon icon-volume" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 9v6h4l5 4V5L8 9H4z"></path>
+                  <path d="M16 8c1.2 1.1 1.8 2.4 1.8 4s-.6 2.9-1.8 4"></path>
+                </svg>
+                <svg class="control-icon icon-volume-off" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 9v6h4l5 4V5L8 9H4z"></path>
+                  <path d="M18 9l-4 6"></path>
+                  <path d="M14 9l4 6"></path>
+                </svg>
+              </button>
+              <button class="walkthrough-icon-button" data-video-fullscreen type="button" aria-label="Full screen video">
+                <svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 3H3v5"></path>
+                  <path d="M16 3h5v5"></path>
+                  <path d="M8 21H3v-5"></path>
+                  <path d="M16 21h5v-5"></path>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -1878,6 +1911,6 @@
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script src="supabase-config.js?v=20260529-startup-gate"></script>
-    <script src="app.js?v=20260607-friendly-sync-errors-2"></script>
+    <script src="app.js?v=20260610-walkthrough-controls"></script>
   </body>
 </html>

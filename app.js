@@ -493,6 +493,8 @@
       });
     });
 
+    setupWalkthroughVideoControls();
+
     document.querySelectorAll("[data-auth-tab]").forEach((button) => {
       button.addEventListener("click", () => setAuthTab(button.dataset.authTab));
     });
@@ -625,6 +627,96 @@
     ui.downloadReceipt.addEventListener("click", downloadReceipt);
     ui.resetDemo.addEventListener("click", resetDemoData);
     ui.downloadBackup.addEventListener("click", downloadBackup);
+  }
+
+  function setupWalkthroughVideoControls() {
+    document.querySelectorAll("[data-walkthrough-controls]").forEach((controls) => {
+      const card = controls.closest(".walkthrough-video-card");
+      const video = card?.querySelector("[data-walkthrough-video]");
+      if (!video) return;
+
+      const toggleButton = controls.querySelector("[data-video-toggle]");
+      const progress = controls.querySelector("[data-video-progress]");
+      const timeLabel = controls.querySelector("[data-video-time]");
+      const muteButton = controls.querySelector("[data-video-mute]");
+      const fullscreenButton = controls.querySelector("[data-video-fullscreen]");
+
+      video.removeAttribute("controls");
+      video.setAttribute("tabindex", "0");
+      controls.hidden = false;
+
+      const formatVideoTime = (seconds) => {
+        if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60)
+          .toString()
+          .padStart(2, "0");
+        return `${minutes}:${remainingSeconds}`;
+      };
+
+      const updateControls = () => {
+        const duration = Number.isFinite(video.duration) ? video.duration : 0;
+        const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+        const isPlaying = !video.paused && !video.ended;
+        const isMuted = video.muted || video.volume === 0;
+
+        controls.classList.toggle("is-playing", isPlaying);
+        controls.classList.toggle("is-muted", isMuted);
+        if (toggleButton) toggleButton.setAttribute("aria-label", isPlaying ? "Pause video" : "Play video");
+        if (muteButton) muteButton.setAttribute("aria-label", isMuted ? "Unmute video" : "Mute video");
+        if (progress) progress.value = duration ? String(Math.round((currentTime / duration) * 1000)) : "0";
+        if (timeLabel) timeLabel.textContent = `${formatVideoTime(currentTime)} / ${formatVideoTime(duration)}`;
+      };
+
+      const togglePlayback = () => {
+        if (video.paused || video.ended) {
+          video.play().catch(() => updateControls());
+        } else {
+          video.pause();
+        }
+      };
+
+      if (toggleButton) toggleButton.addEventListener("click", togglePlayback);
+      video.addEventListener("click", togglePlayback);
+      video.addEventListener("keydown", (event) => {
+        if (event.key !== " " && event.key !== "Enter") return;
+        event.preventDefault();
+        togglePlayback();
+      });
+
+      if (progress) {
+        progress.addEventListener("input", () => {
+          const duration = Number.isFinite(video.duration) ? video.duration : 0;
+          if (!duration) return;
+          video.currentTime = (Number(progress.value || 0) / 1000) * duration;
+          updateControls();
+        });
+      }
+
+      if (muteButton) {
+        muteButton.addEventListener("click", () => {
+          video.muted = !video.muted;
+          updateControls();
+        });
+      }
+
+      if (fullscreenButton) {
+        fullscreenButton.addEventListener("click", () => {
+          if (document.fullscreenElement) {
+            document.exitFullscreen?.();
+            return;
+          }
+          const fullscreenTarget = card || video;
+          fullscreenTarget.requestFullscreen?.();
+        });
+      }
+
+      ["loadedmetadata", "play", "pause", "ended", "timeupdate", "volumechange"].forEach((eventName) => {
+        video.addEventListener(eventName, updateControls);
+      });
+      document.addEventListener("fullscreenchange", updateControls);
+      updateControls();
+    });
   }
 
   function updateAppViewportHeight() {
