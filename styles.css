@@ -662,6 +662,10 @@ button {
   background: linear-gradient(180deg, #f8faf9 0%, #fffdf8 100%);
 }
 
+.onboarding-demo-section > * {
+  min-width: 0;
+}
+
 .onboarding-demo-copy {
   display: grid;
   gap: 18px;
@@ -705,6 +709,8 @@ button {
 }
 
 .walkthrough-video-card {
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
   border: 1px solid rgba(203, 213, 225, 0.52);
   border-radius: 8px;
@@ -5200,6 +5206,16 @@ button.admin-metric-card {
 
   .walkthrough-video-topbar {
     padding-inline: 14px;
+  }
+
+  .walkthrough-video-card {
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .walkthrough-stage {
+    aspect-ratio: 16 / 11;
+    padding: 8px;
   }
 
   .walkthrough-controls {
