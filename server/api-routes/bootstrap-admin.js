@@ -8,7 +8,7 @@ const {
   upsertRows,
 } = require("../supabase-admin");
 
-const DEFAULT_PLATFORM_OWNER_EMAIL = "rentledgerugsupport@etohubs.com";
+const DEFAULT_PLATFORM_OWNER_EMAIL = "rentflowugsupport@etohubs.com";
 
 module.exports = async function handler(request, response) {
   if (request.method !== "POST") return send(response, 405, { error: "Method not allowed" });

@@ -69,7 +69,7 @@ test("flutterwave statuses map to billing statuses", () => {
 test("pesapal helpers normalize callback payloads", () => {
   const event = pesapal.extractPesapalPaymentEvent({
     OrderTrackingId: "track-123",
-    OrderMerchantReference: "RLUG-001",
+    OrderMerchantReference: "RFUG-001",
     payment_status_description: "COMPLETED",
     payment_method: "MTN",
     amount: 50000,
@@ -78,7 +78,7 @@ test("pesapal helpers normalize callback payloads", () => {
 
   assert.equal(event.provider, "pesapal");
   assert.equal(event.provider_id, "track-123");
-  assert.equal(event.reference, "RLUG-001");
+  assert.equal(event.reference, "RFUG-001");
   assert.equal(event.status, "Successful");
   assert.equal(event.payment_method, "MTN MoMo");
 });

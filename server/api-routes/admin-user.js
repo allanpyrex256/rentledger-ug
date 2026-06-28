@@ -47,7 +47,7 @@ module.exports = async function handler(request, response) {
 async function createDemoLandlord(response, adminProfile) {
   const today = isoDate(new Date());
   const demoNumber = Date.now();
-  const email = `demo.landlord.${demoNumber}@rentledger.ug`;
+  const email = `demo.landlord.${demoNumber}@rentflow.ug`;
   const password = `Demo${Math.floor(100000 + Math.random() * 900000)}!`;
   const authUser = await createAuthUser({
     email,
@@ -319,7 +319,7 @@ async function endTrial(response, ownerId) {
   const today = isoDate(new Date());
   const promptMessage = `Your free trial has ended. Subscribe to ${paidPackage.plan} at ${formatCurrency(
     paidPackage.fee
-  )}/month to keep using RentLedger UG.`;
+  )}/month to keep using RentFlow UG.`;
   const subscriptionPatch = {
     plan: paidPackage.plan,
     monthly_fee: paidPackage.fee,
@@ -330,7 +330,7 @@ async function endTrial(response, ownerId) {
     cancellation_requested_at: null,
     payment_provider: subscription?.payment_provider || process.env.PAYMENT_PROVIDER || "pesapal",
     provider_payment_status: "Subscription required",
-    provider_next_action: "Trial ended. Subscribe to continue using RentLedger UG.",
+    provider_next_action: "Trial ended. Subscribe to continue using RentFlow UG.",
     last_payment_method: subscription?.last_payment_method || subscription?.billing_method || "Trial",
     last_payment_note: "Trial ended by super admin. Subscription required.",
   };

@@ -13,7 +13,7 @@
           }
         }
       ],
-      "destination": "https://rentledgerug.etohubs.com/:path*",
+      "destination": "https://rentflowug.etohubs.com/:path*",
       "permanent": true
     }
   ],

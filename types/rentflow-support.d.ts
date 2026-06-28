@@ -1,4 +1,4 @@
-export type RentLedgerRole = "saas-owner" | "landlord" | "staff";
+export type RentFlowRole = "saas-owner" | "landlord" | "staff";
 
 export type SupportTicketPriority = "High" | "Medium" | "Low";
 export type SupportTicketStatus = "Open" | "In Progress" | "Resolved" | "Closed";
@@ -39,7 +39,7 @@ export interface LandlordMessage {
   created_at: string;
 }
 
-export interface RentLedgerNotification {
+export interface RentFlowNotification {
   id: string;
   user_id?: string | null;
   title: string;

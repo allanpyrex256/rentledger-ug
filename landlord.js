@@ -1,5 +1,5 @@
 (function () {
-  const STORAGE_KEY = "rentledger_ug_mvp_v1";
+  const STORAGE_KEY = "rentflow_ug_mvp_v1";
   const PLAN_FEATURES = {
     Professional: { publicListings: true },
     Enterprise: { publicListings: true },
@@ -45,11 +45,11 @@
     const listings = data.listings || [];
     const stats = landlordStats(profile, listings);
     const phone = normalizePhone(profile.phone || "");
-    const message = `Hello ${profile.name}, I saw your vacancies on RentLedger UG. Are any still available for viewing?`;
+    const message = `Hello ${profile.name}, I saw your vacancies on RentFlow UG. Are any still available for viewing?`;
     const whatsappUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}` : "#";
     const callUrl = phone ? `tel:+${phone}` : "#";
 
-    document.title = `${profile.name} | Landlord Profile | RentLedger UG`;
+    document.title = `${profile.name} | Landlord Profile | RentFlow UG`;
     ui.shell.innerHTML = `
       <section class="landlord-profile-hero">
         <div class="landlord-profile-main">
@@ -102,7 +102,7 @@
 
   function publicListingCard({ unit, property }, profile) {
     const phone = normalizePhone(profile.phone || "");
-    const message = `Hello ${profile.name}, I saw ${unit.unit_number} at ${property.property_name} in ${property.location} on RentLedger UG. Is it still available for viewing?`;
+    const message = `Hello ${profile.name}, I saw ${unit.unit_number} at ${property.property_name} in ${property.location} on RentFlow UG. Is it still available for viewing?`;
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
     return `
       <article class="public-listing-card">
@@ -172,7 +172,7 @@
       subscription_plan: plan,
       verified,
       verified_badge: verified,
-      verification_label: owner.verification_label || (verified ? "Verified" : "RentLedger profile"),
+      verification_label: owner.verification_label || (verified ? "Verified" : "RentFlow profile"),
       property_count: ownerProperties.length,
       occupied_units_count: ownerUnits.filter((unit) => String(unit.status || "").toLowerCase() === "occupied").length,
       published_vacancies_count: publicUnits.length,
@@ -220,7 +220,7 @@
     if (verified) {
       return '<span class="verification-badge verified"><span class="verification-tick" aria-hidden="true">&#10003;</span><span>Verified</span></span>';
     }
-    const label = profile.verification_label || "RentLedger profile";
+    const label = profile.verification_label || "RentFlow profile";
     return `<span class="verification-badge pending">${escapeHtml(label)}</span>`;
   }
 

@@ -71,7 +71,7 @@ function isMobileMoneyMethod(method) {
   return Boolean(flutterwaveNetworkForMethod(method));
 }
 
-function buildPaymentReference(prefix = "RLUG") {
+function buildPaymentReference(prefix = "RFUG") {
   return `${prefix}-${Date.now()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 }
 
@@ -155,7 +155,7 @@ async function createV3HostedCheckout({ config, owner, subscription, amount, met
       phonenumber: owner.phone,
     },
     customizations: {
-      title: "RentLedger UG Subscription",
+      title: "RentFlow UG Subscription",
       description: `${subscription.plan} monthly plan`,
       logo: process.env.FLUTTERWAVE_LOGO_URL || undefined,
     },
@@ -212,7 +212,7 @@ async function createV4MobileMoneyCharge({ config, owner, subscription, amount, 
       name,
       phone,
       meta: {
-        rentledger_owner_id: owner.id,
+        rentflow_owner_id: owner.id,
       },
     },
   });
@@ -440,16 +440,16 @@ function normalizeUgandaPhone(value) {
 }
 
 function splitName(value) {
-  const parts = String(value || "RentLedger Customer").trim().split(/\s+/).filter(Boolean);
+  const parts = String(value || "RentFlow Customer").trim().split(/\s+/).filter(Boolean);
   return {
-    first: parts[0] || "RentLedger",
+    first: parts[0] || "RentFlow",
     middle: parts.length > 2 ? parts.slice(1, -1).join(" ") : "",
     last: parts.length > 1 ? parts[parts.length - 1] : "Customer",
   };
 }
 
 function buildTraceId() {
-  return `rlug-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
+  return `rfug-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
 }
 
 function headerValue(headers, name) {

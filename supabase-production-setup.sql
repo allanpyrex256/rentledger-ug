@@ -1,4 +1,4 @@
--- RentLedger UG production setup patch.
+-- RentFlow UG production setup patch.
 -- Run this once in the Supabase SQL Editor after running supabase-schema.sql.
 -- It is safe to run again if permissions need to be refreshed.
 
@@ -25,5 +25,5 @@ to authenticated;
 grant all privileges on all tables in schema public to service_role;
 grant execute on all functions in schema private to anon, authenticated, service_role;
 
--- The first sign-in for rentledgerugsupport@etohubs.com calls /api/bootstrap-admin,
+-- The first sign-in for rentflowugsupport@etohubs.com calls /api/bootstrap-admin,
 -- which creates the app_users row with role = 'saas-owner' automatically.

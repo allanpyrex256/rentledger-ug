@@ -65,12 +65,12 @@
       id: "user-1",
       name: "Landlord Demo",
       phone: "0772123456",
-      email: "landlord@rentledger.ug",
+      email: "landlord@rentflow.ug",
       account_status: "Active",
       property_count: 5,
       occupied_units_count: 19,
       verified_badge: false,
-      verification_label: "RentLedger profile",
+      verification_label: "RentFlow profile",
     };
     return [
       {
@@ -216,7 +216,7 @@
 
   function publicListingCard({ unit, property, owner }, options = {}) {
     const phone = normalizePhone(owner.phone || "");
-    const message = `Hello ${owner.name}, I saw ${unit.unit_number} at ${property.property_name} in ${property.location} on RentLedger UG. Is it still available for viewing?`;
+    const message = `Hello ${owner.name}, I saw ${unit.unit_number} at ${property.property_name} in ${property.location} on RentFlow UG. Is it still available for viewing?`;
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
     const profileUrl = landlordProfileUrl(owner.id);
     const stats = landlordStats(owner);
@@ -312,7 +312,7 @@
     if (verified) {
       return '<span class="verification-badge verified"><span class="verification-tick" aria-hidden="true">&#10003;</span><span>Verified</span></span>';
     }
-    const label = owner.verification_label || "RentLedger profile";
+    const label = owner.verification_label || "RentFlow profile";
     return `<span class="verification-badge pending">${escapeHtml(label)}</span>`;
   }
 

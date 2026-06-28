@@ -1,4 +1,4 @@
-window.RENTLEDGER_SUPABASE = {
+window.RENTFLOW_SUPABASE = {
   url: "https://your-project.supabase.co",
   anonKey: "your-public-anon-key",
   // On Vercel, you can leave this file unchanged and set

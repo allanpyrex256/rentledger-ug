@@ -1,6 +1,6 @@
 (function () {
-  const STORAGE_KEY = "rentledger_ug_mvp_v1";
-  const BROWSER_DB_NAME = "rentledger_ug_mvp_store";
+  const STORAGE_KEY = "rentflow_ug_mvp_v1";
+  const BROWSER_DB_NAME = "rentflow_ug_mvp_store";
   const BROWSER_DB_STORE = "app_state";
   const BROWSER_DB_STATE_KEY = "latest";
   let supabaseClient = null;
@@ -75,7 +75,7 @@
   };
 
   const SUPER_ADMIN_USER_ID = "user-saas-owner";
-  const SUPER_ADMIN_EMAIL = "rentledgerugsupport@etohubs.com";
+  const SUPER_ADMIN_EMAIL = "rentflowugsupport@etohubs.com";
   const DEMO_ACCOUNT_IDS = [SUPER_ADMIN_USER_ID, "user-1", "staff-1"];
   const PUBLIC_DEMO_ACCOUNT_IDS = ["user-1", "staff-1"];
   const state = loadState();
@@ -373,8 +373,8 @@
   };
 
   const viewCopy = {
-    superAdminDashboard: ["RentLedger UG Admin", "SaaS analytics for landlords, subscriptions, revenue, support, and account health."],
-    subscriptionLocked: ["Trial ended", "Subscribe to continue using RentLedger UG."],
+    superAdminDashboard: ["RentFlow UG Admin", "SaaS analytics for landlords, subscriptions, revenue, support, and account health."],
+    subscriptionLocked: ["Trial ended", "Subscribe to continue using RentFlow UG."],
     dashboard: ["Daily Control Center", "Who paid, who is late, and which rooms are vacant."],
     properties: ["Properties", "Set up rooms, shops, boys quarters, houses, and monthly rent."],
     tenants: ["Tenants", "Tenant move-in records, deposits, balances, and contacts."],
@@ -1688,7 +1688,7 @@
     ui.subscriptionLockDueDate.textContent = formatOptionalDate(dueDate);
     ui.subscriptionLockMethod.textContent = method;
     ui.subscriptionLockMessage.textContent = canPay
-      ? `Your 30-day trial has ended. Subscribe to ${plan} at ${formatMoney(billableMonthlyFee)}/month to continue using RentLedger UG.`
+      ? `Your 30-day trial has ended. Subscribe to ${plan} at ${formatMoney(billableMonthlyFee)}/month to continue using RentFlow UG.`
       : "Your trial has ended, but billing is not ready for this account. Contact support to activate a paid plan.";
     ui.subscriptionLockPay.disabled = !canPay;
     ui.subscriptionLockPay.textContent = canPay ? "Subscribe" : "Billing setup needed";
@@ -1816,7 +1816,7 @@
 
   function publicListingCard({ unit, property, owner }, options = {}) {
     const phone = normalizePhone(owner.phone || "");
-    const message = `Hello ${owner.name}, I saw ${unit.unit_number} at ${property.property_name} in ${property.location} on RentLedger UG. Is it still available for viewing?`;
+    const message = `Hello ${owner.name}, I saw ${unit.unit_number} at ${property.property_name} in ${property.location} on RentFlow UG. Is it still available for viewing?`;
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.property_name} ${property.location} Uganda`)}`;
     const profileUrl = landlordProfileUrl(owner.id);
     const stats = landlordStats(owner);
@@ -1915,7 +1915,7 @@
     if (verified) {
       return '<span class="verification-badge verified"><span class="verification-tick" aria-hidden="true">&#10003;</span><span>Verified</span></span>';
     }
-    const label = owner.verification_label || "RentLedger profile";
+    const label = owner.verification_label || "RentFlow profile";
     return `<span class="verification-badge pending">${escapeHtml(label)}</span>`;
   }
 
@@ -6406,7 +6406,7 @@
   }
 
   function caretakerLoginText(staffUser) {
-    const loginLines = ["RentLedger UG caretaker login", `Phone: ${staffUser.phone}`];
+    const loginLines = ["RentFlow UG caretaker login", `Phone: ${staffUser.phone}`];
     if (staffUser.email) loginLines.push(`Email: ${staffUser.email}`);
     if (staffUser.password) loginLines.push(`Password: ${staffUser.password}`);
     else loginLines.push("Use the temporary password shared when this login was created.");
@@ -6924,16 +6924,16 @@
   function adminMessageTemplates() {
     return {
       welcome: {
-        title: "Welcome to RentLedger UG",
-        message: "Welcome to RentLedger UG. Your account is ready, and our support team is here if you need help setting up properties, tenants, or payments.",
+        title: "Welcome to RentFlow UG",
+        message: "Welcome to RentFlow UG. Your account is ready, and our support team is here if you need help setting up properties, tenants, or payments.",
       },
       subscription: {
         title: "Subscription reminder",
-        message: "Your RentLedger UG subscription needs attention. Please open Billing and complete payment to keep your account active.",
+        message: "Your RentFlow UG subscription needs attention. Please open Billing and complete payment to keep your account active.",
       },
       payment: {
         title: "Payment reminder",
-        message: "This is a reminder to confirm your pending RentLedger UG platform payment. Contact support if you already paid.",
+        message: "This is a reminder to confirm your pending RentFlow UG platform payment. Contact support if you already paid.",
       },
       support: {
         title: "Support follow up",
@@ -6941,7 +6941,7 @@
       },
       maintenance: {
         title: "Maintenance notice",
-        message: "RentLedger UG may have brief maintenance. Your records remain saved, and normal access will resume shortly.",
+        message: "RentFlow UG may have brief maintenance. Your records remain saved, and normal access will resume shortly.",
       },
     };
   }
@@ -7068,7 +7068,7 @@
     const tenantId = makeId("tenant");
     const paymentId = makeId("payment");
     const today = isoDate(new Date());
-    const email = `demo.landlord.${Date.now()}@rentledger.ug`;
+    const email = `demo.landlord.${Date.now()}@rentflow.ug`;
 
     const demoUser = {
       id: userId,
@@ -7433,7 +7433,7 @@
     }
 
     const today = isoDate(new Date());
-    const promptMessage = `Your free trial has ended. Subscribe to ${paidPlan.plan} at ${formatMoney(paidPlan.fee)}/month to keep using RentLedger UG.`;
+    const promptMessage = `Your free trial has ended. Subscribe to ${paidPlan.plan} at ${formatMoney(paidPlan.fee)}/month to keep using RentFlow UG.`;
 
     if (subscription) {
       state.subscriptions = state.subscriptions.map((item) =>
@@ -7449,7 +7449,7 @@
               cancellation_requested_at: null,
               payment_provider: item.payment_provider || "pesapal",
               provider_payment_status: "Subscription required",
-              provider_next_action: "Trial ended. Subscribe to continue using RentLedger UG.",
+              provider_next_action: "Trial ended. Subscribe to continue using RentFlow UG.",
               last_payment_method: item.last_payment_method || item.billing_method || "Trial",
               last_payment_note: "Trial ended by super admin. Subscription required.",
             }
@@ -7470,7 +7470,7 @@
         grace_period_end: today,
         payment_provider: "pesapal",
         provider_payment_status: "Subscription required",
-        provider_next_action: "Trial ended. Subscribe to continue using RentLedger UG.",
+        provider_next_action: "Trial ended. Subscribe to continue using RentFlow UG.",
       });
     }
 
@@ -8081,7 +8081,7 @@
     const receiptMessage = paymentReceiptMessage(payment);
     ui.receiptContent.innerHTML = `
       <div class="receipt-brand">
-        <strong>RentLedger UG</strong>
+        <strong>RentFlow UG</strong>
         <span>Receipt ${escapeHtml(details.receiptNo)}</span>
       </div>
       <div class="receipt-grid">
@@ -8098,7 +8098,7 @@
         <span>Verification</span><strong>${escapeHtml(payment.verification_status || "Unverified")}</strong>
         <span>Date</span><strong>${formatDate(payment.payment_date)}</strong>
       </div>
-      <p class="receipt-note">This receipt confirms rent payment captured in RentLedger UG.</p>
+      <p class="receipt-note">This receipt confirms rent payment captured in RentFlow UG.</p>
     `;
     ui.receiptModal.dataset.paymentId = paymentId;
     ui.receiptModal.dataset.receiptNumber = details.receiptNo;
@@ -8125,7 +8125,7 @@
     if (!payment) return;
     const details = receiptDetails(payment);
     const pdf = buildReceiptPdf(details);
-    downloadBlobFile(`rentledger-receipt-${details.receiptNo}.pdf`, pdf, "application/pdf");
+    downloadBlobFile(`rentflow-receipt-${details.receiptNo}.pdf`, pdf, "application/pdf");
   }
 
   function receiptDetails(payment) {
@@ -8150,7 +8150,7 @@
   function buildReceiptPdf(details) {
     const { payment } = details;
     const lines = [
-      "RentLedger UG",
+      "RentFlow UG",
       `Receipt ${details.receiptNo}`,
       "",
       `Landlord: ${details.ownerName}`,
@@ -8165,7 +8165,7 @@
       `Verification: ${payment.verification_status || "Unverified"}`,
       `Date: ${formatDate(payment.payment_date)}`,
       "",
-      "This receipt confirms rent payment captured in RentLedger UG.",
+      "This receipt confirms rent payment captured in RentFlow UG.",
     ];
     return simpleReportPdfBlob(lines);
   }
@@ -8182,7 +8182,7 @@
     const scope = getScopedData();
     const report = buildDashboardMonthReport(scope, activeDashboardMonthKey);
     const label = monthName(report.monthStart);
-    const filename = `rentledger-monthly-report-${activeDashboardMonthKey}.pdf`;
+    const filename = `rentflow-monthly-report-${activeDashboardMonthKey}.pdf`;
     downloadBlobFile(filename, simpleReportPdfBlob(monthlyReportPdfLines(report, scope)), "application/pdf");
     showToast(`${label} report downloaded.`);
   }
@@ -8210,7 +8210,7 @@
       : ["No expenses recorded for this month."];
 
     return [
-      "RentLedger UG Monthly Report",
+      "RentFlow UG Monthly Report",
       label,
       "",
       "Summary",
@@ -8332,7 +8332,7 @@
     const payments = getCurrentMonthPayments(scope.payments);
     const total = payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
     const lines = [
-      "RentLedger UG Monthly Rent Report",
+      "RentFlow UG Monthly Rent Report",
       monthName(new Date()),
       "",
       `Total collected: ${formatMoney(total)}`,
@@ -8356,7 +8356,7 @@
       }),
       payments.length ? "" : "No payments recorded this month.",
     ];
-    downloadTextFile(`rentledger-rent-report-${isoDate(new Date())}.txt`, lines.join("\n"));
+    downloadTextFile(`rentflow-rent-report-${isoDate(new Date())}.txt`, lines.join("\n"));
     showToast("Monthly rent report downloaded.");
   }
 
@@ -8365,7 +8365,7 @@
     const expenses = getCurrentMonthExpenses(scope.expenses);
     const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
     const lines = [
-      "RentLedger UG Expense Report",
+      "RentFlow UG Expense Report",
       monthName(new Date()),
       "",
       `Total expenses: ${formatMoney(total)}`,
@@ -8383,7 +8383,7 @@
       }),
       expenses.length ? "" : "No expenses recorded this month.",
     ];
-    downloadTextFile(`rentledger-expense-report-${isoDate(new Date())}.txt`, lines.join("\n"));
+    downloadTextFile(`rentflow-expense-report-${isoDate(new Date())}.txt`, lines.join("\n"));
     showToast("Expense report downloaded.");
   }
 
@@ -8469,7 +8469,7 @@
       headers.join(","),
       ...rows.map((row) => headers.map((header) => csvCell(row[header])).join(",")),
     ].join("\n");
-    downloadTextFile(`rentledger-tenants-${isoDate(new Date())}.csv`, csv);
+    downloadTextFile(`rentflow-tenants-${isoDate(new Date())}.csv`, csv);
     showToast("Tenant CSV exported.");
   }
 
@@ -8530,7 +8530,7 @@
     const user = currentUser();
     const scoped = getScopedData();
     const payload = {
-      app: "RentLedger UG",
+      app: "RentFlow UG",
       exported_at: new Date().toISOString(),
       exported_by: user ? { id: user.id, name: user.name, role: user.role, phone: user.phone, email: user.email } : null,
       scope: isSaasOwner(user) ? "platform" : "current account",
@@ -8555,7 +8555,7 @@
             notifications: platformNotifications(),
           },
     };
-    downloadTextFile(`rentledger-backup-${isoDate(new Date())}.json`, JSON.stringify(payload, null, 2));
+    downloadTextFile(`rentflow-backup-${isoDate(new Date())}.json`, JSON.stringify(payload, null, 2));
     showToast("Backup exported.");
   }
 
@@ -9443,19 +9443,19 @@
   }
 
   async function resolveSupabaseConfig() {
-    if (isSupabaseConfigReady(window.RENTLEDGER_SUPABASE)) return window.RENTLEDGER_SUPABASE;
+    if (isSupabaseConfigReady(window.RENTFLOW_SUPABASE)) return window.RENTFLOW_SUPABASE;
     if (resolveSupabaseConfig.promise) return resolveSupabaseConfig.promise;
 
     resolveSupabaseConfig.promise = fetch("/api/supabase-config", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((config) => {
         if (isSupabaseConfigReady(config)) {
-          window.RENTLEDGER_SUPABASE = config;
+          window.RENTFLOW_SUPABASE = config;
           return config;
         }
-        return window.RENTLEDGER_SUPABASE || null;
+        return window.RENTFLOW_SUPABASE || null;
       })
-      .catch(() => window.RENTLEDGER_SUPABASE || null);
+      .catch(() => window.RENTFLOW_SUPABASE || null);
     return resolveSupabaseConfig.promise;
   }
 
@@ -10439,7 +10439,7 @@
           id: "user-1",
           name: "Landlord Demo",
           phone: "0772123456",
-          email: "landlord@rentledger.ug",
+          email: "landlord@rentflow.ug",
           creator_email: SUPER_ADMIN_EMAIL,
           platform_owner_id: SUPER_ADMIN_USER_ID,
           password: "demo123",
@@ -10451,7 +10451,7 @@
           id: "user-2",
           name: "Daniel Kigozi",
           phone: "0788001100",
-          email: "daniel@rentledger.ug",
+          email: "daniel@rentflow.ug",
           creator_email: SUPER_ADMIN_EMAIL,
           platform_owner_id: SUPER_ADMIN_USER_ID,
           password: "demo123",
@@ -10463,7 +10463,7 @@
           id: "staff-1",
           name: "Caretaker Demo",
           phone: "0700111222",
-          email: "staff@rentledger.ug",
+          email: "staff@rentflow.ug",
           creator_email: SUPER_ADMIN_EMAIL,
           platform_owner_id: SUPER_ADMIN_USER_ID,
           password: "staff123",
@@ -11038,10 +11038,10 @@
           owner_id: "user-1",
           landlord_id: "user-1",
           subject: "Import tenant rent balances",
-          description: "Sarah needs assistance moving tenant arrears from her notebook into RentLedger.",
+          description: "Sarah needs assistance moving tenant arrears from her notebook into RentFlow.",
           priority: "High",
           status: "In Progress",
-          note: "Sarah needs assistance moving tenant arrears from her notebook into RentLedger.",
+          note: "Sarah needs assistance moving tenant arrears from her notebook into RentFlow.",
           admin_note: "Imported sample arrears workflow is pending review.",
           created_at: date(21),
           updated_at: date(21),
@@ -11082,8 +11082,8 @@
           landlord_id: "user-1",
           user_id: "user-1",
           template: "welcome",
-          title: "Welcome to RentLedger UG",
-          message: "Welcome to RentLedger UG. Your account is ready for rent tracking.",
+          title: "Welcome to RentFlow UG",
+          message: "Welcome to RentFlow UG. Your account is ready for rent tracking.",
           created_at: date(2),
         },
       ],
@@ -11102,7 +11102,7 @@
         {
           id: "notification-1",
           type: "system",
-          title: "Welcome to RentLedger",
+          title: "Welcome to RentFlow",
           message: "Your dashboard is ready for rent tracking and account monitoring.",
           created_at: date(1),
           read: false,

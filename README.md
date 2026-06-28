@@ -1,4 +1,4 @@
-# RentLedger UG
+# RentFlow UG
 
 A static MVP prototype for a Ugandan landlord/property management SaaS.
 
@@ -16,7 +16,7 @@ A static MVP prototype for a Ugandan landlord/property management SaaS.
 - Tenant management with phone, National ID, unit, rent, deposit, and move-in date.
 - Tenant move-out history with balance, damages, refund, and notes retained after a unit becomes vacant again.
 - Rent tracking with partial payments, balances, payment history, MTN/Airtel reference fields, proof notes, and verification status.
-- Tenant CSV import/export for moving existing notebooks or spreadsheets into RentLedger.
+- Tenant CSV import/export for moving existing notebooks or spreadsheets into RentFlow.
 - Automatic receipt numbers, PDF receipt downloads, WhatsApp receipts, monthly rent report downloads, and expense report downloads.
 - WhatsApp reminder and receipt links for due, partial, and overdue rent.
 - Reminder queue that can create daily alert notifications for due and overdue tenants.
@@ -76,7 +76,7 @@ When Supabase is not configured, the app runs with local browser demo data for d
 
 1. Create a Supabase project.
 2. Run `supabase-schema.sql` in the Supabase SQL editor.
-3. Create your first Super Admin in Supabase Auth with email `rentledgerugsupport@etohubs.com`.
+3. Create your first Super Admin in Supabase Auth with email `rentflowugsupport@etohubs.com`.
 4. Sign in once with that Super Admin email so `/api/bootstrap-admin` can create the matching `app_users` row with `role = 'saas-owner'`, or insert it manually using the bootstrap SQL comment at the bottom of `supabase-schema.sql`.
 5. Add `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in Vercel project environment variables.
 6. Run `supabase-production-setup.sql` in the Supabase SQL editor to apply API role permissions.
@@ -87,7 +87,7 @@ If you already ran an older version of the schema with UUID columns, use a fresh
 
 For existing Supabase projects, rerun the latest `supabase-schema.sql` after pulling app updates. It is idempotent and repairs older production schemas by adding any missing tables, columns, indexes, grants, functions, and RLS policies.
 
-Run `supabase-support-center-migration.sql` for the Support Center rollout or when production shows a Supabase schema-cache error. It includes the Support Center tables plus compatibility repairs for older RentLedger tables, so the database catches up in one SQL run.
+Run `supabase-support-center-migration.sql` for the Support Center rollout or when production shows a Supabase schema-cache error. It includes the Support Center tables plus compatibility repairs for older RentFlow tables, so the database catches up in one SQL run.
 
 ## Flutter Payment API
 

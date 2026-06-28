@@ -1,4 +1,4 @@
--- RentLedger UG Support Center upgrade migration
+-- RentFlow UG Support Center upgrade migration
 -- Run this in Supabase SQL Editor for existing projects.
 
 create schema if not exists private;

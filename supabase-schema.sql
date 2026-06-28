@@ -1,4 +1,4 @@
--- RentLedger UG production Supabase schema
+-- RentFlow UG production Supabase schema
 -- Run this in a fresh Supabase project or after dropping the old prototype tables.
 --
 -- Public visitors can only read published vacant listings. Real app data is
@@ -529,16 +529,16 @@ $$;
 
 grant execute on all functions in schema private to anon, authenticated, service_role;
 
-drop policy if exists rentledger_anon_all on app_users;
-drop policy if exists rentledger_anon_all on subscriptions;
-drop policy if exists rentledger_anon_all on properties;
-drop policy if exists rentledger_anon_all on units;
-drop policy if exists rentledger_anon_all on tenants;
-drop policy if exists rentledger_anon_all on payments;
-drop policy if exists rentledger_anon_all on expenses;
-drop policy if exists rentledger_anon_all on support_tickets;
-drop policy if exists rentledger_anon_all on notifications;
-drop policy if exists rentledger_anon_all on app_settings;
+drop policy if exists rentflow_anon_all on app_users;
+drop policy if exists rentflow_anon_all on subscriptions;
+drop policy if exists rentflow_anon_all on properties;
+drop policy if exists rentflow_anon_all on units;
+drop policy if exists rentflow_anon_all on tenants;
+drop policy if exists rentflow_anon_all on payments;
+drop policy if exists rentflow_anon_all on expenses;
+drop policy if exists rentflow_anon_all on support_tickets;
+drop policy if exists rentflow_anon_all on notifications;
+drop policy if exists rentflow_anon_all on app_settings;
 
 drop policy if exists app_users_public_listing_select on app_users;
 create policy app_users_public_listing_select on app_users
@@ -750,4 +750,4 @@ using (private.is_saas_owner() or user_id = (select auth.uid())::text);
 -- 2. Run this with that Auth user id and your real contact details:
 --
 -- insert into app_users (id, name, phone, email, role, account_status)
--- values ('AUTH_USER_ID', 'Super Admin', '0700000000', 'rentledgerugsupport@etohubs.com', 'saas-owner', 'Active');
+-- values ('AUTH_USER_ID', 'Super Admin', '0700000000', 'rentflowugsupport@etohubs.com', 'saas-owner', 'Active');
