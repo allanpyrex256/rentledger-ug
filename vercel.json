@@ -2,26 +2,26 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": ".",
-  "redirects": [
-    {
-      "source": "/:path((?!api/).*)",
-      "has": [
-        {
-          "type": "host",
-          "value": {
-            "suf": ".vercel.app"
-          }
-        }
-      ],
-      "destination": "https://rentflowug.etohubs.com/:path*",
-      "permanent": true
-    }
-  ],
   "rewrites": [
-    { "source": "/api/:route", "destination": "/api/[...route]?route=:route" },
-    { "source": "/vacancies", "destination": "/vacancies.html" },
-    { "source": "/available-units", "destination": "/vacancies.html" },
-    { "source": "/landlords/:id", "destination": "/landlord.html?id=:id" },
-    { "source": "/landlord/:id", "destination": "/landlord.html?id=:id" }
+    {
+      "source": "/api/:route",
+      "destination": "/api/[...route]?route=:route"
+    },
+    {
+      "source": "/vacancies",
+      "destination": "/vacancies.html"
+    },
+    {
+      "source": "/available-units",
+      "destination": "/vacancies.html"
+    },
+    {
+      "source": "/landlords/:id",
+      "destination": "/landlord.html?id=:id"
+    },
+    {
+      "source": "/landlord/:id",
+      "destination": "/landlord.html?id=:id"
+    }
   ]
 }

@@ -556,10 +556,10 @@
         state.role === "staff"
           ? "Caretaker dashboard active."
           : state.role === "caretaker"
-          ? "Caretaker mode limits removals."
-          : state.role === "saas-owner"
-            ? "Super admin platform mode active."
-            : "Landlord mode restored."
+            ? "Caretaker mode limits removals."
+            : state.role === "saas-owner"
+              ? "Super admin platform mode active."
+              : "Landlord mode restored."
       );
     });
 
@@ -2610,6 +2610,9 @@
       return;
     }
     const property = propertyById(unit.property_id);
+    const owner = property ? userById(property.owner_id) : null;
+    const canUsePublicListings = property ? ownerCanPublishPublicListings(property.owner_id, owner) : false;
+    const listingStatus = unit.listing_published && canUsePublicListings ? "Published" : "Private";
     const tenant = state.tenants.find((item) => item.unit_id === unit.id && isActiveTenant(item));
     const rentRow = tenant ? getRentRows([tenant])[0] : null;
     openDashboardDetailModal(
@@ -2622,14 +2625,14 @@
           ["Type", unitTypeLabel(unit)],
           ["Monthly rent", formatMoney(unit.rent_amount)],
           ["Status", capitalize(unit.status || "vacant")],
-          ["Listing", unit.listing_published ? "Published" : "Private"],
+          ["Listing", listingStatus],
           ["Tenant", tenant ? tenant.name : "No tenant assigned"],
           ["Balance", rentRow ? formatMoney(rentRow.balance) : "-"],
         ]),
         tenant
           ? detailActions([["tenants", "Open Tenants"], ["rent", "Record Payment"]], [
-              `<button class="text-button" data-tenant-detail="${escapeHtml(tenant.id)}" type="button">Tenant Details</button>`,
-            ])
+            `<button class="text-button" data-tenant-detail="${escapeHtml(tenant.id)}" type="button">Tenant Details</button>`,
+          ])
           : detailActions([["tenants", "Assign Tenant"], ["properties", "Manage Rooms"]]),
       ].join("")
     );
@@ -2675,8 +2678,8 @@
         paymentDetailList(payments, "No payment history for this tenant yet."),
         isActiveTenant(tenant)
           ? detailActions([["rent", "Open Rent Collection"]], [
-              tenantContactActions(tenant, tenantWhatsAppMessage(tenant), { compact: false, sendLabel: "Send WhatsApp" }),
-            ])
+            tenantContactActions(tenant, tenantWhatsAppMessage(tenant), { compact: false, sendLabel: "Send WhatsApp" }),
+          ])
           : detailActions([["tenants", "Open Tenants"]]),
       ].join("")
     );
@@ -2797,15 +2800,15 @@
     return `
       <dl class="detail-grid">
         ${items
-          .map(
-            ([label, value]) => `
+        .map(
+          ([label, value]) => `
               <div>
                 <dt>${escapeHtml(label)}</dt>
                 <dd>${escapeHtml(String(value))}</dd>
               </div>
             `
-          )
-          .join("")}
+        )
+        .join("")}
       </dl>
     `;
   }
@@ -2815,10 +2818,10 @@
     return `
       <div class="detail-list">
         ${payments
-          .map((payment) => {
-            const tenant = tenantById(payment.tenant_id);
-            const unit = tenant ? unitById(tenant.unit_id) : null;
-            return `
+        .map((payment) => {
+          const tenant = tenantById(payment.tenant_id);
+          const unit = tenant ? unitById(tenant.unit_id) : null;
+          return `
               <button class="detail-list-item" data-payment-detail="${escapeHtml(payment.id)}" type="button">
                 <span>
                   <strong>${escapeHtml(tenant ? tenant.name : "Removed tenant")}</strong>
@@ -2827,8 +2830,8 @@
                 <b>${formatMoney(payment.amount)}</b>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -2838,15 +2841,15 @@
     return `
       <div class="detail-list">
         ${rows
-          .map((row) => {
-            const property = row.unit ? propertyById(row.unit.property_id) : null;
-            const dueLabel =
-              row.daysUntilDue < 0
-                ? `${Math.abs(row.daysUntilDue)} day${Math.abs(row.daysUntilDue) === 1 ? "" : "s"} late`
-                : row.daysUntilDue === 0
-                  ? "Due today"
-                  : `Due in ${row.daysUntilDue} day${row.daysUntilDue === 1 ? "" : "s"}`;
-            return `
+        .map((row) => {
+          const property = row.unit ? propertyById(row.unit.property_id) : null;
+          const dueLabel =
+            row.daysUntilDue < 0
+              ? `${Math.abs(row.daysUntilDue)} day${Math.abs(row.daysUntilDue) === 1 ? "" : "s"} late`
+              : row.daysUntilDue === 0
+                ? "Due today"
+                : `Due in ${row.daysUntilDue} day${row.daysUntilDue === 1 ? "" : "s"}`;
+          return `
               <button class="detail-list-item" data-tenant-detail="${escapeHtml(row.tenant.id)}" type="button">
                 <span>
                   <strong>${escapeHtml(row.tenant.name)}</strong>
@@ -2855,8 +2858,8 @@
                 <b>${formatMoney(row.balance)}</b>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -2866,9 +2869,9 @@
     return `
       <div class="detail-list">
         ${units
-          .map((unit) => {
-            const property = propertyById(unit.property_id);
-            return `
+        .map((unit) => {
+          const property = propertyById(unit.property_id);
+          return `
               <button class="detail-list-item" data-unit-detail="${escapeHtml(unit.id)}" type="button">
                 <span>
                   <strong>${escapeHtml(unit.unit_number)}</strong>
@@ -2877,8 +2880,8 @@
                 <b>${formatMoney(unit.rent_amount)}</b>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -2888,10 +2891,10 @@
     return `
       <div class="detail-list">
         ${properties
-          .map((property) => {
-            const units = state.units.filter((unit) => unit.property_id === property.id);
-            const occupied = units.filter((unit) => unit.status === "occupied").length;
-            return `
+        .map((property) => {
+          const units = state.units.filter((unit) => unit.property_id === property.id);
+          const occupied = units.filter((unit) => unit.status === "occupied").length;
+          return `
               <button class="detail-list-item" data-dashboard-view="tenants" type="button">
                 <span>
                   <strong>${escapeHtml(property.property_name)}</strong>
@@ -2900,8 +2903,8 @@
                 <b>${occupied}/${units.length}</b>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -2911,9 +2914,9 @@
     return `
       <div class="detail-list">
         ${expenses
-          .map((expense) => {
-            const property = propertyById(expense.property_id);
-            return `
+        .map((expense) => {
+          const property = propertyById(expense.property_id);
+          return `
               <button class="detail-list-item" data-expense-detail="${escapeHtml(expense.id)}" type="button">
                 <span>
                   <strong>${escapeHtml(expense.type)}</strong>
@@ -2922,8 +2925,8 @@
                 <b>${formatMoney(expense.amount)}</b>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -2933,10 +2936,10 @@
     return `
       <div class="detail-list">
         ${users
-          .map((user) => {
-            const subscription = subscriptionByOwner(user.id);
-            const portfolio = ownerPortfolio(user.id);
-            return `
+        .map((user) => {
+          const subscription = subscriptionByOwner(user.id);
+          const portfolio = ownerPortfolio(user.id);
+          return `
               <button class="detail-list-item" data-focus-landlord="${escapeHtml(user.id)}" type="button">
                 <span>
                   <strong>${escapeHtml(user.name)}</strong>
@@ -2945,8 +2948,8 @@
                 <b>${portfolio.properties.length}/${portfolio.units.length}</b>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -2956,11 +2959,11 @@
     return `
       <div class="detail-list">
         ${subscriptions
-          .map((subscription) => {
-            const user = userById(subscription.owner_id);
-            const status = billingSubscriptionStatus(subscription);
-            const provider = subscriptionProviderNote(subscription);
-            return `
+        .map((subscription) => {
+          const user = userById(subscription.owner_id);
+          const status = billingSubscriptionStatus(subscription);
+          const provider = subscriptionProviderNote(subscription);
+          return `
               <button class="detail-list-item" data-focus-landlord="${escapeHtml(subscription.owner_id)}" type="button">
                 <span>
                   <strong>${escapeHtml(user ? user.name : "Unknown landlord")}</strong>
@@ -2969,8 +2972,8 @@
                 <b>${formatMoney(subscription.monthly_fee)}</b>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -2980,9 +2983,9 @@
     return `
       <div class="detail-list">
         ${tickets
-          .map((ticket) => {
-            const user = userById(ticket.owner_id);
-            return `
+        .map((ticket) => {
+          const user = userById(ticket.owner_id);
+          return `
               <button
                 class="detail-list-item"
                 data-open-ticket="${escapeHtml(ticket.id)}"
@@ -2996,8 +2999,8 @@
                 <b>${escapeHtml(ticket.status)}</b>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -3007,9 +3010,9 @@
     return `
       <div class="detail-list">
         ${notifications
-          .map((notification) => {
-            const user = notification.user_id ? userById(notification.user_id) : null;
-            return `
+        .map((notification) => {
+          const user = notification.user_id ? userById(notification.user_id) : null;
+          return `
               <button class="detail-list-item" data-open-notification="${escapeHtml(notification.id)}" type="button">
                 <span>
                   <strong>${escapeHtml(notification.title)}</strong>
@@ -3018,8 +3021,8 @@
                 <b>${escapeHtml(isNotificationRead(notification) ? "Read" : "Open")}</b>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -3029,8 +3032,8 @@
     return `
       <div class="detail-list">
         ${rows
-          .map(
-            (row) => `
+        .map(
+          (row) => `
               <div class="detail-list-item detail-static-item">
                 <span>
                   <strong>${escapeHtml(row.title)}</strong>
@@ -3039,8 +3042,8 @@
                 <b>${escapeHtml(row.status)}</b>
               </div>
             `
-          )
-          .join("")}
+        )
+        .join("")}
       </div>
     `;
   }
@@ -3049,11 +3052,11 @@
     return `
       <div class="detail-actions">
         ${viewActions
-          .map(
-            ([viewName, label]) =>
-              `<button class="text-button" data-dashboard-view="${escapeHtml(viewName)}" type="button">${escapeHtml(label)}</button>`
-          )
-          .join("")}
+        .map(
+          ([viewName, label]) =>
+            `<button class="text-button" data-dashboard-view="${escapeHtml(viewName)}" type="button">${escapeHtml(label)}</button>`
+        )
+        .join("")}
         ${extraActions.join("")}
       </div>
     `;
@@ -3547,10 +3550,10 @@
   function hasTrialAccess(user, subscription = subscriptionByOwner(user?.id)) {
     return Boolean(
       user &&
-        (accountStatus(user) === "Trial" ||
-          subscription?.status === "Trial" ||
-          subscription?.plan === "Trial" ||
-          effectiveSubscriptionStatus(subscription) === "Trial")
+      (accountStatus(user) === "Trial" ||
+        subscription?.status === "Trial" ||
+        subscription?.plan === "Trial" ||
+        effectiveSubscriptionStatus(subscription) === "Trial")
     );
   }
 
@@ -3594,8 +3597,8 @@
   function canStartBillingAccount(user, subscription = subscriptionByOwner(user?.id)) {
     return Boolean(
       user?.role === "landlord" &&
-        !isPaidSubscription(subscription) &&
-        (!subscription || isTrialAccount(user) || subscriptionPlanFee(subscription) <= 0)
+      !isPaidSubscription(subscription) &&
+      (!subscription || isTrialAccount(user) || subscriptionPlanFee(subscription) <= 0)
     );
   }
 
@@ -3608,7 +3611,7 @@
     const status = billingSubscriptionStatus(subscription);
     return Boolean(
       trialHasEnded(user, subscription) ||
-        ["Pending", "Overdue", "Expired", "Cancelled", "Paused"].includes(status)
+      ["Pending", "Overdue", "Expired", "Cancelled", "Paused"].includes(status)
     );
   }
 
@@ -3799,12 +3802,12 @@
           <h3>${escapeHtml(year)}</h3>
           <div class="dashboard-past-month-list">
             ${months
-              .map((key) => {
-                const date = monthDateFromKey(key);
-                const active = key === activeDashboardMonthKey ? " active" : "";
-                return `<button class="text-button compact-link-button${active}" data-dashboard-report-month="${escapeHtml(key)}" type="button">${escapeHtml(date.toLocaleDateString("en-UG", { month: "long" }))}</button>`;
-              })
-              .join("")}
+          .map((key) => {
+            const date = monthDateFromKey(key);
+            const active = key === activeDashboardMonthKey ? " active" : "";
+            return `<button class="text-button compact-link-button${active}" data-dashboard-report-month="${escapeHtml(key)}" type="button">${escapeHtml(date.toLocaleDateString("en-UG", { month: "long" }))}</button>`;
+          })
+          .join("")}
           </div>
         </section>
       `)
@@ -3823,17 +3826,17 @@
       </div>
       <div class="dashboard-trend-bars">
         ${reports
-          .map((report) => {
-            const width = Math.max(6, Math.round((report.collected / maxCollected) * 100));
-            return `
+        .map((report) => {
+          const width = Math.max(6, Math.round((report.collected / maxCollected) * 100));
+          return `
               <button class="dashboard-trend-row${report.monthKey === selectedReport.monthKey ? " active" : ""}" data-dashboard-report-month="${escapeHtml(report.monthKey)}" type="button">
                 <span>${escapeHtml(report.monthStart.toLocaleDateString("en-UG", { month: "short" }))}</span>
                 <b><i style="width: ${width}%"></i></b>
                 <strong>${formatCompactMoney(report.collected)}</strong>
               </button>
             `;
-          })
-          .join("")}
+        })
+        .join("")}
       </div>
     `;
   }
@@ -3848,14 +3851,14 @@
       </div>
       <div class="dashboard-status-grid">
         ${rows
-          .map((row) => `
+        .map((row) => `
             <article class="dashboard-status-card ${escapeHtml(row.tone)}">
               <span>${escapeHtml(row.label)}</span>
               <strong>${escapeHtml(String(row.count))}</strong>
               <small>${escapeHtml(row.note)}</small>
             </article>
           `)
-          .join("")}
+        .join("")}
       </div>
     `;
   }
@@ -4153,7 +4156,7 @@
     return `
       <div class="compact-list">
         ${taskRows
-          .map((task) => `
+        .map((task) => `
             <button class="compact-list-item dashboard-action-card" data-${task.type}-detail="${escapeHtml(task.id)}" type="button">
               <span>
                 <strong>${escapeHtml(task.title)}</strong>
@@ -4162,7 +4165,7 @@
               <b>${escapeHtml(task.value)}</b>
             </button>
           `)
-          .join("")}
+        .join("")}
       </div>
     `;
   }
@@ -4292,47 +4295,47 @@
           <rect class="multi-line-bg" x="${pad.left}" y="${pad.top}" width="${plotWidth}" height="${plotHeight}" rx="8"></rect>
           <text class="multi-line-axis-title" x="${pad.left}" y="24" text-anchor="start">Growth Index</text>
           ${tickValues
-            .map((tick) => {
-              const y = yFor(tick);
-              return `
+        .map((tick) => {
+          const y = yFor(tick);
+          return `
                 <line class="multi-line-grid" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}"></line>
                 <text class="multi-line-axis" x="${pad.left - 9}" y="${(y + 4).toFixed(1)}" text-anchor="end">${tick}</text>
               `;
-            })
-            .join("")}
+        })
+        .join("")}
           ${labels
-            .map((label, index) => {
-              const x = xFor(index);
-              return `
+        .map((label, index) => {
+          const x = xFor(index);
+          return `
                 <line class="multi-line-x-guide" x1="${x.toFixed(1)}" y1="${pad.top}" x2="${x.toFixed(1)}" y2="${baseline}"></line>
                 <text class="multi-line-x-label" x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(label)}</text>
               `;
-            })
-            .join("")}
+        })
+        .join("")}
           ${preparedSeries
-            .map((item) => {
-              const path = item.points.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
-              return `
+        .map((item) => {
+          const path = item.points.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+          return `
                 <path class="multi-line-path" d="${path}" style="--series-color: ${item.color}"></path>
                 ${item.points
-                  .map(
-                    (point, index) => `
+              .map(
+                (point, index) => `
                       <g class="multi-line-point" style="--series-color: ${item.color}">
                         <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4.5"></circle>
                         <title>${escapeHtml(`${item.name} - ${labels[index]}: ${chartValueLabel(point.value, item.valueType)}`)}</title>
                       </g>
                     `
-                  )
-                  .join("")}
+              )
+              .join("")}
               `;
-            })
-            .join("")}
+        })
+        .join("")}
         </svg>
         <div class="multi-line-legend">
           ${preparedSeries
-            .map((item) => {
-              const currentValue = item.values[item.values.length - 1] || 0;
-              return `
+        .map((item) => {
+          const currentValue = item.values[item.values.length - 1] || 0;
+          return `
                 <span style="--series-color: ${item.color}">
                   <i></i>
                   <b>${escapeHtml(item.name)}</b>
@@ -4340,8 +4343,8 @@
                   <small>Peak ${escapeHtml(chartValueLabel(item.peakValue, item.valueType))}</small>
                 </span>
               `;
-            })
-            .join("")}
+        })
+        .join("")}
         </div>
         <div class="multi-line-data">
           <div class="multi-line-data-row" style="grid-template-columns: minmax(130px, 1.3fr) repeat(${labels.length}, minmax(62px, 1fr));">
@@ -4349,15 +4352,15 @@
             ${labels.map((label) => `<b>${escapeHtml(label)}</b>`).join("")}
           </div>
           ${preparedSeries
-            .map(
-              (item) => `
+        .map(
+          (item) => `
                 <div class="multi-line-data-row" style="grid-template-columns: minmax(130px, 1.3fr) repeat(${labels.length}, minmax(62px, 1fr));">
                   <strong style="--series-color: ${item.color}"><i></i>${escapeHtml(item.name)}</strong>
                   ${item.values.map((value) => `<span>${escapeHtml(chartValueLabel(value, item.valueType))}</span>`).join("")}
                 </div>
               `
-            )
-            .join("")}
+        )
+        .join("")}
         </div>
       </div>
     `;
@@ -4397,22 +4400,22 @@
           <title id="${chartId(caption)}">${escapeHtml(caption)} line chart</title>
           <rect class="line-graph-bg" x="${pad.left}" y="${pad.top}" width="${plotWidth}" height="${plotHeight}" rx="8"></rect>
           ${tickValues
-            .map((tick) => {
-              const y = yFor(tick);
-              return `
+        .map((tick) => {
+          const y = yFor(tick);
+          return `
                 <line class="line-grid" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}"></line>
                 <text class="line-axis-label" x="${pad.left - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml(chartValueLabel(tick, valueType))}</text>
               `;
-            })
-            .join("")}
+        })
+        .join("")}
           ${points
-            .map((point) => `<line class="line-x-guide" x1="${point.x.toFixed(1)}" y1="${pad.top}" x2="${point.x.toFixed(1)}" y2="${baseline}"></line>`)
-            .join("")}
+        .map((point) => `<line class="line-x-guide" x1="${point.x.toFixed(1)}" y1="${pad.top}" x2="${point.x.toFixed(1)}" y2="${baseline}"></line>`)
+        .join("")}
           <path class="line-area" d="${areaPath}"></path>
           <path class="line-path" d="${linePath}"></path>
           ${points
-            .map(
-              (point) => `
+        .map(
+          (point) => `
                 <g class="line-point">
                   <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4.5"></circle>
                   <text x="${point.x.toFixed(1)}" y="${Math.max(pad.top + 12, point.y - 10).toFixed(1)}" text-anchor="middle">${escapeHtml(chartValueLabel(point.total, valueType))}</text>
@@ -4420,8 +4423,8 @@
                   <title>${escapeHtml(`${point.label}: ${detailValueLabel(point.total)}`)}</title>
                 </g>
               `
-            )
-            .join("")}
+        )
+        .join("")}
         </svg>
         <div class="line-chart-summary">
           <span><b>Total</b><strong>${escapeHtml(detailValueLabel(total))}</strong></span>
@@ -4430,8 +4433,8 @@
         </div>
         <div class="line-data-row">
           ${rows
-            .map((row) => `<span><b>${escapeHtml(row.label)}</b><strong>${escapeHtml(detailValueLabel(row.total))}</strong></span>`)
-            .join("")}
+        .map((row) => `<span><b>${escapeHtml(row.label)}</b><strong>${escapeHtml(detailValueLabel(row.total))}</strong></span>`)
+        .join("")}
         </div>
       </div>
     `;
@@ -4607,11 +4610,10 @@
               <td>
                 <div class="button-row">
                   ${billingActions || `<span class="table-subtext">No payment action</span>`}
-                  ${
-                    subscription.id
-                      ? `<button class="text-button" data-subscription-cancel="${escapeHtml(subscription.id)}" type="button">${cancelLabel}</button>`
-                      : ""
-                  }
+                  ${subscription.id
+              ? `<button class="text-button" data-subscription-cancel="${escapeHtml(subscription.id)}" type="button">${cancelLabel}</button>`
+              : ""
+            }
                 </div>
               </td>
             </tr>
@@ -4714,16 +4716,16 @@
     return `
       <div class="ticket-response-history">
         ${messages
-          .map(
-            (message) => `
+        .map(
+          (message) => `
               <div>
                 <strong>${escapeHtml(message.title || "Support response")}</strong>
                 <span>${escapeHtml(message.message)}</span>
                 <small>${escapeHtml(timeAgo(message.created_at))}</small>
               </div>
             `
-          )
-          .join("")}
+        )
+        .join("")}
       </div>
     `;
   }
@@ -4863,8 +4865,8 @@
                   Status
                   <select class="ticket-status-select">
                     ${supportTicketStatuses()
-                      .map((status) => `<option value="${escapeHtml(status)}" ${ticket.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`)
-                      .join("")}
+              .map((status) => `<option value="${escapeHtml(status)}" ${ticket.status === status ? "selected" : ""}>${escapeHtml(status)}</option>`)
+              .join("")}
                   </select>
                 </label>
                 <label>
@@ -5286,10 +5288,10 @@
       state.units = state.units.map((unit) =>
         unit.id === recordId
           ? {
-              ...unit,
-              [action.field]: value,
-              listing_published: action.field === "status" && value !== "vacant" ? false : action.field === "listing_published" ? Boolean(value) : unit.listing_published,
-            }
+            ...unit,
+            [action.field]: value,
+            listing_published: action.field === "status" && value !== "vacant" ? false : action.field === "listing_published" ? Boolean(value) : unit.listing_published,
+          }
           : unit
       );
       return true;
@@ -5306,18 +5308,18 @@
       state.tenants = state.tenants.map((tenant) =>
         tenant.id === recordId
           ? {
-              ...tenant,
-              [action.field]: value,
-              move_out_date:
-                action.field === "status" && value === "active"
-                  ? ""
-                  : action.field === "status" && value === "moved_out"
-                    ? tenant.move_out_date || isoDate(new Date())
-                    : tenant.move_out_date,
-              move_out_balance: action.field === "status" && value === "active" ? 0 : tenant.move_out_balance,
-              move_out_damages: action.field === "status" && value === "active" ? 0 : tenant.move_out_damages,
-              move_out_refund: action.field === "status" && value === "active" ? 0 : tenant.move_out_refund,
-            }
+            ...tenant,
+            [action.field]: value,
+            move_out_date:
+              action.field === "status" && value === "active"
+                ? ""
+                : action.field === "status" && value === "moved_out"
+                  ? tenant.move_out_date || isoDate(new Date())
+                  : tenant.move_out_date,
+            move_out_balance: action.field === "status" && value === "active" ? 0 : tenant.move_out_balance,
+            move_out_damages: action.field === "status" && value === "active" ? 0 : tenant.move_out_damages,
+            move_out_refund: action.field === "status" && value === "active" ? 0 : tenant.move_out_refund,
+          }
           : tenant
       );
       const tenant = tenantById(recordId);
@@ -5331,12 +5333,12 @@
         state.payments = state.payments.map((item) =>
           item.id === recordId
             ? {
-                ...item,
-                amount: 0,
-                balance: tenantById(item.tenant_id)?.rent_amount || item.balance || 0,
-                verification_status: "Reversed",
-                payment_proof: item.payment_proof || "Reversed by Super Admin",
-              }
+              ...item,
+              amount: 0,
+              balance: tenantById(item.tenant_id)?.rent_amount || item.balance || 0,
+              verification_status: "Reversed",
+              payment_proof: item.payment_proof || "Reversed by Super Admin",
+            }
             : item
         );
         recalculateTenantPaymentBalances(payment.tenant_id);
@@ -5405,14 +5407,14 @@
     state.tenants = state.tenants.map((tenant) =>
       tenant.id === tenantId
         ? {
-            ...tenant,
-            status: "active",
-            move_out_date: "",
-            move_out_balance: 0,
-            move_out_damages: 0,
-            move_out_refund: 0,
-            move_out_note: "",
-          }
+          ...tenant,
+          status: "active",
+          move_out_date: "",
+          move_out_balance: 0,
+          move_out_damages: 0,
+          move_out_refund: 0,
+          move_out_note: "",
+        }
         : tenant
     );
     const tenant = tenantById(tenantId);
@@ -5424,10 +5426,10 @@
     state.units = state.units.map((unit) =>
       unit.id === unitId
         ? {
-            ...unit,
-            status: occupied ? "occupied" : "vacant",
-            listing_published: occupied ? false : unit.listing_published,
-          }
+          ...unit,
+          status: occupied ? "occupied" : "vacant",
+          listing_published: occupied ? false : unit.listing_published,
+        }
         : unit
     );
   }
@@ -5449,9 +5451,9 @@
         .slice()
         .sort((a, b) => new Date(`${a.payment_date}T00:00:00`) - new Date(`${b.payment_date}T00:00:00`) || String(a.id).localeCompare(String(b.id)))
         .forEach((payment) => {
-        paid += Number(payment.amount || 0);
-        balanceById.set(payment.id, Math.max(0, Number(tenant.rent_amount || 0) - paid));
-      });
+          paid += Number(payment.amount || 0);
+          balanceById.set(payment.id, Math.max(0, Number(tenant.rent_amount || 0) - paid));
+        });
     });
     state.payments = state.payments.map((payment) => (balanceById.has(payment.id) ? { ...payment, balance: balanceById.get(payment.id) } : payment));
   }
@@ -5497,10 +5499,10 @@
       state.payments = state.payments.map((payment) =>
         paymentIdsToAmounts.has(payment.id)
           ? {
-              ...payment,
-              amount: paymentIdsToAmounts.get(payment.id),
-              payment_proof: payment.payment_proof || "Adjusted by Super Admin balance correction",
-            }
+            ...payment,
+            amount: paymentIdsToAmounts.get(payment.id),
+            payment_proof: payment.payment_proof || "Adjusted by Super Admin balance correction",
+          }
           : payment
       );
     } else {
@@ -5616,9 +5618,9 @@
       const property = unit ? propertyById(unit.property_id) : null;
       return matchesSearch([tenant.name, tenant.phone, tenant.national_id, tenantStatusLabel(tenant), unit ? unit.unit_number : "", property ? property.property_name : ""]) &&
         [tenant.name, tenant.phone, tenant.national_id, tenantStatusLabel(tenant), unit ? unit.unit_number : ""]
-        .join(" ")
-        .toLowerCase()
-        .includes(search);
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
     });
 
     ui.tenantTable.innerHTML =
@@ -5726,11 +5728,10 @@
               <td>
                 <div class="button-row">
                   <button class="text-button compact-link-button" data-tenant-detail="${escapeHtml(row.tenant.id)}" type="button">Details</button>
-                  ${
-                    row.balance > 0
-                      ? tenantContactActions(row.tenant, message, { compact: true, sendLabel: "Send" })
-                      : `<span class="pill success">Clear</span>`
-                  }
+                  ${row.balance > 0
+              ? tenantContactActions(row.tenant, message, { compact: true, sendLabel: "Send" })
+              : `<span class="pill success">Clear</span>`
+            }
                 </div>
               </td>
             </tr>
@@ -5775,11 +5776,10 @@
               <td>
                 <div class="button-row">
                   <button class="text-button" data-receipt-payment="${escapeHtml(payment.id)}" type="button">Receipt</button>
-                  ${
-                    tenant
-                      ? tenantContactActions(tenant, receiptMessage, { compact: false, sendLabel: "Send Receipt" })
-                      : ""
-                  }
+                  ${tenant
+              ? tenantContactActions(tenant, receiptMessage, { compact: false, sendLabel: "Send Receipt" })
+              : ""
+            }
                 </div>
               </td>
             </tr>
@@ -6136,12 +6136,12 @@
       state.units = state.units.map((unit) =>
         unit.id === unitId
           ? {
-              ...unit,
-              listing_photo: photo,
-              listing_bedrooms: unit.listing_bedrooms || 1,
-              listing_bathrooms: unit.listing_bathrooms || 1,
-              listing_furnished: Boolean(unit.listing_furnished),
-            }
+            ...unit,
+            listing_photo: photo,
+            listing_bedrooms: unit.listing_bedrooms || 1,
+            listing_bathrooms: unit.listing_bathrooms || 1,
+            listing_furnished: Boolean(unit.listing_furnished),
+          }
           : unit
       );
       saveState();
@@ -6206,14 +6206,14 @@
     state.units = state.units.map((item) =>
       item.id === unitId
         ? {
-            ...item,
-            listing_published: nextPublished,
-            listing_bedrooms: item.listing_bedrooms || 1,
-            listing_bathrooms: item.listing_bathrooms || 1,
-            listing_furnished: Boolean(item.listing_furnished),
-            listing_photo: item.listing_photo || listingPhotoForProperty(property),
-            listing_note: item.listing_note || "Vacant and ready for viewing. Contact the landlord on WhatsApp.",
-          }
+          ...item,
+          listing_published: nextPublished,
+          listing_bedrooms: item.listing_bedrooms || 1,
+          listing_bathrooms: item.listing_bathrooms || 1,
+          listing_furnished: Boolean(item.listing_furnished),
+          listing_photo: item.listing_photo || listingPhotoForProperty(property),
+          listing_note: item.listing_note || "Vacant and ready for viewing. Contact the landlord on WhatsApp.",
+        }
         : item
     );
     addNotification({
@@ -6480,14 +6480,14 @@
     state.tenants = state.tenants.map((item) =>
       item.id === tenant.id
         ? {
-            ...item,
-            status: "moved_out",
-            move_out_date: isoDate(new Date()),
-            move_out_balance: balance,
-            move_out_damages: damages,
-            move_out_refund: refund,
-            move_out_note: note,
-          }
+          ...item,
+          status: "moved_out",
+          move_out_date: isoDate(new Date()),
+          move_out_balance: balance,
+          move_out_damages: damages,
+          move_out_refund: refund,
+          move_out_note: note,
+        }
         : item
     );
     addNotification({
@@ -6644,25 +6644,25 @@
     state.subscriptions = state.subscriptions.map((item) =>
       item.id === subscription.id
         ? {
-            ...item,
-            monthly_fee: savedMonthlyFee,
-            status,
-            cancel_at_period_end: status === "Cancelled" ? true : item.cancel_at_period_end && status !== "Active",
-            last_payment_date: paymentDate,
-            last_payment_method: item.last_payment_method || "Manual confirmation",
-            last_payment_note: note,
-            next_billing_date: addMonths(paymentDate, 1),
-            provider_payment_status: status === "Active" ? "Manual" : item.provider_payment_status || "Pending",
-            provider_next_action: null,
-          }
+          ...item,
+          monthly_fee: savedMonthlyFee,
+          status,
+          cancel_at_period_end: status === "Cancelled" ? true : item.cancel_at_period_end && status !== "Active",
+          last_payment_date: paymentDate,
+          last_payment_method: item.last_payment_method || "Manual confirmation",
+          last_payment_note: note,
+          next_billing_date: addMonths(paymentDate, 1),
+          provider_payment_status: status === "Active" ? "Manual" : item.provider_payment_status || "Pending",
+          provider_next_action: null,
+        }
         : item
     );
     state.users = state.users.map((item) =>
       item.id === ownerId
         ? {
-            ...item,
-            account_status: status === "Active" ? "Active" : ["Pending", "Overdue", "Paused", "Cancelled"].includes(status) ? "Pending" : item.account_status,
-          }
+          ...item,
+          account_status: status === "Active" ? "Active" : ["Pending", "Overdue", "Paused", "Cancelled"].includes(status) ? "Pending" : item.account_status,
+        }
         : item
     );
 
@@ -6828,12 +6828,12 @@
     state.supportTickets = (state.supportTickets || []).map((item) =>
       item.id === id
         ? {
-            ...item,
-            status: nextStatus,
-            admin_note: nextAdminNote,
-            updated_at: isoDate(new Date()),
-            resolved_at: ["Resolved", "Closed"].includes(nextStatus) ? item.resolved_at || updatedAt : null,
-          }
+          ...item,
+          status: nextStatus,
+          admin_note: nextAdminNote,
+          updated_at: isoDate(new Date()),
+          resolved_at: ["Resolved", "Closed"].includes(nextStatus) ? item.resolved_at || updatedAt : null,
+        }
         : item
     );
     if (response) {
@@ -7193,9 +7193,9 @@
     state.users = state.users.map((item) =>
       item.id === userId
         ? {
-            ...item,
-            account_status: nextStatus,
-          }
+          ...item,
+          account_status: nextStatus,
+        }
         : item
     );
     addAuditLog({
@@ -7280,11 +7280,11 @@
     state.users = state.users.map((item) =>
       item.id === userId
         ? {
-            ...item,
-            verified_badge: verified,
-            verified,
-            verification_label: verified ? "Verified" : "",
-          }
+          ...item,
+          verified_badge: verified,
+          verified,
+          verification_label: verified ? "Verified" : "",
+        }
         : item
     );
     if (verified) {
@@ -7353,12 +7353,12 @@
       state.subscriptions = state.subscriptions.map((item) =>
         item.id === subscription.id
           ? {
-              ...item,
-              plan: nextPackage.plan,
-              monthly_fee: nextPackage.fee,
-              status: nextStatus,
-              next_billing_date: nextPackage.status === "Trial" ? nextBillingDate : item.next_billing_date || nextBillingDate,
-            }
+            ...item,
+            plan: nextPackage.plan,
+            monthly_fee: nextPackage.fee,
+            status: nextStatus,
+            next_billing_date: nextPackage.status === "Trial" ? nextBillingDate : item.next_billing_date || nextBillingDate,
+          }
           : item
       );
     } else {
@@ -7439,20 +7439,20 @@
       state.subscriptions = state.subscriptions.map((item) =>
         item.id === subscription.id
           ? {
-              ...item,
-              plan: paidPlan.plan,
-              monthly_fee: paidPlan.fee,
-              status: "Pending",
-              next_billing_date: today,
-              grace_period_end: today,
-              cancel_at_period_end: false,
-              cancellation_requested_at: null,
-              payment_provider: item.payment_provider || "pesapal",
-              provider_payment_status: "Subscription required",
-              provider_next_action: "Trial ended. Subscribe to continue using RentFlow UG.",
-              last_payment_method: item.last_payment_method || item.billing_method || "Trial",
-              last_payment_note: "Trial ended by super admin. Subscription required.",
-            }
+            ...item,
+            plan: paidPlan.plan,
+            monthly_fee: paidPlan.fee,
+            status: "Pending",
+            next_billing_date: today,
+            grace_period_end: today,
+            cancel_at_period_end: false,
+            cancellation_requested_at: null,
+            payment_provider: item.payment_provider || "pesapal",
+            provider_payment_status: "Subscription required",
+            provider_next_action: "Trial ended. Subscribe to continue using RentFlow UG.",
+            last_payment_method: item.last_payment_method || item.billing_method || "Trial",
+            last_payment_note: "Trial ended by super admin. Subscription required.",
+          }
           : item
       );
     } else {
@@ -7542,20 +7542,20 @@
       state.subscriptions = state.subscriptions.map((item) =>
         item.id === subscription.id
           ? {
-              ...item,
-              plan: activePlan,
-              monthly_fee: monthlyFee,
-              status: "Active",
-              last_payment_date: today,
-              last_payment_method: "Manual",
-              last_payment_note: "Account activated manually by super admin after trial ended.",
-              next_billing_date: nextBillingDate,
-              grace_period_end: null,
-              cancel_at_period_end: false,
-              cancellation_requested_at: null,
-              provider_payment_status: "Manual",
-              provider_next_action: "",
-            }
+            ...item,
+            plan: activePlan,
+            monthly_fee: monthlyFee,
+            status: "Active",
+            last_payment_date: today,
+            last_payment_method: "Manual",
+            last_payment_note: "Account activated manually by super admin after trial ended.",
+            next_billing_date: nextBillingDate,
+            grace_period_end: null,
+            cancel_at_period_end: false,
+            cancellation_requested_at: null,
+            provider_payment_status: "Manual",
+            provider_next_action: "",
+          }
           : item
       );
     } else {
@@ -7770,16 +7770,16 @@
       state.subscriptions = state.subscriptions.map((item) =>
         item.id === subscription.id
           ? {
-              ...item,
-              monthly_fee: collectionAmount,
-              status: "Pending",
-              payment_provider: "pesapal",
-              provider_payment_reference: reference,
-              provider_payment_status: "Pending",
-              provider_next_action: "Demo payment request queued. Landlord pays from Subscribe when live checkout is connected.",
-              last_payment_method: item.last_payment_method || "Pesapal checkout",
-              last_payment_note: `Demo Pesapal payment requested: ${reference}`,
-            }
+            ...item,
+            monthly_fee: collectionAmount,
+            status: "Pending",
+            payment_provider: "pesapal",
+            provider_payment_reference: reference,
+            provider_payment_status: "Pending",
+            provider_next_action: "Demo payment request queued. Landlord pays from Subscribe when live checkout is connected.",
+            last_payment_method: item.last_payment_method || "Pesapal checkout",
+            last_payment_note: `Demo Pesapal payment requested: ${reference}`,
+          }
           : item
       );
       addNotification({
@@ -7838,11 +7838,11 @@
     state.subscriptions = state.subscriptions.map((item) =>
       item.id === subscriptionId
         ? {
-            ...item,
-            cancel_at_period_end: willCancel,
-            cancellation_requested_at: willCancel ? new Date().toISOString() : null,
-            status: item.status === "Cancelled" && !willCancel ? "Active" : item.status,
-          }
+          ...item,
+          cancel_at_period_end: willCancel,
+          cancellation_requested_at: willCancel ? new Date().toISOString() : null,
+          status: item.status === "Cancelled" && !willCancel ? "Active" : item.status,
+        }
         : item
     );
     addNotification({
@@ -7940,10 +7940,10 @@
     state.supportTickets = state.supportTickets.map((ticket) =>
       ticket.id === id
         ? {
-            ...ticket,
-            status: ticket.status === "Resolved" ? "Open" : "Resolved",
-            updated_at: isoDate(new Date()),
-          }
+          ...ticket,
+          status: ticket.status === "Resolved" ? "Open" : "Resolved",
+          updated_at: isoDate(new Date()),
+        }
         : ticket
     );
     saveState();
@@ -7973,11 +7973,10 @@
           </div>
           <p class="support-note">${escapeHtml(ticket.note || "No message added.")}</p>
           <div class="button-row">
-            ${
-              ticket.owner_id
-                ? `<button class="text-button" data-impersonate-landlord="${escapeHtml(ticket.owner_id)}" type="button">Open Account</button>`
-                : ""
-            }
+            ${ticket.owner_id
+        ? `<button class="text-button" data-impersonate-landlord="${escapeHtml(ticket.owner_id)}" type="button">Open Account</button>`
+        : ""
+      }
             <button class="${resolved ? "text-button" : "primary-button"}" data-toggle-ticket="${escapeHtml(ticket.id)}" type="button">
               ${resolved ? "Reopen" : "Mark Resolved"}
             </button>
@@ -8194,19 +8193,19 @@
     const breakdown = monthlyPaymentStatusBreakdown(report);
     const paymentLines = report.monthPayments.length
       ? report.monthPayments.map((payment) => {
-          const tenant = (scope.tenants || []).find((item) => item.id === payment.tenant_id) || tenantById(payment.tenant_id);
-          const unit = tenant ? (scope.units || []).find((item) => item.id === tenant.unit_id) || unitById(tenant.unit_id) : null;
-          return `${formatDate(payment.payment_date)} | ${tenant ? tenant.name : "Removed tenant"} | ${unit ? unit.unit_number : "Unassigned"} | ${formatMoney(payment.amount)} | ${payment.payment_method || "-"} | ${payment.reference || "-"} | ${payment.verification_status || "Unverified"}`;
-        })
+        const tenant = (scope.tenants || []).find((item) => item.id === payment.tenant_id) || tenantById(payment.tenant_id);
+        const unit = tenant ? (scope.units || []).find((item) => item.id === tenant.unit_id) || unitById(tenant.unit_id) : null;
+        return `${formatDate(payment.payment_date)} | ${tenant ? tenant.name : "Removed tenant"} | ${unit ? unit.unit_number : "Unassigned"} | ${formatMoney(payment.amount)} | ${payment.payment_method || "-"} | ${payment.reference || "-"} | ${payment.verification_status || "Unverified"}`;
+      })
       : ["No payments recorded for this month."];
     const unpaidLines = report.unpaidRows.length
       ? report.unpaidRows.map((row) => `${row.tenant.name} | ${row.unit ? row.unit.unit_number : "Unassigned"} | Paid ${formatMoney(row.paid)} | Balance ${formatMoney(row.balance)} | ${row.status}`)
       : ["No outstanding tenant balances for this month."];
     const expenseLines = report.monthExpenses.length
       ? report.monthExpenses.map((expense) => {
-          const property = (scope.properties || []).find((item) => item.id === expense.property_id) || propertyById(expense.property_id);
-          return `${formatDate(expense.date)} | ${property ? property.property_name : "Unknown property"} | ${expense.type} | ${formatMoney(expense.amount)}`;
-        })
+        const property = (scope.properties || []).find((item) => item.id === expense.property_id) || propertyById(expense.property_id);
+        return `${formatDate(expense.date)} | ${property ? property.property_name : "Unknown property"} | ${expense.type} | ${formatMoney(expense.amount)}`;
+      })
       : ["No expenses recorded for this month."];
 
     return [
@@ -8536,24 +8535,24 @@
       scope: isSaasOwner(user) ? "platform" : "current account",
       data: isSaasOwner(user)
         ? {
-            users: state.users,
-            subscriptions: state.subscriptions,
-            properties: state.properties,
-            units: state.units,
-            tenants: state.tenants,
-            payments: state.payments,
-            expenses: state.expenses,
-            supportTickets: state.supportTickets,
-            notifications: state.notifications,
-          }
+          users: state.users,
+          subscriptions: state.subscriptions,
+          properties: state.properties,
+          units: state.units,
+          tenants: state.tenants,
+          payments: state.payments,
+          expenses: state.expenses,
+          supportTickets: state.supportTickets,
+          notifications: state.notifications,
+        }
         : {
-            properties: scoped.properties,
-            units: scoped.units,
-            tenants: scoped.tenants,
-            payments: scoped.payments,
-            expenses: scoped.expenses,
-            notifications: platformNotifications(),
-          },
+          properties: scoped.properties,
+          units: scoped.units,
+          tenants: scoped.tenants,
+          payments: scoped.payments,
+          expenses: scoped.expenses,
+          notifications: platformNotifications(),
+        },
     };
     downloadTextFile(`rentflow-backup-${isoDate(new Date())}.json`, JSON.stringify(payload, null, 2));
     showToast("Backup exported.");
@@ -8633,9 +8632,9 @@
   function isSuperAdminLinkedDemoAccount(user) {
     return Boolean(
       user &&
-        (DEMO_ACCOUNT_IDS.includes(user.id) ||
-          user.id === "user-2" ||
-          /^Demo Landlord\b/.test(String(user.name || "")))
+      (DEMO_ACCOUNT_IDS.includes(user.id) ||
+        user.id === "user-2" ||
+        /^Demo Landlord\b/.test(String(user.name || "")))
     );
   }
 
@@ -8716,9 +8715,8 @@
       portfolio.units.length >= limit.units ||
       caretakers >= limit.caretakers;
     ui.planLimitNotice.className = `plan-limit-note setup-limit-note ${atLimit ? "warning" : ""}`;
-    ui.planLimitNotice.textContent = `${limit.plan} plan usage: ${usage.join(" - ")}. ${
-      limit.publicListings ? "Public listings included." : "Public listings unlock on Professional."
-    }`;
+    ui.planLimitNotice.textContent = `${limit.plan} plan usage: ${usage.join(" - ")}. ${limit.publicListings ? "Public listings included." : "Public listings are available on Professional and Enterprise plans."
+      }`;
     ui.planLimitNotice.classList.remove("hidden");
   }
 
@@ -9113,10 +9111,10 @@
     state.units = state.units.map((unit) =>
       unit.id === unitId
         ? {
-            ...unit,
-            status,
-            listing_published: false,
-          }
+          ...unit,
+          status,
+          listing_published: false,
+        }
         : unit
     );
   }
@@ -9462,10 +9460,10 @@
   function isSupabaseConfigReady(config) {
     return Boolean(
       config &&
-        config.url &&
-        config.anonKey &&
-        !config.url.includes("your-project") &&
-        !config.anonKey.includes("your-public")
+      config.url &&
+      config.anonKey &&
+      !config.url.includes("your-project") &&
+      !config.anonKey.includes("your-public")
     );
   }
 
@@ -10151,11 +10149,11 @@
     migrated.supportTicketFilters =
       saved.supportTicketFilters && typeof saved.supportTicketFilters === "object"
         ? {
-            search: saved.supportTicketFilters.search || "",
-            owner: saved.supportTicketFilters.owner || "all",
-            status: saved.supportTicketFilters.status || "all",
-            priority: saved.supportTicketFilters.priority || "all",
-          }
+          search: saved.supportTicketFilters.search || "",
+          owner: saved.supportTicketFilters.owner || "all",
+          status: saved.supportTicketFilters.status || "all",
+          priority: saved.supportTicketFilters.priority || "all",
+        }
         : { search: "", owner: "all", status: "all", priority: "all" };
 
     const seedUsersById = new Map(seeded.users.map((user) => [user.id, user]));

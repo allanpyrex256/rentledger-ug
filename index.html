@@ -1,1917 +1,2046 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RentFlow UG</title>
-    <link rel="canonical" href="https://rentflowug.etohubs.com/" />
-    <meta property="og:url" content="https://rentflowug.etohubs.com/" />
-    <link rel="icon" type="image/png" href="assets/rentflow-logo-icon.png" />
-    <link rel="stylesheet" href="styles.css?v=20260611-new-walkthrough-video" />
-  </head>
-  <body>
-    <section id="landingScreen" class="landing-page">
-      <header class="landing-nav">
-        <div class="brand-block landing-brand">
-          <div class="brand-mark">
-            <img src="assets/rentflow-logo-icon.png" alt="RentFlow logo" />
-          </div>
-          <div>
-            <div class="brand-name">RentFlow UG</div>
-            <div class="brand-meta">Smart Rent. Smooth Flow</div>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RentFlow UG</title>
+  <link rel="canonical" href="https://rentflowug.etohubs.com/" />
+  <meta property="og:url" content="https://rentflowug.etohubs.com/" />
+  <link rel="icon" type="image/png" href="assets/rentflow-logo-icon.png" />
+  <link rel="stylesheet" href="styles.css?v=20260611-new-walkthrough-video" />
+</head>
+
+<body>
+  <section id="landingScreen" class="landing-page">
+    <header class="landing-nav">
+      <div class="brand-block landing-brand">
+        <div class="brand-mark">
+          <img src="assets/rentflow-logo-icon.png" alt="RentFlow logo" />
+        </div>
+        <div>
+          <div class="brand-name">RentFlow UG</div>
+          <div class="brand-meta">Smart Rent. Smooth Flow</div>
+        </div>
+      </div>
+      <nav class="landing-links" aria-label="Landing navigation">
+        <a href="#landingScreen" data-scroll-target="landingScreen">Home</a>
+        <a href="vacancies.html">Find rental</a>
+        <a href="#howItWorks" data-scroll-target="howItWorks">How It Works</a>
+        <a href="#pricing" data-scroll-target="pricing">Pricing</a>
+        <button class="ghost-button" data-open-auth="signin" type="button">Sign In</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero-section">
+        <div class="hero-copy">
+          <img class="hero-brand-logo" src="assets/rentflow-logo-full.png" alt="RentFlow - Smart Rent. Smooth Flow" />
+          <span class="hero-kicker">Smart Rent. Smooth Flow</span>
+          <h1>Track rent, tenants, and vacant rooms from your phone.</h1>
+          <p>
+            Know who paid rent, who did not, and which rooms need tenants without notebooks, Excel, or scattered
+            WhatsApp chats.
+          </p>
+          <div class="hero-actions">
+            <button class="primary-button" data-open-auth="signup" type="button">Start 30-Day Free Trial</button>
+            <a class="ghost-button link-button" href="vacancies.html">Browse Rentals</a>
           </div>
         </div>
-        <nav class="landing-links" aria-label="Landing navigation">
-          <a href="#landingScreen" data-scroll-target="landingScreen">Home</a>
-          <a href="vacancies.html">Find rental</a>
-          <a href="#howItWorks" data-scroll-target="howItWorks">How It Works</a>
-          <a href="#pricing" data-scroll-target="pricing">Pricing</a>
-          <button class="ghost-button" data-open-auth="signin" type="button">Sign In</button>
+      </section>
+
+      <section class="trust-bar" aria-label="Platform metrics">
+        <div><strong>Rent Book</strong><span>Replace notebooks and Excel</span></div>
+        <div><strong>Balances</strong><span>Paid, partial, overdue, advance</span></div>
+        <div><strong>WhatsApp</strong><span>Reminders and receipts</span></div>
+        <div><strong>Vacancies</strong><span>Public listings for free units</span></div>
+      </section>
+
+      <section class="photo-story landing-section" aria-label="Rental management moments">
+        <article class="photo-card large-photo">
+          <img src="assets/apartment-exterior.jpg" alt="Modern apartment building exterior" />
+          <div>
+            <span>Portfolio visibility</span>
+            <h3>Know which rooms are occupied, vacant, paid, or late.</h3>
+          </div>
+        </article>
+        <article class="photo-card">
+          <img src="assets/mobile-payment.jpg" alt="Person making a payment with a smartphone" />
+          <div>
+            <span>Payment confidence</span>
+            <h3>Record MTN MoMo, Airtel Money, cash, and bank payments.</h3>
+          </div>
+        </article>
+        <article class="photo-card">
+          <img src="assets/property-keys.jpg" alt="House keys in a modern apartment" />
+          <div>
+            <span>Tenant handover</span>
+            <h3>Keep tenant details, deposits, and move-in history in one place.</h3>
+          </div>
+        </article>
+        <!-- Added screenshots from screenshots/ folder -->
+        <article class="photo-card">
+          <img src="screenshots/Screenshot 2026-06-28 161845.png" alt="Screenshot 1" />
+          <div>
+            <span>App preview</span>
+            <h3>Quick look at the mobile dashboard.</h3>
+          </div>
+        </article>
+        <article class="photo-card">
+          <img src="screenshots/Screenshot 2026-06-28 161912.png" alt="Screenshot 2" />
+          <div>
+            <span>Listing preview</span>
+            <h3>Sample public listing appearance on mobile.</h3>
+          </div>
+        </article>
+        <article class="photo-card">
+          <img src="screenshots/Screenshot 2026-06-28 161925.png" alt="Screenshot 3" />
+          <div>
+            <span>Tenant flow</span>
+            <h3>Tenant management and payments view.</h3>
+          </div>
+        </article>
+        <article class="photo-card">
+          <img src="screenshots/Screenshot 2026-06-28 161952.png" alt="Screenshot 4" />
+          <div>
+            <span>Reports</span>
+            <h3>Expense and receipt reporting on the go.</h3>
+          </div>
+        </article>
+      </section>
+
+      <section id="features" class="landing-section">
+        <div class="section-heading">
+          <span class="hero-kicker">No complicated SaaS language</span>
+          <h2>Replace the rent book, Excel sheet, and scattered WhatsApp chats.</h2>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <figure class="feature-media">
+              <img src="assets/mobile-payment.jpg" alt="Mobile money payment being recorded for rent tracking" />
+              <figcaption>
+                <span>Paid</span>
+                <strong>USh 850K</strong>
+              </figcaption>
+            </figure>
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 19h16"></path>
+                <path d="M7 16V8"></path>
+                <path d="M12 16V5"></path>
+                <path d="M17 16v-3"></path>
+              </svg>
+            </span>
+            <h3>Rent Tracking</h3>
+            <p>See paid, partial, overdue, advance, and carried-forward balances.</p>
+          </article>
+          <article class="feature-card">
+            <figure class="feature-media">
+              <img src="assets/tenant-management.jpg" alt="Real estate agent handing over keys for tenant management" />
+              <figcaption>
+                <span>Tenant profile</span>
+                <strong>Room A2</strong>
+              </figcaption>
+            </figure>
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <h3>Tenant Management</h3>
+            <p>Store tenant details, room allocation, deposits, and payment history.</p>
+          </article>
+          <article class="feature-card">
+            <figure class="feature-media">
+              <img src="assets/apartment-exterior.jpg" alt="Apartment building with vacant rental units" />
+              <figcaption>
+                <span>Vacant</span>
+                <strong>3 units</strong>
+              </figcaption>
+            </figure>
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 21h18"></path>
+                <path d="M5 21V7l8-4v18"></path>
+                <path d="M19 21V11l-6-4"></path>
+                <path d="M9 9h1"></path>
+                <path d="M9 13h1"></path>
+                <path d="M9 17h1"></path>
+              </svg>
+            </span>
+            <h3>Vacant Units</h3>
+            <p>Publish vacant single rooms, double rooms, shops, and houses for tenants to find.</p>
+          </article>
+          <article class="feature-card">
+            <figure class="feature-media">
+              <img src="assets/expense-tracking.jpg"
+                alt="Expense records being calculated on a phone beside a notebook and laptop" />
+              <figcaption>
+                <span>Repair logged</span>
+                <strong>USh 120K</strong>
+              </figcaption>
+            </figure>
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M7 2h10"></path>
+                <path d="M5 6h14"></path>
+                <path d="M6 6l1 16h10l1-16"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </span>
+            <h3>Expense Tracking</h3>
+            <p>Monitor repairs, utilities, salaries, and maintenance costs.</p>
+          </article>
+          <article class="feature-card">
+            <figure class="feature-media">
+              <img src="assets/receipts-reports.jpg"
+                alt="Invoice paperwork being reviewed on a clipboard for receipts and reports" />
+              <figcaption>
+                <span>Receipt</span>
+                <strong>PDF ready</strong>
+              </figcaption>
+            </figure>
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M6 2h9l5 5v15H6z"></path>
+                <path d="M14 2v6h6"></path>
+                <path d="M9 13h6"></path>
+                <path d="M9 17h6"></path>
+              </svg>
+            </span>
+            <h3>Receipts & Reports</h3>
+            <p>Print receipts and download monthly rent or expense reports.</p>
+          </article>
+          <article class="feature-card">
+            <figure class="feature-media">
+              <img src="assets/whatsapp-reminders.jpg" alt="People using smartphones for WhatsApp rent reminders" />
+              <figcaption>
+                <span>WhatsApp</span>
+                <strong>Reminder sent</strong>
+              </figcaption>
+            </figure>
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 11.5a8.5 8.5 0 0 1-12.8 7.35L3 21l2.15-5.2A8.5 8.5 0 1 1 21 11.5Z"></path>
+                <path d="M9.5 8.5c.5 2 2 3.5 4 4l1.2-1.2c.3-.3.8-.4 1.2-.2l1.5.7"></path>
+              </svg>
+            </span>
+            <h3>WhatsApp Reminders</h3>
+            <p>Send rent reminders, balances, and receipt messages on WhatsApp.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="howItWorks" class="landing-section steps-section">
+        <div class="section-heading">
+          <span class="hero-kicker">Simple setup</span>
+          <h2>Start from the way Ugandan landlords already work.</h2>
+        </div>
+        <div class="steps-grid">
+          <article>
+            <span>1</span>
+            <h3>Add your properties</h3>
+            <p>Create apartments, rentals, shops, boys quarters, houses, and each room's rent.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h3>Register tenants & rooms</h3>
+            <p>Assign tenants to rooms, shops, or houses and keep contact details organized.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <h3>Track who paid</h3>
+            <p>Record full, partial, late, or advance payments and send reminders quickly.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="onboardingDemo" class="landing-section onboarding-demo-section">
+        <div class="onboarding-demo-copy">
+          <div class="section-heading">
+            <span class="hero-kicker">Landlord onboarding demo</span>
+            <h2>See the full rent flow before you create an account.</h2>
+            <p>A simple walkthrough for landlords who want to see exactly where properties, tenants, rent payments,
+              reminders, and public listings fit.</p>
+          </div>
+          <div class="demo-actions">
+            <button class="primary-button" data-start-demo="user-1" type="button">Open Interactive Demo</button>
+            <button class="ghost-button" data-scroll-target="dashboardPreview" type="button">View Dashboard
+              Preview</button>
+          </div>
+          <div class="demo-login-note">
+            <strong>Demo account</strong>
+            <span>Landlord Demo - 0772123456</span>
+          </div>
+        </div>
+
+        <div class="walkthrough-video-card" aria-label="RentFlow property setup walkthrough video">
+          <div class="walkthrough-video-topbar">
+            <span>Video walkthrough</span>
+            <strong>Property setup</strong>
+          </div>
+          <div class="walkthrough-stage">
+            <video class="walkthrough-video" controls data-walkthrough-video playsinline preload="metadata"
+              poster="video/0608%281%29-Cover.jpg">
+              <source src="video/0608%281%29.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          <div class="walkthrough-controls" data-walkthrough-controls hidden>
+            <button class="walkthrough-icon-button" data-video-toggle type="button" aria-label="Play video">
+              <svg class="control-icon icon-play" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5v14l11-7z"></path>
+              </svg>
+              <svg class="control-icon icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5h3v14H8z"></path>
+                <path d="M13 5h3v14h-3z"></path>
+              </svg>
+            </button>
+            <input class="walkthrough-progress" data-video-progress type="range" min="0" max="1000" step="1" value="0"
+              aria-label="Video progress" />
+            <span class="walkthrough-time" data-video-time>0:00 / 0:00</span>
+            <button class="walkthrough-icon-button" data-video-mute type="button" aria-label="Mute video">
+              <svg class="control-icon icon-volume" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 9v6h4l5 4V5L8 9H4z"></path>
+                <path d="M16 8c1.2 1.1 1.8 2.4 1.8 4s-.6 2.9-1.8 4"></path>
+              </svg>
+              <svg class="control-icon icon-volume-off" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 9v6h4l5 4V5L8 9H4z"></path>
+                <path d="M18 9l-4 6"></path>
+                <path d="M14 9l4 6"></path>
+              </svg>
+            </button>
+            <button class="walkthrough-icon-button" data-video-fullscreen type="button" aria-label="Full screen video">
+              <svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 3H3v5"></path>
+                <path d="M16 3h5v5"></path>
+                <path d="M8 21H3v-5"></path>
+                <path d="M16 21h5v-5"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="workflow-animation" aria-label="How RentFlow works animation">
+          <div class="workflow-node">
+            <span>1</span>
+            <strong>Add property</strong>
+            <small>Set rent per room</small>
+          </div>
+          <div class="workflow-node">
+            <span>2</span>
+            <strong>Add tenant</strong>
+            <small>Assign room</small>
+          </div>
+          <div class="workflow-node">
+            <span>3</span>
+            <strong>Record rent</strong>
+            <small>Track balance</small>
+          </div>
+          <div class="workflow-node">
+            <span>4</span>
+            <strong>Share update</strong>
+            <small>Receipt or listing</small>
+          </div>
+          <div class="workflow-pulse" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <section id="dashboardPreview" class="dashboard-preview landing-section">
+        <div class="section-heading">
+          <span class="hero-kicker">Dashboard preview</span>
+          <h2>Know who has paid, who has not, and which rooms are free.</h2>
+        </div>
+        <div class="preview-shell dashboard-screen">
+          <div class="preview-sidebar">
+            <strong>RentFlow UG</strong>
+            <span>Dashboard</span>
+            <span>Properties</span>
+            <span>Tenants</span>
+            <span>Rent</span>
+          </div>
+          <div class="preview-main">
+            <div class="preview-header-row">
+              <div>
+                <span>Owner Dashboard</span>
+                <strong>Kira Road Apartments</strong>
+              </div>
+              <span class="preview-date-pill">May 2026</span>
+            </div>
+            <div class="preview-metrics">
+              <article><span>Collected</span><strong>USh 8.4M</strong><small>18 receipts</small></article>
+              <article><span>Outstanding</span><strong>USh 1.2M</strong><small>6 tenants due</small></article>
+              <article><span>Vacant Units</span><strong>3</strong><small>2 public listings</small></article>
+              <article><span>Expenses</span><strong>USh 620K</strong><small>Repairs and utilities</small></article>
+            </div>
+            <div class="preview-panels">
+              <div class="preview-panel">
+                <h3>Occupancy</h3>
+                <div class="mini-units">
+                  <span class="occupied">A1</span>
+                  <span class="occupied">A2</span>
+                  <span class="vacant">B1</span>
+                  <span class="occupied">B2</span>
+                  <span class="occupied">N1</span>
+                  <span class="vacant">N2</span>
+                </div>
+              </div>
+              <div class="preview-panel">
+                <h3>Recent Payments</h3>
+                <div class="payment-row"><span>Sarah A.</span><strong>USh 450,000</strong></div>
+                <div class="payment-row"><span>Moses K.</span><strong>USh 260,000</strong></div>
+                <div class="payment-row"><span>Ruth N.</span><strong>USh 380,000</strong></div>
+                <div class="payment-row"><span>Daniel O.</span><strong>USh 520,000</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-section screenshot-gallery">
+        <div class="section-heading">
+          <span class="hero-kicker">Rent reminders in action</span>
+          <h2>See the reminder queue, payment tracking, and vacancy overview on the landing page.</h2>
+        </div>
+        <div class="screenshot-grid">
+          <article class="screenshot-card">
+            <img src="assets/whatsapp-reminders.jpg" alt="WhatsApp rent reminder preview" />
+            <div>
+              <h3>Reminder queue</h3>
+              <p>Send WhatsApp and SMS alerts from a single queue without losing track of follow-ups.</p>
+            </div>
+          </article>
+          <article class="screenshot-card">
+            <img src="assets/mobile-payment.jpg" alt="Mobile payment tracking preview" />
+            <div>
+              <h3>Payment tracking</h3>
+              <p>Capture MTN MoMo, Airtel Money, cash, and bank payments in one easy view.</p>
+            </div>
+          </article>
+          <article class="screenshot-card">
+            <img src="assets/apartment-exterior.jpg" alt="Property vacancy and tenant overview" />
+            <div>
+              <h3>Vacancy overview</h3>
+              <p>Quickly see which rooms are occupied, vacant, paid, or overdue in your portfolio.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="landing-section benefits-section">
+        <div class="benefit-copy">
+          <span class="hero-kicker">Why landlords use it</span>
+          <h2>Less chasing tenants. Better records. Clearer rental income.</h2>
+        </div>
+        <div class="benefit-grid">
+          <article>
+            <h3>Stop Guessing</h3>
+            <p>See who paid, who paid partly, and who still has a balance.</p>
+          </article>
+          <article>
+            <h3>Use WhatsApp</h3>
+            <p>Send reminders and receipts through the channel tenants already use.</p>
+          </article>
+          <article>
+            <h3>Fill Vacancies</h3>
+            <p>Publish empty rooms and get tenant inquiries faster.</p>
+          </article>
+          <article>
+            <h3>Trust Your Records</h3>
+            <p>Keep payment history, activity, receipts, and reports in one place.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="testimonials" class="landing-section testimonial-section">
+        <div class="section-heading testimonial-heading">
+          <span class="hero-kicker">Landlord stories</span>
+          <h2>Organized records for real rental work.</h2>
+          <p>Simple tracking for owners who want rent, balances, expenses, and vacant rooms in one place.</p>
+        </div>
+        <div class="testimonial-grid">
+          <blockquote>
+            <p>RentFlow helped me manage all my apartments in Kira without paperwork.</p>
+            <cite>
+              <strong>Property owner</strong>
+              <span>Kampala</span>
+            </cite>
+          </blockquote>
+          <blockquote>
+            <p>I can now see rent balances, expenses, and vacant rooms from my phone.</p>
+            <cite>
+              <strong>Landlord</strong>
+              <span>Ntinda</span>
+            </cite>
+          </blockquote>
+        </div>
+      </section>
+
+      <section id="pricing" class="landing-section pricing-section">
+        <div class="section-heading">
+          <span class="hero-kicker">Pricing</span>
+          <h2>Simple plans for landlords, agents, and caretakers.</h2>
+        </div>
+        <div class="pricing-grid">
+          <article class="price-card">
+            <h3>Starter</h3>
+            <strong>USh 50,000<span>/month</span></strong>
+            <p>For landlords moving rent records from notebooks to a phone.</p>
+            <ul>
+              <li>Unlimited properties and up to 20 units</li>
+              <li>1 caretaker account only</li>
+              <li>Rent, tenant, expense, and receipt tracking</li>
+              <li>Private vacancy tracking; public listings unlock on Professional</li>
+            </ul>
+            <button class="ghost-button" data-open-auth="signup" data-signup-plan="Starter" type="button">Start 30-Day
+              Free Trial</button>
+          </article>
+          <article class="price-card featured-price">
+            <h3>Professional</h3>
+            <strong>USh 120,000<span>/month</span></strong>
+            <p>For landlords managing multiple properties with staff collecting rent.</p>
+            <ul>
+              <li>Up to 5 properties and 100 units</li>
+              <li>Up to 10 caretaker accounts</li>
+              <li>Publish houses, rooms, and shops for rent to public listings</li>
+              <li>Monthly rent and expense report downloads</li>
+            </ul>
+            <button class="primary-button" data-open-auth="signup" data-signup-plan="Professional" type="button">Start
+              30-Day Free Trial</button>
+          </article>
+          <article class="price-card">
+            <h3>Enterprise</h3>
+            <strong>Up to USh 500,000<span>/month</span></strong>
+            <p>For agencies, estates, and larger portfolios that need setup support.</p>
+            <ul>
+              <li>Everything in Professional</li>
+              <li>Unlimited caretaker accounts</li>
+              <li>Backend team support and account setup help</li>
+              <li>Blue tick Verified badge by super admin approval</li>
+            </ul>
+            <a class="ghost-button link-button"
+              href="mailto:rentflowugsupport@etohubs.com?subject=RentFlow%20UG%20Enterprise%20plan">Talk to Sales</a>
+          </article>
+        </div>
+      </section>
+
+      <section id="paymentDetails" class="landing-section payment-details-section">
+        <div class="section-heading">
+          <span class="hero-kicker">Payment details</span>
+          <h2>Subscription, support, and policy information.</h2>
+          <p>RentFlow UG sells monthly landlord software subscriptions in Uganda Shillings for property, tenant, rent,
+            receipt, expense, staff, and vacancy management.</p>
+        </div>
+        <div class="policy-grid">
+          <article class="policy-card">
+            <h3>Accepted Payments</h3>
+            <p>Starter is USh 50,000/month and Professional is USh 120,000/month after the 30-day free trial. Payments
+              can be collected by MTN MoMo, Airtel Money, or Visa / Mastercard through Pesapal checkout.</p>
+          </article>
+          <article class="policy-card">
+            <h3>Cancellation</h3>
+            <p>Landlords can request cancellation before the next billing date from in-app support or by email.
+              Cancelled subscriptions remain usable until the end of the paid billing period.</p>
+          </article>
+          <article class="policy-card">
+            <h3>Refunds & Disputes</h3>
+            <p>Duplicate charges, failed collections, and incorrect subscription charges are reviewed when reported with
+              the payment reference. Approved refunds are returned to the original payment method.</p>
+          </article>
+          <article class="policy-card">
+            <h3>Data Privacy</h3>
+            <p>Landlord, tenant, property, and payment records are used to operate the account, provide support, and
+              secure access. RentFlow UG does not sell landlord or tenant records.</p>
+          </article>
+        </div>
+        <div class="support-strip">
+          <div>
+            <strong>Business contact</strong>
+            <span>RentFlow UG, Kampala, Uganda</span>
+          </div>
+          <a class="primary-button link-button"
+            href="mailto:rentflowugsupport@etohubs.com?subject=RentFlow%20UG%20Support">Email Support</a>
+        </div>
+      </section>
+
+      <footer class="landing-footer">
+        <div>
+          <strong>RentFlow UG</strong>
+          <span>Landlord management software for Uganda.</span>
+        </div>
+        <nav aria-label="Policy links">
+          <a href="#pricing">Pricing</a>
+          <a href="company.html#about">About Us</a>
+          <a href="company.html#contact">Contact Us</a>
+          <a href="company.html#privacy">Privacy Policy</a>
+          <a href="company.html#terms">Terms</a>
+          <a href="company.html#support">Support Center</a>
         </nav>
+      </footer>
+    </main>
+  </section>
+
+  <section id="authScreen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="brand-block auth-brand">
+        <div class="brand-mark">
+          <img src="assets/rentflow-logo-icon.png" alt="RentFlow logo" />
+        </div>
+        <div>
+          <div class="brand-name">RentFlow UG</div>
+          <div class="brand-meta">Smart Rent. Smooth Flow</div>
+        </div>
+      </div>
+
+      <div class="auth-tabs" role="tablist" aria-label="Account actions">
+        <button class="auth-tab active" data-auth-tab="signin" type="button">Sign In</button>
+        <button class="auth-tab" data-auth-tab="signup" type="button">Create Account</button>
+      </div>
+
+      <form id="signInForm" class="stacked-form auth-form">
+        <label>
+          Phone Number or Email
+          <input id="signInIdentifier" autocomplete="username" required />
+        </label>
+        <label>
+          Password
+          <span class="password-input">
+            <input id="signInPassword" type="password" autocomplete="current-password" required />
+            <button class="password-toggle" data-password-toggle="signInPassword" type="button"
+              aria-label="Show password" aria-pressed="false" title="Show password">
+              <svg class="password-icon password-icon-show" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2.1 12s3.4-6.2 9.9-6.2S21.9 12 21.9 12s-3.4 6.2-9.9 6.2S2.1 12 2.1 12Z"></path>
+                <circle cx="12" cy="12" r="2.6"></circle>
+              </svg>
+              <svg class="password-icon password-icon-hide" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 3l18 18"></path>
+                <path d="M10.7 5.9c.4-.1.8-.1 1.3-.1 6.5 0 9.9 6.2 9.9 6.2a17.7 17.7 0 0 1-3.2 3.8"></path>
+                <path d="M14.1 14.1a3 3 0 0 1-4.2-4.2"></path>
+                <path d="M6.6 6.7A17.3 17.3 0 0 0 2.1 12s3.4 6.2 9.9 6.2c1.6 0 3-.4 4.2-.9"></path>
+              </svg>
+            </button>
+          </span>
+        </label>
+        <button class="primary-button" type="submit">Sign In</button>
+        <button id="forgotPasswordButton" class="text-button auth-secondary-button" type="button">Forgot
+          Password?</button>
+        <div class="demo-account-panel hidden" aria-label="Demo accounts">
+          <span class="demo-account-title">Demo Accounts</span>
+          <div class="demo-account-grid">
+            <button class="demo-account-button" data-demo-account="user-1" type="button">
+              <strong>Landlord</strong>
+              <small>0772123456</small>
+            </button>
+            <button class="demo-account-button" data-demo-account="staff-1" type="button">
+              <strong>Caretaker</strong>
+              <small>0700111222</small>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <form id="createAccountForm" class="stacked-form auth-form hidden">
+        <div class="form-section-title">Account Information</div>
+        <label>
+          Full Name
+          <input id="accountName" autocomplete="name" required />
+        </label>
+        <label>
+          Phone Number
+          <input id="accountPhone" autocomplete="tel" required />
+        </label>
+        <label>
+          Email Address
+          <input id="accountEmail" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          Password
+          <input id="accountPassword" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <label>
+          Confirm Password
+          <input id="accountConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <div class="form-section-title">Choose Your Plan</div>
+        <label>
+          Plan
+          <select id="accountPlan" required>
+            <option value="">Select a plan</option>
+            <option value="Starter">Starter Plan - USh 50,000/month</option>
+            <option value="Professional">Professional Plan - USh 120,000/month</option>
+          </select>
+        </label>
+        <div class="trial-reassurance">
+          <strong>30-Day Free Trial</strong>
+          <span>Start with a free 30-day trial. No payment is charged during the trial period.</span>
+        </div>
+        <div class="form-section-title">
+          Payment Setup
+          <span>Required after trial</span>
+        </div>
+        <label>
+          Payment Method
+          <select id="accountPaymentMethod" required>
+            <option value="">Select payment method</option>
+            <option value="MTN MoMo">MTN Mobile Money</option>
+            <option value="Airtel Money">Airtel Money</option>
+            <option value="Visa / Mastercard">Visa / Mastercard</option>
+          </select>
+        </label>
+        <label>
+          Mobile Money Number or Card Authorization Reference
+          <input id="accountBillingContact" autocomplete="tel" placeholder="Example: 0772123456" required />
+          <small class="form-helper">This payment method will be used only after your 30-day free trial ends. No charges
+            are made today.</small>
+        </label>
+        <div class="form-section-title">Property Information</div>
+        <label>
+          Property / Business Name
+          <input id="accountPropertyName" autocomplete="organization" />
+        </label>
+        <label>
+          Number of Units (Optional)
+          <input id="accountUnitCount" type="number" min="1" step="1" inputmode="numeric" placeholder="Example: 12" />
+        </label>
+        <div class="form-section-title">Agreement</div>
+        <label class="checkbox-consent">
+          <input id="accountBillingConsent" type="checkbox" required />
+          <span>I agree to the RentFlow UG <a href="company.html#terms">Terms and Conditions</a> and <a
+              href="company.html#privacy">Privacy Policy</a>.</span>
+        </label>
+        <div id="accountTrialSummary" class="billing-summary-note">Select Starter or Professional, choose a payment
+          method, and confirm your details before starting the 30-day free trial. No charges are made today.</div>
+        <button class="primary-button" type="submit">&#128640; Start Free Trial</button>
+      </form>
+
+      <form id="forgotPasswordForm" class="stacked-form auth-form hidden">
+        <label>
+          Account Phone or Email
+          <input id="resetIdentifier" autocomplete="username" required />
+        </label>
+        <div class="form-actions auth-form-actions">
+          <button id="cancelPasswordReset" class="ghost-button" type="button">Back</button>
+          <button class="primary-button" type="submit">Send OTP</button>
+        </div>
+      </form>
+
+      <form id="resetPasswordForm" class="stacked-form auth-form hidden">
+        <label>
+          Account Email
+          <input id="resetOtpEmail" readonly />
+        </label>
+        <label id="resetOtpLabel">
+          Email OTP
+          <input id="resetOtp" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required />
+        </label>
+        <label>
+          New Password
+          <input id="resetNewPassword" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <label>
+          Confirm Password
+          <input id="resetConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <small id="resetOtpNotice" class="reset-otp-notice hidden"></small>
+        <div class="form-actions auth-form-actions">
+          <button id="resetPasswordBack" class="ghost-button" type="button">Back</button>
+          <button class="primary-button" type="submit">Reset Password</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-shell hidden">
+    <div id="loadingBar" class="loading-bar hidden" role="status" aria-live="polite">
+      <span></span>
+      <strong>Loading</strong>
+    </div>
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-mark">
+          <img src="assets/rentflow-logo-icon.png" alt="RentFlow logo" />
+        </div>
+        <div>
+          <div class="brand-name">RentFlow UG</div>
+          <div class="brand-meta">Smart Rent. Smooth Flow</div>
+        </div>
+      </div>
+
+      <nav id="sideNav" class="side-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-view="dashboard" type="button">Dashboard</button>
+        <button class="nav-item" data-view="properties" type="button">Setup</button>
+        <button class="nav-item" data-view="tenants" type="button">Tenants</button>
+        <button class="nav-item" data-view="staff" type="button">Caretakers</button>
+        <button class="nav-item" data-view="rent" type="button">Rent</button>
+        <button class="nav-item" data-view="expenses" type="button">Expenses</button>
+        <button class="nav-item" data-view="reminders" type="button">Reminders</button>
+        <button class="nav-item" data-view="support" type="button">Support</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="account-card">
+          <span>Account</span>
+          <strong id="currentAccountName">Landlord</strong>
+          <small id="currentAccountPhone"></small>
+        </div>
+        <label for="roleSelect">Role</label>
+        <select id="roleSelect">
+          <option value="landlord">Landlord</option>
+          <option value="caretaker">Caretaker</option>
+        </select>
+        <button id="logoutButton" class="ghost-button" type="button">Sign Out</button>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div>
+          <h1 id="viewTitle">Dashboard</h1>
+          <p id="viewSubtitle">Rent, balances, tenants, and vacant rooms at a glance.</p>
+        </div>
+
+        <div class="topbar-actions">
+          <input id="globalSearch" class="search-input" placeholder="Search records" />
+          <select id="propertyFilter" aria-label="Property filter"></select>
+          <div class="notification-shell">
+            <button id="notificationToggle" class="ghost-button notification-button" type="button"
+              aria-controls="notificationPanel" aria-expanded="false">
+              Notifications <span id="notificationCount" class="notification-count">0</span>
+            </button>
+            <div id="notificationPanel" class="notification-panel hidden">
+              <div class="notification-panel-header">
+                <strong>Notifications</strong>
+                <button id="markNotificationsRead" class="text-button" type="button">Mark Read</button>
+              </div>
+              <div id="notificationList" class="notification-list"></div>
+            </div>
+          </div>
+          <button id="resetDemo" class="ghost-button" type="button">Reset Demo</button>
+          <button id="downloadBackup" class="ghost-button" type="button">Backup Data</button>
+        </div>
       </header>
 
-      <main>
-        <section class="hero-section">
-          <div class="hero-copy">
-            <img class="hero-brand-logo" src="assets/rentflow-logo-full.png" alt="RentFlow - Smart Rent. Smooth Flow" />
-            <span class="hero-kicker">Smart Rent. Smooth Flow</span>
-            <h1>Track rent, tenants, and vacant rooms from your phone.</h1>
-            <p>
-              Know who paid rent, who did not, and which rooms need tenants without notebooks, Excel, or scattered WhatsApp chats.
-            </p>
-            <div class="hero-actions">
-              <button class="primary-button" data-open-auth="signup" type="button">Start 30-Day Free Trial</button>
-              <a class="ghost-button link-button" href="vacancies.html">Browse Rentals</a>
-            </div>
-          </div>
-        </section>
-
-        <section class="trust-bar" aria-label="Platform metrics">
-          <div><strong>Rent Book</strong><span>Replace notebooks and Excel</span></div>
-          <div><strong>Balances</strong><span>Paid, partial, overdue, advance</span></div>
-          <div><strong>WhatsApp</strong><span>Reminders and receipts</span></div>
-          <div><strong>Vacancies</strong><span>Public listings for free units</span></div>
-        </section>
-
-        <section class="photo-story landing-section" aria-label="Rental management moments">
-          <article class="photo-card large-photo">
-            <img src="assets/apartment-exterior.jpg" alt="Modern apartment building exterior" />
-            <div>
-              <span>Portfolio visibility</span>
-              <h3>Know which rooms are occupied, vacant, paid, or late.</h3>
-            </div>
-          </article>
-          <article class="photo-card">
-            <img src="assets/mobile-payment.jpg" alt="Person making a payment with a smartphone" />
-            <div>
-              <span>Payment confidence</span>
-              <h3>Record MTN MoMo, Airtel Money, cash, and bank payments.</h3>
-            </div>
-          </article>
-          <article class="photo-card">
-            <img src="assets/property-keys.jpg" alt="House keys in a modern apartment" />
-            <div>
-              <span>Tenant handover</span>
-              <h3>Keep tenant details, deposits, and move-in history in one place.</h3>
-            </div>
-          </article>
-        </section>
-
-        <section id="features" class="landing-section">
-          <div class="section-heading">
-            <span class="hero-kicker">No complicated SaaS language</span>
-            <h2>Replace the rent book, Excel sheet, and scattered WhatsApp chats.</h2>
-          </div>
-          <div class="feature-grid">
-            <article class="feature-card">
-              <figure class="feature-media">
-                <img src="assets/mobile-payment.jpg" alt="Mobile money payment being recorded for rent tracking" />
-                <figcaption>
-                  <span>Paid</span>
-                  <strong>USh 850K</strong>
-                </figcaption>
-              </figure>
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M4 19h16"></path><path d="M7 16V8"></path><path d="M12 16V5"></path><path d="M17 16v-3"></path></svg>
-              </span>
-              <h3>Rent Tracking</h3>
-              <p>See paid, partial, overdue, advance, and carried-forward balances.</p>
-            </article>
-            <article class="feature-card">
-              <figure class="feature-media">
-                <img src="assets/tenant-management.jpg" alt="Real estate agent handing over keys for tenant management" />
-                <figcaption>
-                  <span>Tenant profile</span>
-                  <strong>Room A2</strong>
-                </figcaption>
-              </figure>
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-              </span>
-              <h3>Tenant Management</h3>
-              <p>Store tenant details, room allocation, deposits, and payment history.</p>
-            </article>
-            <article class="feature-card">
-              <figure class="feature-media">
-                <img src="assets/apartment-exterior.jpg" alt="Apartment building with vacant rental units" />
-                <figcaption>
-                  <span>Vacant</span>
-                  <strong>3 units</strong>
-                </figcaption>
-              </figure>
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M3 21h18"></path><path d="M5 21V7l8-4v18"></path><path d="M19 21V11l-6-4"></path><path d="M9 9h1"></path><path d="M9 13h1"></path><path d="M9 17h1"></path></svg>
-              </span>
-              <h3>Vacant Units</h3>
-              <p>Publish vacant single rooms, double rooms, shops, and houses for tenants to find.</p>
-            </article>
-            <article class="feature-card">
-              <figure class="feature-media">
-                <img src="assets/expense-tracking.jpg" alt="Expense records being calculated on a phone beside a notebook and laptop" />
-                <figcaption>
-                  <span>Repair logged</span>
-                  <strong>USh 120K</strong>
-                </figcaption>
-              </figure>
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M7 2h10"></path><path d="M5 6h14"></path><path d="M6 6l1 16h10l1-16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
-              </span>
-              <h3>Expense Tracking</h3>
-              <p>Monitor repairs, utilities, salaries, and maintenance costs.</p>
-            </article>
-            <article class="feature-card">
-              <figure class="feature-media">
-                <img src="assets/receipts-reports.jpg" alt="Invoice paperwork being reviewed on a clipboard for receipts and reports" />
-                <figcaption>
-                  <span>Receipt</span>
-                  <strong>PDF ready</strong>
-                </figcaption>
-              </figure>
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"></path><path d="M14 2v6h6"></path><path d="M9 13h6"></path><path d="M9 17h6"></path></svg>
-              </span>
-              <h3>Receipts & Reports</h3>
-              <p>Print receipts and download monthly rent or expense reports.</p>
-            </article>
-            <article class="feature-card">
-              <figure class="feature-media">
-                <img src="assets/whatsapp-reminders.jpg" alt="People using smartphones for WhatsApp rent reminders" />
-                <figcaption>
-                  <span>WhatsApp</span>
-                  <strong>Reminder sent</strong>
-                </figcaption>
-              </figure>
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.8 7.35L3 21l2.15-5.2A8.5 8.5 0 1 1 21 11.5Z"></path><path d="M9.5 8.5c.5 2 2 3.5 4 4l1.2-1.2c.3-.3.8-.4 1.2-.2l1.5.7"></path></svg>
-              </span>
-              <h3>WhatsApp Reminders</h3>
-              <p>Send rent reminders, balances, and receipt messages on WhatsApp.</p>
-            </article>
-          </div>
-        </section>
-
-        <section id="howItWorks" class="landing-section steps-section">
-          <div class="section-heading">
-            <span class="hero-kicker">Simple setup</span>
-            <h2>Start from the way Ugandan landlords already work.</h2>
-          </div>
-          <div class="steps-grid">
-            <article>
-              <span>1</span>
-              <h3>Add your properties</h3>
-              <p>Create apartments, rentals, shops, boys quarters, houses, and each room's rent.</p>
-            </article>
-            <article>
-              <span>2</span>
-              <h3>Register tenants & rooms</h3>
-              <p>Assign tenants to rooms, shops, or houses and keep contact details organized.</p>
-            </article>
-            <article>
-              <span>3</span>
-              <h3>Track who paid</h3>
-              <p>Record full, partial, late, or advance payments and send reminders quickly.</p>
-            </article>
-          </div>
-        </section>
-
-        <section id="onboardingDemo" class="landing-section onboarding-demo-section">
-          <div class="onboarding-demo-copy">
-            <div class="section-heading">
-              <span class="hero-kicker">Landlord onboarding demo</span>
-              <h2>See the full rent flow before you create an account.</h2>
-              <p>A simple walkthrough for landlords who want to see exactly where properties, tenants, rent payments, reminders, and public listings fit.</p>
-            </div>
-            <div class="demo-actions">
-              <button class="primary-button" data-start-demo="user-1" type="button">Open Interactive Demo</button>
-              <button class="ghost-button" data-scroll-target="dashboardPreview" type="button">View Dashboard Preview</button>
-            </div>
-            <div class="demo-login-note">
-              <strong>Demo account</strong>
-              <span>Landlord Demo - 0772123456</span>
-            </div>
-          </div>
-
-          <div class="walkthrough-video-card" aria-label="RentFlow property setup walkthrough video">
-            <div class="walkthrough-video-topbar">
-              <span>Video walkthrough</span>
-              <strong>Property setup</strong>
-            </div>
-            <div class="walkthrough-stage">
-              <video
-                class="walkthrough-video"
-                controls
-                data-walkthrough-video
-                playsinline
-                preload="metadata"
-                poster="video/0608%281%29-Cover.jpg"
-              >
-                <source src="video/0608%281%29.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-            <div class="walkthrough-controls" data-walkthrough-controls hidden>
-              <button class="walkthrough-icon-button" data-video-toggle type="button" aria-label="Play video">
-                <svg class="control-icon icon-play" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M8 5v14l11-7z"></path>
-                </svg>
-                <svg class="control-icon icon-pause" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M8 5h3v14H8z"></path>
-                  <path d="M13 5h3v14h-3z"></path>
-                </svg>
-              </button>
-              <input class="walkthrough-progress" data-video-progress type="range" min="0" max="1000" step="1" value="0" aria-label="Video progress" />
-              <span class="walkthrough-time" data-video-time>0:00 / 0:00</span>
-              <button class="walkthrough-icon-button" data-video-mute type="button" aria-label="Mute video">
-                <svg class="control-icon icon-volume" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 9v6h4l5 4V5L8 9H4z"></path>
-                  <path d="M16 8c1.2 1.1 1.8 2.4 1.8 4s-.6 2.9-1.8 4"></path>
-                </svg>
-                <svg class="control-icon icon-volume-off" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 9v6h4l5 4V5L8 9H4z"></path>
-                  <path d="M18 9l-4 6"></path>
-                  <path d="M14 9l4 6"></path>
-                </svg>
-              </button>
-              <button class="walkthrough-icon-button" data-video-fullscreen type="button" aria-label="Full screen video">
-                <svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M8 3H3v5"></path>
-                  <path d="M16 3h5v5"></path>
-                  <path d="M8 21H3v-5"></path>
-                  <path d="M16 21h5v-5"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="workflow-animation" aria-label="How RentFlow works animation">
-            <div class="workflow-node">
-              <span>1</span>
-              <strong>Add property</strong>
-              <small>Set rent per room</small>
-            </div>
-            <div class="workflow-node">
-              <span>2</span>
-              <strong>Add tenant</strong>
-              <small>Assign room</small>
-            </div>
-            <div class="workflow-node">
-              <span>3</span>
-              <strong>Record rent</strong>
-              <small>Track balance</small>
-            </div>
-            <div class="workflow-node">
-              <span>4</span>
-              <strong>Share update</strong>
-              <small>Receipt or listing</small>
-            </div>
-            <div class="workflow-pulse" aria-hidden="true"></div>
-          </div>
-        </section>
-
-        <section id="dashboardPreview" class="dashboard-preview landing-section">
-          <div class="section-heading">
-            <span class="hero-kicker">Dashboard preview</span>
-            <h2>Know who has paid, who has not, and which rooms are free.</h2>
-          </div>
-          <div class="preview-shell dashboard-screen">
-            <div class="preview-sidebar">
-              <strong>RentFlow UG</strong>
-              <span>Dashboard</span>
-              <span>Properties</span>
-              <span>Tenants</span>
-              <span>Rent</span>
-            </div>
-            <div class="preview-main">
-              <div class="preview-header-row">
-                <div>
-                  <span>Owner Dashboard</span>
-                  <strong>Kira Road Apartments</strong>
-                </div>
-                <span class="preview-date-pill">May 2026</span>
-              </div>
-              <div class="preview-metrics">
-                <article><span>Collected</span><strong>USh 8.4M</strong><small>18 receipts</small></article>
-                <article><span>Outstanding</span><strong>USh 1.2M</strong><small>6 tenants due</small></article>
-                <article><span>Vacant Units</span><strong>3</strong><small>2 public listings</small></article>
-                <article><span>Expenses</span><strong>USh 620K</strong><small>Repairs and utilities</small></article>
-              </div>
-              <div class="preview-panels">
-                <div class="preview-panel">
-                  <h3>Occupancy</h3>
-                  <div class="mini-units">
-                    <span class="occupied">A1</span>
-                    <span class="occupied">A2</span>
-                    <span class="vacant">B1</span>
-                    <span class="occupied">B2</span>
-                    <span class="occupied">N1</span>
-                    <span class="vacant">N2</span>
-                  </div>
-                </div>
-                <div class="preview-panel">
-                  <h3>Recent Payments</h3>
-                  <div class="payment-row"><span>Sarah A.</span><strong>USh 450,000</strong></div>
-                  <div class="payment-row"><span>Moses K.</span><strong>USh 260,000</strong></div>
-                  <div class="payment-row"><span>Ruth N.</span><strong>USh 380,000</strong></div>
-                  <div class="payment-row"><span>Daniel O.</span><strong>USh 520,000</strong></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="landing-section benefits-section">
-          <div class="benefit-copy">
-            <span class="hero-kicker">Why landlords use it</span>
-            <h2>Less chasing tenants. Better records. Clearer rental income.</h2>
-          </div>
-          <div class="benefit-grid">
-            <article><h3>Stop Guessing</h3><p>See who paid, who paid partly, and who still has a balance.</p></article>
-            <article><h3>Use WhatsApp</h3><p>Send reminders and receipts through the channel tenants already use.</p></article>
-            <article><h3>Fill Vacancies</h3><p>Publish empty rooms and get tenant inquiries faster.</p></article>
-            <article><h3>Trust Your Records</h3><p>Keep payment history, activity, receipts, and reports in one place.</p></article>
-          </div>
-        </section>
-
-        <section id="testimonials" class="landing-section testimonial-section">
-          <div class="section-heading testimonial-heading">
-            <span class="hero-kicker">Landlord stories</span>
-            <h2>Organized records for real rental work.</h2>
-            <p>Simple tracking for owners who want rent, balances, expenses, and vacant rooms in one place.</p>
-          </div>
-          <div class="testimonial-grid">
-            <blockquote>
-              <p>RentFlow helped me manage all my apartments in Kira without paperwork.</p>
-              <cite>
-                <strong>Property owner</strong>
-                <span>Kampala</span>
-              </cite>
-            </blockquote>
-            <blockquote>
-              <p>I can now see rent balances, expenses, and vacant rooms from my phone.</p>
-              <cite>
-                <strong>Landlord</strong>
-                <span>Ntinda</span>
-              </cite>
-            </blockquote>
-          </div>
-        </section>
-
-        <section id="pricing" class="landing-section pricing-section">
-          <div class="section-heading">
-            <span class="hero-kicker">Pricing</span>
-            <h2>Simple plans for landlords, agents, and caretakers.</h2>
-          </div>
-          <div class="pricing-grid">
-            <article class="price-card">
-              <h3>Starter</h3>
-              <strong>USh 50,000<span>/month</span></strong>
-              <p>For landlords moving rent records from notebooks to a phone.</p>
-              <ul>
-                <li>Unlimited properties and up to 20 units</li>
-                <li>1 caretaker account only</li>
-                <li>Rent, tenant, expense, and receipt tracking</li>
-                <li>Private vacancy tracking; public listings unlock on Professional</li>
-              </ul>
-                <button class="ghost-button" data-open-auth="signup" data-signup-plan="Starter" type="button">Start 30-Day Free Trial</button>
-            </article>
-            <article class="price-card featured-price">
-              <h3>Professional</h3>
-              <strong>USh 120,000<span>/month</span></strong>
-              <p>For landlords managing multiple properties with staff collecting rent.</p>
-              <ul>
-                <li>Up to 5 properties and 100 units</li>
-                <li>Up to 10 caretaker accounts</li>
-                <li>Publish houses, rooms, and shops for rent to public listings</li>
-                <li>Monthly rent and expense report downloads</li>
-              </ul>
-                <button class="primary-button" data-open-auth="signup" data-signup-plan="Professional" type="button">Start 30-Day Free Trial</button>
-            </article>
-            <article class="price-card">
-              <h3>Enterprise</h3>
-              <strong>Up to USh 500,000<span>/month</span></strong>
-              <p>For agencies, estates, and larger portfolios that need setup support.</p>
-              <ul>
-                <li>Everything in Professional</li>
-                <li>Unlimited caretaker accounts</li>
-                <li>Backend team support and account setup help</li>
-                <li>Blue tick Verified badge by super admin approval</li>
-              </ul>
-              <a class="ghost-button link-button" href="mailto:rentflowugsupport@etohubs.com?subject=RentFlow%20UG%20Enterprise%20plan">Talk to Sales</a>
-            </article>
-          </div>
-        </section>
-
-        <section id="paymentDetails" class="landing-section payment-details-section">
-          <div class="section-heading">
-            <span class="hero-kicker">Payment details</span>
-            <h2>Subscription, support, and policy information.</h2>
-            <p>RentFlow UG sells monthly landlord software subscriptions in Uganda Shillings for property, tenant, rent, receipt, expense, staff, and vacancy management.</p>
-          </div>
-          <div class="policy-grid">
-            <article class="policy-card">
-              <h3>Accepted Payments</h3>
-              <p>Starter is USh 50,000/month and Professional is USh 120,000/month after the 30-day free trial. Payments can be collected by MTN MoMo, Airtel Money, or Visa / Mastercard through Pesapal checkout.</p>
-            </article>
-            <article class="policy-card">
-              <h3>Cancellation</h3>
-              <p>Landlords can request cancellation before the next billing date from in-app support or by email. Cancelled subscriptions remain usable until the end of the paid billing period.</p>
-            </article>
-            <article class="policy-card">
-              <h3>Refunds & Disputes</h3>
-              <p>Duplicate charges, failed collections, and incorrect subscription charges are reviewed when reported with the payment reference. Approved refunds are returned to the original payment method.</p>
-            </article>
-            <article class="policy-card">
-              <h3>Data Privacy</h3>
-              <p>Landlord, tenant, property, and payment records are used to operate the account, provide support, and secure access. RentFlow UG does not sell landlord or tenant records.</p>
-            </article>
-          </div>
-          <div class="support-strip">
-            <div>
-              <strong>Business contact</strong>
-              <span>RentFlow UG, Kampala, Uganda</span>
-            </div>
-            <a class="primary-button link-button" href="mailto:rentflowugsupport@etohubs.com?subject=RentFlow%20UG%20Support">Email Support</a>
-          </div>
-        </section>
-
-        <footer class="landing-footer">
-          <div>
-            <strong>RentFlow UG</strong>
-            <span>Landlord management software for Uganda.</span>
-          </div>
-          <nav aria-label="Policy links">
-            <a href="#pricing">Pricing</a>
-            <a href="company.html#about">About Us</a>
-            <a href="company.html#contact">Contact Us</a>
-            <a href="company.html#privacy">Privacy Policy</a>
-            <a href="company.html#terms">Terms</a>
-            <a href="company.html#support">Support Center</a>
-          </nav>
-        </footer>
-      </main>
-    </section>
-
-    <section id="authScreen" class="auth-screen hidden">
-      <div class="auth-card">
-        <div class="brand-block auth-brand">
-          <div class="brand-mark">
-            <img src="assets/rentflow-logo-icon.png" alt="RentFlow logo" />
-          </div>
-          <div>
-            <div class="brand-name">RentFlow UG</div>
-            <div class="brand-meta">Smart Rent. Smooth Flow</div>
-          </div>
-        </div>
-
-        <div class="auth-tabs" role="tablist" aria-label="Account actions">
-          <button class="auth-tab active" data-auth-tab="signin" type="button">Sign In</button>
-          <button class="auth-tab" data-auth-tab="signup" type="button">Create Account</button>
-        </div>
-
-        <form id="signInForm" class="stacked-form auth-form">
-          <label>
-            Phone Number or Email
-            <input id="signInIdentifier" autocomplete="username" required />
-          </label>
-          <label>
-            Password
-            <span class="password-input">
-              <input id="signInPassword" type="password" autocomplete="current-password" required />
-              <button
-                class="password-toggle"
-                data-password-toggle="signInPassword"
-                type="button"
-                aria-label="Show password"
-                aria-pressed="false"
-                title="Show password"
-              >
-                <svg class="password-icon password-icon-show" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2.1 12s3.4-6.2 9.9-6.2S21.9 12 21.9 12s-3.4 6.2-9.9 6.2S2.1 12 2.1 12Z"></path>
-                  <circle cx="12" cy="12" r="2.6"></circle>
-                </svg>
-                <svg class="password-icon password-icon-hide" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M3 3l18 18"></path>
-                  <path d="M10.7 5.9c.4-.1.8-.1 1.3-.1 6.5 0 9.9 6.2 9.9 6.2a17.7 17.7 0 0 1-3.2 3.8"></path>
-                  <path d="M14.1 14.1a3 3 0 0 1-4.2-4.2"></path>
-                  <path d="M6.6 6.7A17.3 17.3 0 0 0 2.1 12s3.4 6.2 9.9 6.2c1.6 0 3-.4 4.2-.9"></path>
-                </svg>
-              </button>
-            </span>
-          </label>
-          <button class="primary-button" type="submit">Sign In</button>
-          <button id="forgotPasswordButton" class="text-button auth-secondary-button" type="button">Forgot Password?</button>
-          <div class="demo-account-panel hidden" aria-label="Demo accounts">
-            <span class="demo-account-title">Demo Accounts</span>
-            <div class="demo-account-grid">
-              <button class="demo-account-button" data-demo-account="user-1" type="button">
-                <strong>Landlord</strong>
-                <small>0772123456</small>
-              </button>
-              <button class="demo-account-button" data-demo-account="staff-1" type="button">
-                <strong>Caretaker</strong>
-                <small>0700111222</small>
-              </button>
-            </div>
-          </div>
-        </form>
-
-        <form id="createAccountForm" class="stacked-form auth-form hidden">
-          <div class="form-section-title">Account Information</div>
-          <label>
-            Full Name
-            <input id="accountName" autocomplete="name" required />
-          </label>
-          <label>
-            Phone Number
-            <input id="accountPhone" autocomplete="tel" required />
-          </label>
-          <label>
-            Email Address
-            <input id="accountEmail" type="email" autocomplete="email" required />
-          </label>
-          <label>
-            Password
-            <input id="accountPassword" type="password" autocomplete="new-password" minlength="8" required />
-          </label>
-          <label>
-            Confirm Password
-            <input id="accountConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
-          </label>
-          <div class="form-section-title">Choose Your Plan</div>
-          <label>
-            Plan
-            <select id="accountPlan" required>
-              <option value="">Select a plan</option>
-              <option value="Starter">Starter Plan - USh 50,000/month</option>
-              <option value="Professional">Professional Plan - USh 120,000/month</option>
-            </select>
-          </label>
-          <div class="trial-reassurance">
-            <strong>30-Day Free Trial</strong>
-            <span>Start with a free 30-day trial. No payment is charged during the trial period.</span>
-          </div>
-          <div class="form-section-title">
-            Payment Setup
-            <span>Required after trial</span>
-          </div>
-          <label>
-            Payment Method
-            <select id="accountPaymentMethod" required>
-              <option value="">Select payment method</option>
-              <option value="MTN MoMo">MTN Mobile Money</option>
-              <option value="Airtel Money">Airtel Money</option>
-              <option value="Visa / Mastercard">Visa / Mastercard</option>
-            </select>
-          </label>
-          <label>
-            Mobile Money Number or Card Authorization Reference
-            <input id="accountBillingContact" autocomplete="tel" placeholder="Example: 0772123456" required />
-            <small class="form-helper">This payment method will be used only after your 30-day free trial ends. No charges are made today.</small>
-          </label>
-          <div class="form-section-title">Property Information</div>
-          <label>
-            Property / Business Name
-            <input id="accountPropertyName" autocomplete="organization" />
-          </label>
-          <label>
-            Number of Units (Optional)
-            <input id="accountUnitCount" type="number" min="1" step="1" inputmode="numeric" placeholder="Example: 12" />
-          </label>
-          <div class="form-section-title">Agreement</div>
-          <label class="checkbox-consent">
-            <input id="accountBillingConsent" type="checkbox" required />
-            <span>I agree to the RentFlow UG <a href="company.html#terms">Terms and Conditions</a> and <a href="company.html#privacy">Privacy Policy</a>.</span>
-          </label>
-          <div id="accountTrialSummary" class="billing-summary-note">Select Starter or Professional, choose a payment method, and confirm your details before starting the 30-day free trial. No charges are made today.</div>
-          <button class="primary-button" type="submit">&#128640; Start Free Trial</button>
-        </form>
-
-        <form id="forgotPasswordForm" class="stacked-form auth-form hidden">
-          <label>
-            Account Phone or Email
-            <input id="resetIdentifier" autocomplete="username" required />
-          </label>
-          <div class="form-actions auth-form-actions">
-            <button id="cancelPasswordReset" class="ghost-button" type="button">Back</button>
-            <button class="primary-button" type="submit">Send OTP</button>
-          </div>
-        </form>
-
-        <form id="resetPasswordForm" class="stacked-form auth-form hidden">
-          <label>
-            Account Email
-            <input id="resetOtpEmail" readonly />
-          </label>
-          <label id="resetOtpLabel">
-            Email OTP
-            <input id="resetOtp" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required />
-          </label>
-          <label>
-            New Password
-            <input id="resetNewPassword" type="password" autocomplete="new-password" minlength="8" required />
-          </label>
-          <label>
-            Confirm Password
-            <input id="resetConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
-          </label>
-          <small id="resetOtpNotice" class="reset-otp-notice hidden"></small>
-          <div class="form-actions auth-form-actions">
-            <button id="resetPasswordBack" class="ghost-button" type="button">Back</button>
-            <button class="primary-button" type="submit">Reset Password</button>
-          </div>
-        </form>
+      <div id="impersonationBanner" class="impersonation-banner hidden" role="status">
+        <span id="impersonationBannerText">You are currently viewing this account as Super Admin.</span>
+        <button class="ghost-button" data-exit-impersonation type="button">Exit Impersonation</button>
       </div>
-    </section>
 
-    <div id="appShell" class="app-shell hidden">
-      <div id="loadingBar" class="loading-bar hidden" role="status" aria-live="polite">
-        <span></span>
-        <strong>Loading</strong>
-      </div>
-      <aside class="sidebar">
-        <div class="brand-block">
-          <div class="brand-mark">
-            <img src="assets/rentflow-logo-icon.png" alt="RentFlow logo" />
+      <nav id="mobileTabs" class="mobile-tabs" aria-label="Mobile navigation">
+        <button class="mobile-tab active" data-view="dashboard" type="button">Dashboard</button>
+        <button class="mobile-tab" data-view="properties" type="button">Setup</button>
+        <button class="mobile-tab" data-view="tenants" type="button">Tenants</button>
+        <button class="mobile-tab" data-view="staff" type="button">Caretakers</button>
+        <button class="mobile-tab" data-view="rent" type="button">Rent</button>
+        <button class="mobile-tab" data-view="expenses" type="button">Expenses</button>
+        <button class="mobile-tab" data-view="reminders" type="button">Alerts</button>
+        <button class="mobile-tab" data-view="support" type="button">Support</button>
+      </nav>
+
+      <section id="subscriptionLocked" class="view subscription-lock-view" aria-labelledby="viewTitle">
+        <section class="panel subscription-lock-panel">
+          <div class="subscription-lock-copy">
+            <span id="subscriptionLockStatus" class="pill danger">Trial ended</span>
+            <h2>Trial ended</h2>
+            <p id="subscriptionLockMessage">Subscribe to continue using RentFlow UG.</p>
           </div>
-          <div>
-            <div class="brand-name">RentFlow UG</div>
-            <div class="brand-meta">Smart Rent. Smooth Flow</div>
+          <div class="subscription-lock-summary" aria-label="Subscription summary">
+            <div>
+              <span>Plan</span>
+              <strong id="subscriptionLockPlan">-</strong>
+            </div>
+            <div>
+              <span>Monthly fee</span>
+              <strong id="subscriptionLockAmount">-</strong>
+            </div>
+            <div>
+              <span>Due date</span>
+              <strong id="subscriptionLockDueDate">-</strong>
+            </div>
+            <div>
+              <span>Checkout options</span>
+              <strong id="subscriptionLockMethod">-</strong>
+            </div>
           </div>
+          <div class="subscription-lock-actions">
+            <button class="primary-button" data-current-subscription-pay type="button"
+              id="subscriptionLockPay">Subscribe</button>
+            <span id="subscriptionLockNote" class="subscription-lock-note"></span>
+          </div>
+        </section>
+      </section>
+
+      <section id="superAdminDashboard" class="view super-admin-dashboard" aria-labelledby="viewTitle">
+        <section class="admin-month-strip" aria-label="Current admin reporting month">
+          <div class="admin-month-main">
+            <span>Current Admin Month</span>
+            <strong id="adminDashboardMonthLabel"></strong>
+            <small id="adminDashboardDateLabel"></small>
+          </div>
+          <div class="admin-month-dates">
+            <span><b>Month starts</b><strong id="adminDashboardMonthStart"></strong></span>
+            <span><b>Next month</b><strong id="adminDashboardNextMonth"></strong></span>
+          </div>
+        </section>
+
+        <div id="adminMetricGrid" class="admin-metric-grid"></div>
+
+        <div class="admin-dashboard-grid admin-dashboard-grid-main">
+          <section class="admin-card">
+            <div class="panel-header">
+              <h2>SaaS Analytics</h2>
+              <span class="pill info">Live platform</span>
+            </div>
+            <div id="adminAnalyticsChart" class="admin-chart-panel"></div>
+          </section>
+
+          <section class="admin-card">
+            <div class="panel-header">
+              <h2>Recent Activity</h2>
+              <span id="adminActivityCountLabel" class="pill neutral">0 updates</span>
+            </div>
+            <div id="adminActivityList" class="activity-list admin-activity-list"></div>
+          </section>
         </div>
 
-        <nav id="sideNav" class="side-nav" aria-label="Main navigation">
-          <button class="nav-item active" data-view="dashboard" type="button">Dashboard</button>
-          <button class="nav-item" data-view="properties" type="button">Setup</button>
-          <button class="nav-item" data-view="tenants" type="button">Tenants</button>
-          <button class="nav-item" data-view="staff" type="button">Caretakers</button>
-          <button class="nav-item" data-view="rent" type="button">Rent</button>
-          <button class="nav-item" data-view="expenses" type="button">Expenses</button>
-          <button class="nav-item" data-view="reminders" type="button">Reminders</button>
-          <button class="nav-item" data-view="support" type="button">Support</button>
-        </nav>
-
-        <div class="sidebar-footer">
-          <div class="account-card">
-            <span>Account</span>
-            <strong id="currentAccountName">Landlord</strong>
-            <small id="currentAccountPhone"></small>
-          </div>
-          <label for="roleSelect">Role</label>
-          <select id="roleSelect">
-            <option value="landlord">Landlord</option>
-            <option value="caretaker">Caretaker</option>
-          </select>
-          <button id="logoutButton" class="ghost-button" type="button">Sign Out</button>
-        </div>
-      </aside>
-
-      <main class="main-panel">
-        <header class="topbar">
-          <div>
-            <h1 id="viewTitle">Dashboard</h1>
-            <p id="viewSubtitle">Rent, balances, tenants, and vacant rooms at a glance.</p>
-          </div>
-
-          <div class="topbar-actions">
-            <input id="globalSearch" class="search-input" placeholder="Search records" />
-            <select id="propertyFilter" aria-label="Property filter"></select>
-            <div class="notification-shell">
-              <button id="notificationToggle" class="ghost-button notification-button" type="button" aria-controls="notificationPanel" aria-expanded="false">
-                Notifications <span id="notificationCount" class="notification-count">0</span>
-              </button>
-              <div id="notificationPanel" class="notification-panel hidden">
-                <div class="notification-panel-header">
-                  <strong>Notifications</strong>
-                  <button id="markNotificationsRead" class="text-button" type="button">Mark Read</button>
-                </div>
-                <div id="notificationList" class="notification-list"></div>
-              </div>
-            </div>
-            <button id="resetDemo" class="ghost-button" type="button">Reset Demo</button>
-            <button id="downloadBackup" class="ghost-button" type="button">Backup Data</button>
-          </div>
-        </header>
-
-        <div id="impersonationBanner" class="impersonation-banner hidden" role="status">
-          <span id="impersonationBannerText">You are currently viewing this account as Super Admin.</span>
-          <button class="ghost-button" data-exit-impersonation type="button">Exit Impersonation</button>
-        </div>
-
-        <nav id="mobileTabs" class="mobile-tabs" aria-label="Mobile navigation">
-          <button class="mobile-tab active" data-view="dashboard" type="button">Dashboard</button>
-          <button class="mobile-tab" data-view="properties" type="button">Setup</button>
-          <button class="mobile-tab" data-view="tenants" type="button">Tenants</button>
-          <button class="mobile-tab" data-view="staff" type="button">Caretakers</button>
-          <button class="mobile-tab" data-view="rent" type="button">Rent</button>
-          <button class="mobile-tab" data-view="expenses" type="button">Expenses</button>
-          <button class="mobile-tab" data-view="reminders" type="button">Alerts</button>
-          <button class="mobile-tab" data-view="support" type="button">Support</button>
-        </nav>
-
-        <section id="subscriptionLocked" class="view subscription-lock-view" aria-labelledby="viewTitle">
-          <section class="panel subscription-lock-panel">
-            <div class="subscription-lock-copy">
-              <span id="subscriptionLockStatus" class="pill danger">Trial ended</span>
-              <h2>Trial ended</h2>
-              <p id="subscriptionLockMessage">Subscribe to continue using RentFlow UG.</p>
-            </div>
-            <div class="subscription-lock-summary" aria-label="Subscription summary">
-              <div>
-                <span>Plan</span>
-                <strong id="subscriptionLockPlan">-</strong>
-              </div>
-              <div>
-                <span>Monthly fee</span>
-                <strong id="subscriptionLockAmount">-</strong>
-              </div>
-              <div>
-                <span>Due date</span>
-                <strong id="subscriptionLockDueDate">-</strong>
-              </div>
-              <div>
-                <span>Checkout options</span>
-                <strong id="subscriptionLockMethod">-</strong>
-              </div>
-            </div>
-            <div class="subscription-lock-actions">
-              <button class="primary-button" data-current-subscription-pay type="button" id="subscriptionLockPay">Subscribe</button>
-              <span id="subscriptionLockNote" class="subscription-lock-note"></span>
-            </div>
-          </section>
-        </section>
-
-        <section id="superAdminDashboard" class="view super-admin-dashboard" aria-labelledby="viewTitle">
-          <section class="admin-month-strip" aria-label="Current admin reporting month">
-            <div class="admin-month-main">
-              <span>Current Admin Month</span>
-              <strong id="adminDashboardMonthLabel"></strong>
-              <small id="adminDashboardDateLabel"></small>
-            </div>
-            <div class="admin-month-dates">
-              <span><b>Month starts</b><strong id="adminDashboardMonthStart"></strong></span>
-              <span><b>Next month</b><strong id="adminDashboardNextMonth"></strong></span>
-            </div>
-          </section>
-
-          <div id="adminMetricGrid" class="admin-metric-grid"></div>
-
-          <div class="admin-dashboard-grid admin-dashboard-grid-main">
-            <section class="admin-card">
-              <div class="panel-header">
-                <h2>SaaS Analytics</h2>
-                <span class="pill info">Live platform</span>
-              </div>
-              <div id="adminAnalyticsChart" class="admin-chart-panel"></div>
-            </section>
-
-            <section class="admin-card">
-              <div class="panel-header">
-                <h2>Recent Activity</h2>
-                <span id="adminActivityCountLabel" class="pill neutral">0 updates</span>
-              </div>
-              <div id="adminActivityList" class="activity-list admin-activity-list"></div>
-            </section>
-          </div>
-
-          <div class="admin-dashboard-grid">
-            <section class="admin-card">
-              <div class="panel-header">
-                <h2>Subscription Watchlist</h2>
-                <span id="adminSubscriptionCountLabel" class="pill warning">0 alerts</span>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Landlord</th>
-                      <th>Package</th>
-                      <th>Next Billing</th>
-                      <th>Revenue</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody id="adminSubscriptionTable"></tbody>
-                </table>
-              </div>
-            </section>
-
-            <section class="admin-card">
-              <div class="panel-header">
-                <h2>Support Tickets</h2>
-                <span id="adminSupportCountLabel" class="pill warning">0 open</span>
-              </div>
-              <div id="adminSupportList" class="support-list admin-support-list"></div>
-            </section>
-          </div>
-        </section>
-
-        <section id="dashboard" class="view active-view" aria-labelledby="viewTitle">
-          <div class="metric-grid" id="metricGrid"></div>
-          <section id="onboardingPanel" class="panel onboarding-panel hidden">
+        <div class="admin-dashboard-grid">
+          <section class="admin-card">
             <div class="panel-header">
-              <div>
-                <h2>Setup Checklist</h2>
-                <p class="panel-subtitle">Finish these once and daily rent tracking gets easier.</p>
-              </div>
-              <span id="onboardingProgressLabel" class="pill neutral">0/5 done</span>
-            </div>
-            <div id="onboardingChecklist" class="onboarding-checklist"></div>
-          </section>
-          <div id="dailyOpsGrid" class="daily-ops-grid"></div>
-
-          <section class="panel dashboard-calendar-panel" aria-labelledby="dashboardCalendarTitle">
-            <div class="panel-header">
-              <div>
-                <h2 id="dashboardCalendarTitle">Monthly Report</h2>
-                <p id="dashboardCalendarMonth" class="panel-subtitle"></p>
-              </div>
-              <div class="dashboard-month-controls">
-                <button id="dashboardMonthPrevious" class="text-button compact-link-button dashboard-month-arrow" type="button" aria-label="Previous month">&lt;</button>
-                <label class="sr-only" for="dashboardMonthPicker">Report month</label>
-                <input id="dashboardMonthPicker" type="month" />
-                <button id="dashboardMonthNext" class="text-button compact-link-button dashboard-month-arrow" type="button" aria-label="Next month">&gt;</button>
-                <button id="dashboardMonthCurrent" class="text-button compact-link-button" type="button">Current Month</button>
-                <button id="dashboardPastMonthsToggle" class="text-button compact-link-button" type="button" aria-expanded="false">Past Months</button>
-                <button id="dashboardDownloadReport" class="text-button compact-link-button" type="button">Download Report</button>
-                <button id="dashboardCalendarToggle" class="text-button compact-link-button" type="button" aria-expanded="false">Show Calendar</button>
-              </div>
-            </div>
-            <div id="dashboardPastMonthsPanel" class="dashboard-past-months hidden"></div>
-            <div id="dashboardCalendarSummary" class="dashboard-calendar-summary"></div>
-            <div class="dashboard-month-report">
-              <div id="dashboardMonthInsight" class="dashboard-month-insight"></div>
-              <div id="dashboardCollectionTrend" class="dashboard-collection-trend"></div>
-              <div id="dashboardStatusBreakdown" class="dashboard-status-breakdown"></div>
-              <div class="dashboard-report-table-heading">
-                <h3>Payment Details</h3>
-                <span id="dashboardReportPaymentCount" class="pill success">0 payments</span>
-              </div>
-              <div class="table-wrap dashboard-report-table-wrap">
-                <table class="dashboard-report-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Tenant</th>
-                      <th>Room</th>
-                      <th>Amount</th>
-                      <th>Method</th>
-                      <th>Reference</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dashboardReportPayments"></tbody>
-                </table>
-              </div>
-            </div>
-            <div id="dashboardCalendarStatus" class="dashboard-calendar-status pill info hidden"></div>
-            <div id="dashboardCalendarGrid" class="dashboard-calendar-grid dashboard-calendar-secondary hidden" aria-label="Dashboard month calendar"></div>
-          </section>
-
-          <div class="content-grid two-columns">
-            <section class="panel">
-              <div class="panel-header">
-                <h2 id="dashboardPrimaryTitle">Vacant Rooms</h2>
-                <span id="occupancyLabel" class="pill neutral">0 rooms</span>
-              </div>
-              <div id="unitStatusGrid" class="unit-grid"></div>
-            </section>
-
-            <section class="panel">
-              <div class="panel-header">
-                <h2 id="dashboardSecondaryTitle">Late Tenants</h2>
-                <span id="dueSoonLabel" class="pill warning">0 due</span>
-              </div>
-              <div class="table-wrap late-tenants-wrap">
-                <table class="late-tenants-table">
-                  <thead>
-                    <tr id="upcomingDuesHead">
-                      <th>Tenant</th>
-                      <th>Room</th>
-                      <th>Days</th>
-                      <th>Balance</th>
-                      <th>Phone</th>
-                    </tr>
-                  </thead>
-                  <tbody id="upcomingDuesTable"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-
-          <section class="panel">
-            <div class="panel-header">
-              <h2 id="dashboardRecentTitle">Recent Payments</h2>
-              <span id="monthLabel" class="pill success"></span>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr id="recentPaymentsHead">
-                    <th>Tenant</th>
-                    <th>Room</th>
-                    <th>Amount</th>
-                    <th>Time</th>
-                    <th>Method</th>
-                  </tr>
-                </thead>
-                <tbody id="recentPaymentsTable"></tbody>
-              </table>
-            </div>
-          </section>
-
-          <div class="content-grid two-columns">
-            <section class="panel">
-              <div class="panel-header">
-                <h2 id="dashboardChartTitle">Income Trend</h2>
-                <span id="dashboardChartLabel" class="pill info">Live view</span>
-              </div>
-              <div id="dashboardChart" class="chart-panel"></div>
-            </section>
-
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Expenses Added</h2>
-                <span id="expenseTodayLabel" class="pill danger">0 today</span>
-              </div>
-              <div id="dashboardExpenseList" class="compact-list"></div>
-            </section>
-          </div>
-
-          <section class="panel">
-            <div class="panel-header">
-              <h2 id="dashboardActivityTitle">Recent Activity</h2>
-              <span id="activityCountLabel" class="pill neutral">0 updates</span>
-            </div>
-            <div id="activityList" class="activity-list"></div>
-          </section>
-        </section>
-
-        <section id="properties" class="view" aria-labelledby="viewTitle">
-          <div id="planLimitNotice" class="plan-limit-note setup-limit-note"></div>
-          <div class="content-grid form-layout">
-            <section class="panel">
-              <div class="panel-header">
-                <h2 id="propertyFormTitle">Add Property</h2>
-                <span id="propertyFormMode" class="pill neutral">New</span>
-              </div>
-              <form id="propertyForm" class="stacked-form">
-                <input type="hidden" id="propertyId" />
-                <label>
-                  Property Name
-                  <input id="propertyName" placeholder="e.g. Kira Road Apartments" required />
-                </label>
-                <label>
-                  Location
-                  <input id="propertyLocation" placeholder="e.g. Kira, Ntinda, Mukono" required />
-                </label>
-                <label>
-                  Type
-                  <select id="propertyType">
-                    <option value="Rooms">Rooms</option>
-                    <option value="Single Room">Single Room</option>
-                    <option value="Double Room">Double Room</option>
-                    <option value="Shops">Shops</option>
-                    <option value="Boys Quarters">Boys Quarters</option>
-                    <option value="House">House</option>
-                    <option value="Apartment">Apartment</option>
-                    <option value="Mixed">Mixed</option>
-                  </select>
-                </label>
-                <div class="form-actions">
-                  <button id="cancelPropertyEdit" class="ghost-button hidden" type="button">Cancel</button>
-                  <button class="primary-button" type="submit">Save Property</button>
-                </div>
-              </form>
-            </section>
-
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Add Room / Shop / House</h2>
-                <span class="pill neutral">Publish manually</span>
-              </div>
-              <form id="unitForm" class="stacked-form">
-                <label>
-                  Property
-                  <select id="unitProperty" required></select>
-                </label>
-                <label>
-                  Room / Shop / House Number
-                  <input id="unitNumber" placeholder="e.g. Room A2, Shop 1, BQ 3" required />
-                </label>
-                <label>
-                  Monthly Rent
-                  <input id="unitRent" type="number" min="0" step="1000" required />
-                </label>
-                <label>
-                  Public Photo
-                  <input id="unitPhoto" type="file" accept="image/*" />
-                </label>
-                <div id="unitPhotoPreview" class="image-upload-preview hidden"></div>
-                <input id="unitPhotoPicker" class="hidden" type="file" accept="image/*" />
-                <button class="primary-button" type="submit">Add Room</button>
-              </form>
-            </section>
-          </div>
-
-          <section class="panel">
-            <div class="panel-header">
-              <h2>Property Portfolio</h2>
-              <span id="propertyCountLabel" class="pill success">0 properties</span>
+              <h2>Subscription Watchlist</h2>
+              <span id="adminSubscriptionCountLabel" class="pill warning">0 alerts</span>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Property</th>
-                    <th>Location</th>
-                    <th>Type</th>
-                    <th>Rooms</th>
-                    <th>Occupancy</th>
-                    <th>Expected Rent</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="propertyTable"></tbody>
-              </table>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-header">
-              <h2>Room / Shop Setup</h2>
-              <span id="unitCountLabel" class="pill neutral">0 rooms</span>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Room</th>
-                    <th>Property</th>
-                    <th>Rent</th>
-                    <th>Status</th>
-                    <th>Public Listing</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="unitTable"></tbody>
-              </table>
-            </div>
-          </section>
-        </section>
-
-        <section id="tenants" class="view" aria-labelledby="viewTitle">
-          <div class="content-grid form-layout">
-            <section class="panel">
-              <div class="panel-header">
-                <h2 id="tenantFormTitle">Add Tenant</h2>
-                <span id="tenantFormMode" class="pill neutral">New</span>
-              </div>
-              <form id="tenantForm" class="stacked-form">
-                <input type="hidden" id="tenantId" />
-                <label>
-                  Name
-                  <input id="tenantName" name="tenantName" autocomplete="name" required />
-                </label>
-                <label>
-                  Phone Number
-                  <input id="tenantPhone" name="tenantPhone" autocomplete="tel" required />
-                </label>
-                <label>
-                  National ID
-                  <input id="tenantNationalId" name="tenantNationalId" required />
-                </label>
-                <label>
-                  Room / Shop / House
-                  <select id="tenantUnit" name="tenantUnit" required></select>
-                </label>
-                <label>
-                  Monthly Rent
-                  <input id="tenantRent" name="tenantRent" type="number" min="0" step="1000" required />
-                  <small class="form-helper">This is the rent charged each month. It is not a payment record.</small>
-                </label>
-                <label>
-                  Move-in Date
-                  <input id="tenantMoveIn" name="tenantMoveIn" type="date" required />
-                </label>
-                <div class="form-actions">
-                  <button id="cancelTenantEdit" class="ghost-button hidden" type="button">Cancel</button>
-                  <button class="primary-button" type="submit">Save Tenant</button>
-                </div>
-              </form>
-            </section>
-
-            <section class="panel wide-panel">
-              <div class="panel-header">
-                <h2>Tenant Records</h2>
-                <div class="button-row">
-                  <input id="tenantImportFile" class="hidden" type="file" accept=".csv,text/csv" />
-                  <button id="importTenantsButton" class="text-button" type="button">Import CSV</button>
-                  <button id="exportTenantsCsv" class="text-button" type="button">Export CSV</button>
-                  <input id="tenantSearch" class="search-input" placeholder="Search tenants" />
-                </div>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Phone</th>
-                      <th>Room</th>
-                      <th>Monthly Rent</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tenantTable"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <section id="staff" class="view" aria-labelledby="viewTitle">
-          <div class="content-grid form-layout">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Add Caretaker Login</h2>
-                <span class="pill neutral">Plan limited</span>
-              </div>
-              <form id="staffInviteForm" class="stacked-form">
-                <div id="staffPlanNotice" class="plan-limit-note"></div>
-                <label>
-                  Full Name
-                  <input id="staffName" autocomplete="name" required />
-                </label>
-                <label>
-                  Phone Number
-                  <input id="staffPhone" autocomplete="tel" required />
-                </label>
-                <label>
-                  Email Address
-                  <input id="staffEmail" type="email" autocomplete="email" required />
-                </label>
-                <label>
-                  Temporary Password
-                  <input id="staffPassword" type="password" minlength="8" required />
-                </label>
-                <label>
-                  Assigned Properties
-                  <select id="staffProperties" multiple required></select>
-                </label>
-                <button id="staffInviteButton" class="primary-button" type="submit">Create Caretaker Login</button>
-              </form>
-            </section>
-
-            <section class="panel wide-panel">
-              <div class="panel-header">
-                <h2>Caretaker Access</h2>
-                <span id="staffCountLabel" class="pill success">0 caretakers</span>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Caretaker</th>
-                      <th>Assigned Properties</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="staffTable"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <section id="rent" class="view" aria-labelledby="viewTitle">
-          <div class="content-grid form-layout">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Record Payment</h2>
-                <span id="paymentStatusPill" class="pill neutral">Ready</span>
-              </div>
-              <form id="paymentForm" class="stacked-form">
-                <label>
-                  Tenant
-                  <select id="paymentTenant" name="paymentTenant" required></select>
-                </label>
-                <div class="split-fields">
-                  <label>
-                    Rent Payment Amount
-                    <input id="paymentAmount" name="paymentAmount" type="number" min="0" step="1000" required />
-                    <small class="form-helper">Enter only rent received. Do not repeat the tenant's security deposit here.</small>
-                  </label>
-                  <label>
-                    Date
-                    <input id="paymentDate" name="paymentDate" type="date" required />
-                  </label>
-                </div>
-                <label>
-                  Method
-                  <select id="paymentMethod" name="paymentMethod">
-                    <option value="MTN MoMo">MTN MoMo</option>
-                    <option value="Airtel Money">Airtel Money</option>
-                    <option value="Bank transfer">Bank transfer</option>
-                    <option value="Cash">Cash</option>
-                  </select>
-                </label>
-                <label>
-                  Transaction Reference
-                  <input id="paymentReference" name="paymentReference" placeholder="e.g. MOMO-48391" />
-                </label>
-                <label>
-                  Proof / Screenshot Link
-                  <input id="paymentProof" name="paymentProof" placeholder="e.g. MoMo screenshot URL or note" />
-                </label>
-                <label>
-                  Verification Status
-                  <select id="paymentVerification" name="paymentVerification">
-                    <option value="Unverified">Unverified</option>
-                    <option value="Verified">Verified</option>
-                    <option value="Disputed">Disputed</option>
-                  </select>
-                </label>
-                <div id="tenantBalancePreview" class="balance-preview"></div>
-                <button class="primary-button" type="submit">Confirm Payment</button>
-              </form>
-            </section>
-
-            <section class="panel wide-panel">
-              <div class="panel-header">
-                <h2>Rent Status</h2>
-                <span id="rentStatusLabel" class="pill neutral">Current month</span>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Tenant</th>
-                      <th>Room</th>
-                      <th>Paid</th>
-                      <th>Balance</th>
-                      <th>Advance</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="rentStatusTable"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-
-          <section class="panel">
-            <div class="panel-header">
-              <h2>Payment History</h2>
-              <div class="button-row">
-                <span id="paymentCountLabel" class="pill success">0 payments</span>
-                <button id="downloadRentReport" class="text-button" type="button">Download Report</button>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Tenant</th>
-                    <th>Amount</th>
-                    <th>Method</th>
-                    <th>Receipt</th>
-                    <th>Reference</th>
-                    <th>Proof</th>
-                    <th>Date</th>
-                    <th>Balance</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="paymentHistoryTable"></tbody>
-              </table>
-            </div>
-          </section>
-        </section>
-
-        <section id="support" class="view" aria-labelledby="viewTitle">
-          <div class="content-grid form-layout">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Request Help</h2>
-                <span class="pill neutral">Super admin</span>
-              </div>
-              <div class="verification-request-box">
-                <div>
-                  <strong>Blue tick Verified badge</strong>
-                  <span id="verifiedBadgeRequestStatus">Request super admin review for your public profile.</span>
-                </div>
-                <button id="requestVerifiedBadgeButton" class="ghost-button" type="button">Request Badge</button>
-              </div>
-              <form id="landlordSupportForm" class="stacked-form">
-                <label>
-                  Issue
-                  <input id="landlordSupportSubject" placeholder="e.g. Help correcting tenant balance" required />
-                </label>
-                <label>
-                  Priority
-                  <select id="landlordSupportPriority">
-                    <option value="High">High</option>
-                    <option value="Medium" selected>Medium</option>
-                    <option value="Low">Low</option>
-                  </select>
-                </label>
-                <label>
-                  Message
-                  <textarea id="landlordSupportNote" rows="5" placeholder="Tell the super admin what you need help with" required></textarea>
-                </label>
-                <button class="primary-button" type="submit">Send Support Request</button>
-              </form>
-            </section>
-
-            <section class="panel wide-panel">
-              <div class="panel-header">
-                <h2>My Support Requests</h2>
-                <span id="landlordSupportCount" class="pill warning">0 open</span>
-              </div>
-              <div id="landlordSupportList" class="support-list"></div>
-            </section>
-          </div>
-        </section>
-
-        <section id="expenses" class="view" aria-labelledby="viewTitle">
-          <div class="content-grid form-layout">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Add Expense</h2>
-                <span id="expenseMonthLabel" class="pill neutral"></span>
-              </div>
-              <form id="expenseForm" class="stacked-form">
-                <label>
-                  Property
-                  <select id="expenseProperty" name="expenseProperty" required></select>
-                </label>
-                <label>
-                  Type
-                  <select id="expenseType" name="expenseType">
-                    <option value="Broken tap">Broken tap</option>
-                    <option value="Plumbing">Plumbing</option>
-                    <option value="Wiring">Wiring</option>
-                    <option value="Painting">Painting</option>
-                    <option value="Repairs">Repairs</option>
-                    <option value="Water Bill">Water Bill</option>
-                    <option value="Electricity">Electricity</option>
-                    <option value="Caretaker Salary">Caretaker Salary</option>
-                    <option value="Security">Security</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </label>
-                <div class="split-fields">
-                  <label>
-                    Amount
-                    <input id="expenseAmount" name="expenseAmount" type="number" min="0" step="1000" required />
-                  </label>
-                  <label>
-                    Date
-                    <input id="expenseDate" name="expenseDate" type="date" required />
-                  </label>
-                </div>
-                <button class="primary-button" type="submit">Save Expense</button>
-              </form>
-            </section>
-
-            <section class="panel wide-panel">
-              <div class="panel-header">
-                <h2>Expense Records</h2>
-                <div class="button-row">
-                  <span id="expenseTotalLabel" class="pill danger">USh 0</span>
-                  <button id="downloadExpenseReport" class="text-button" type="button">Expense Report</button>
-                </div>
-              </div>
-              <div class="expense-summary" id="expenseSummary"></div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>Property</th>
-                      <th>Amount</th>
-                      <th>Date</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="expenseTable"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <section id="reminders" class="view" aria-labelledby="viewTitle">
-          <section class="panel">
-            <div class="panel-header">
-              <h2>Reminder Queue</h2>
-              <div class="button-row">
-                <span id="reminderCountLabel" class="pill warning">0 reminders</span>
-                <button id="queueReminderAlerts" class="text-button" type="button">Queue Alerts</button>
-              </div>
-            </div>
-            <div id="reminderList" class="reminder-list"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-header">
-              <h2>Message Templates</h2>
-              <span class="pill neutral">SMS / WhatsApp</span>
-            </div>
-            <div class="template-grid">
-              <article class="template-item">
-                <h3>Due Tomorrow</h3>
-                <p id="dueTomorrowTemplate"></p>
-              </article>
-              <article class="template-item">
-                <h3>Payment Received</h3>
-                <p id="receivedTemplate"></p>
-              </article>
-              <article class="template-item">
-                <h3>Overdue Balance</h3>
-                <p id="overdueTemplate"></p>
-              </article>
-            </div>
-          </section>
-        </section>
-
-        <section id="platformLandlords" class="view" aria-labelledby="viewTitle">
-          <section class="panel">
-            <div class="panel-header">
-              <h2>Landlord Accounts</h2>
-              <div class="button-row">
-                <span id="ownerLandlordCountLabel" class="pill success">0 landlords</span>
-                <button id="createDemoAccountButton" class="text-button" type="button">Create Demo Account</button>
-              </div>
-            </div>
-            <div id="ownerLandlordSummary" class="owner-summary-grid"></div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Account</th>
+                    <th>Landlord</th>
                     <th>Package</th>
+                    <th>Next Billing</th>
+                    <th>Revenue</th>
                     <th>Status</th>
-                    <th>Portfolio</th>
-                    <th>Billing</th>
-                    <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="ownerLandlordTable"></tbody>
+                <tbody id="adminSubscriptionTable"></tbody>
               </table>
             </div>
           </section>
+
+          <section class="admin-card">
+            <div class="panel-header">
+              <h2>Support Tickets</h2>
+              <span id="adminSupportCountLabel" class="pill warning">0 open</span>
+            </div>
+            <div id="adminSupportList" class="support-list admin-support-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="dashboard" class="view active-view" aria-labelledby="viewTitle">
+        <div class="metric-grid" id="metricGrid"></div>
+        <section id="onboardingPanel" class="panel onboarding-panel hidden">
+          <div class="panel-header">
+            <div>
+              <h2>Setup Checklist</h2>
+              <p class="panel-subtitle">Finish these once and daily rent tracking gets easier.</p>
+            </div>
+            <span id="onboardingProgressLabel" class="pill neutral">0/5 done</span>
+          </div>
+          <div id="onboardingChecklist" class="onboarding-checklist"></div>
+        </section>
+        <div id="dailyOpsGrid" class="daily-ops-grid"></div>
+
+        <section class="panel dashboard-calendar-panel" aria-labelledby="dashboardCalendarTitle">
+          <div class="panel-header">
+            <div>
+              <h2 id="dashboardCalendarTitle">Monthly Report</h2>
+              <p id="dashboardCalendarMonth" class="panel-subtitle"></p>
+            </div>
+            <div class="dashboard-month-controls">
+              <button id="dashboardMonthPrevious" class="text-button compact-link-button dashboard-month-arrow"
+                type="button" aria-label="Previous month">&lt;</button>
+              <label class="sr-only" for="dashboardMonthPicker">Report month</label>
+              <input id="dashboardMonthPicker" type="month" />
+              <button id="dashboardMonthNext" class="text-button compact-link-button dashboard-month-arrow"
+                type="button" aria-label="Next month">&gt;</button>
+              <button id="dashboardMonthCurrent" class="text-button compact-link-button" type="button">Current
+                Month</button>
+              <button id="dashboardPastMonthsToggle" class="text-button compact-link-button" type="button"
+                aria-expanded="false">Past Months</button>
+              <button id="dashboardDownloadReport" class="text-button compact-link-button" type="button">Download
+                Report</button>
+              <button id="dashboardCalendarToggle" class="text-button compact-link-button" type="button"
+                aria-expanded="false">Show Calendar</button>
+            </div>
+          </div>
+          <div id="dashboardPastMonthsPanel" class="dashboard-past-months hidden"></div>
+          <div id="dashboardCalendarSummary" class="dashboard-calendar-summary"></div>
+          <div class="dashboard-month-report">
+            <div id="dashboardMonthInsight" class="dashboard-month-insight"></div>
+            <div id="dashboardCollectionTrend" class="dashboard-collection-trend"></div>
+            <div id="dashboardStatusBreakdown" class="dashboard-status-breakdown"></div>
+            <div class="dashboard-report-table-heading">
+              <h3>Payment Details</h3>
+              <span id="dashboardReportPaymentCount" class="pill success">0 payments</span>
+            </div>
+            <div class="table-wrap dashboard-report-table-wrap">
+              <table class="dashboard-report-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Tenant</th>
+                    <th>Room</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboardReportPayments"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="dashboardCalendarStatus" class="dashboard-calendar-status pill info hidden"></div>
+          <div id="dashboardCalendarGrid" class="dashboard-calendar-grid dashboard-calendar-secondary hidden"
+            aria-label="Dashboard month calendar"></div>
         </section>
 
-        <section id="platformDetail" class="view platform-detail-view" aria-labelledby="viewTitle">
+        <div class="content-grid two-columns">
           <section class="panel">
             <div class="panel-header">
-              <div>
-                <h2 id="platformDetailTitle">Details</h2>
-                <p id="platformDetailMeta" class="notification-modal-meta"></p>
-              </div>
-              <button class="ghost-button" data-platform-detail-back type="button">Back</button>
+              <h2 id="dashboardPrimaryTitle">Vacant Rooms</h2>
+              <span id="occupancyLabel" class="pill neutral">0 rooms</span>
             </div>
-            <div id="platformDetailBody" class="detail-modal-body platform-detail-body"></div>
+            <div id="unitStatusGrid" class="unit-grid"></div>
           </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2 id="dashboardSecondaryTitle">Late Tenants</h2>
+              <span id="dueSoonLabel" class="pill warning">0 due</span>
+            </div>
+            <div class="table-wrap late-tenants-wrap">
+              <table class="late-tenants-table">
+                <thead>
+                  <tr id="upcomingDuesHead">
+                    <th>Tenant</th>
+                    <th>Room</th>
+                    <th>Days</th>
+                    <th>Balance</th>
+                    <th>Phone</th>
+                  </tr>
+                </thead>
+                <tbody id="upcomingDuesTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2 id="dashboardRecentTitle">Recent Payments</h2>
+            <span id="monthLabel" class="pill success"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr id="recentPaymentsHead">
+                  <th>Tenant</th>
+                  <th>Room</th>
+                  <th>Amount</th>
+                  <th>Time</th>
+                  <th>Method</th>
+                </tr>
+              </thead>
+              <tbody id="recentPaymentsTable"></tbody>
+            </table>
+          </div>
         </section>
 
-        <section id="platformBilling" class="view" aria-labelledby="viewTitle">
+        <div class="content-grid two-columns">
+          <section class="panel">
+            <div class="panel-header">
+              <h2 id="dashboardChartTitle">Income Trend</h2>
+              <span id="dashboardChartLabel" class="pill info">Live view</span>
+            </div>
+            <div id="dashboardChart" class="chart-panel"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Expenses Added</h2>
+              <span id="expenseTodayLabel" class="pill danger">0 today</span>
+            </div>
+            <div id="dashboardExpenseList" class="compact-list"></div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2 id="dashboardActivityTitle">Recent Activity</h2>
+            <span id="activityCountLabel" class="pill neutral">0 updates</span>
+          </div>
+          <div id="activityList" class="activity-list"></div>
+        </section>
+      </section>
+
+      <section id="properties" class="view" aria-labelledby="viewTitle">
+        <div id="planLimitNotice" class="plan-limit-note setup-limit-note"></div>
+        <div class="content-grid form-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <h2 id="propertyFormTitle">Add Property</h2>
+              <span id="propertyFormMode" class="pill neutral">New</span>
+            </div>
+            <form id="propertyForm" class="stacked-form">
+              <input type="hidden" id="propertyId" />
+              <label>
+                Property Name
+                <input id="propertyName" placeholder="e.g. Kira Road Apartments" required />
+              </label>
+              <label>
+                Location
+                <input id="propertyLocation" placeholder="e.g. Kira, Ntinda, Mukono" required />
+              </label>
+              <label>
+                Type
+                <select id="propertyType">
+                  <option value="Rooms">Rooms</option>
+                  <option value="Single Room">Single Room</option>
+                  <option value="Double Room">Double Room</option>
+                  <option value="Shops">Shops</option>
+                  <option value="Boys Quarters">Boys Quarters</option>
+                  <option value="House">House</option>
+                  <option value="Apartment">Apartment</option>
+                  <option value="Mixed">Mixed</option>
+                </select>
+              </label>
+              <div class="form-actions">
+                <button id="cancelPropertyEdit" class="ghost-button hidden" type="button">Cancel</button>
+                <button class="primary-button" type="submit">Save Property</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Add Room / Shop / House</h2>
+              <span class="pill neutral">Publish manually</span>
+            </div>
+            <form id="unitForm" class="stacked-form">
+              <label>
+                Property
+                <select id="unitProperty" required></select>
+              </label>
+              <label>
+                Room / Shop / House Number
+                <input id="unitNumber" placeholder="e.g. Room A2, Shop 1, BQ 3" required />
+              </label>
+              <label>
+                Monthly Rent
+                <input id="unitRent" type="number" min="0" step="1000" required />
+              </label>
+              <label>
+                Public Photo
+                <input id="unitPhoto" type="file" accept="image/*" />
+              </label>
+              <div id="unitPhotoPreview" class="image-upload-preview hidden"></div>
+              <input id="unitPhotoPicker" class="hidden" type="file" accept="image/*" />
+              <button class="primary-button" type="submit">Add Room</button>
+            </form>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Property Portfolio</h2>
+            <span id="propertyCountLabel" class="pill success">0 properties</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Property</th>
+                  <th>Location</th>
+                  <th>Type</th>
+                  <th>Rooms</th>
+                  <th>Occupancy</th>
+                  <th>Expected Rent</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="propertyTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Room / Shop Setup</h2>
+            <span id="unitCountLabel" class="pill neutral">0 rooms</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Room</th>
+                  <th>Property</th>
+                  <th>Rent</th>
+                  <th>Status</th>
+                  <th>Public Listing</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="unitTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="tenants" class="view" aria-labelledby="viewTitle">
+        <div class="content-grid form-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <h2 id="tenantFormTitle">Add Tenant</h2>
+              <span id="tenantFormMode" class="pill neutral">New</span>
+            </div>
+            <form id="tenantForm" class="stacked-form">
+              <input type="hidden" id="tenantId" />
+              <label>
+                Name
+                <input id="tenantName" name="tenantName" autocomplete="name" required />
+              </label>
+              <label>
+                Phone Number
+                <input id="tenantPhone" name="tenantPhone" autocomplete="tel" required />
+              </label>
+              <label>
+                National ID
+                <input id="tenantNationalId" name="tenantNationalId" required />
+              </label>
+              <label>
+                Room / Shop / House
+                <select id="tenantUnit" name="tenantUnit" required></select>
+              </label>
+              <label>
+                Monthly Rent
+                <input id="tenantRent" name="tenantRent" type="number" min="0" step="1000" required />
+                <small class="form-helper">This is the rent charged each month. It is not a payment record.</small>
+              </label>
+              <label>
+                Move-in Date
+                <input id="tenantMoveIn" name="tenantMoveIn" type="date" required />
+              </label>
+              <div class="form-actions">
+                <button id="cancelTenantEdit" class="ghost-button hidden" type="button">Cancel</button>
+                <button class="primary-button" type="submit">Save Tenant</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel wide-panel">
+            <div class="panel-header">
+              <h2>Tenant Records</h2>
+              <div class="button-row">
+                <input id="tenantImportFile" class="hidden" type="file" accept=".csv,text/csv" />
+                <button id="importTenantsButton" class="text-button" type="button">Import CSV</button>
+                <button id="exportTenantsCsv" class="text-button" type="button">Export CSV</button>
+                <input id="tenantSearch" class="search-input" placeholder="Search tenants" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Room</th>
+                    <th>Monthly Rent</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tenantTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="staff" class="view" aria-labelledby="viewTitle">
+        <div class="content-grid form-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Add Caretaker Login</h2>
+              <span class="pill neutral">Plan limited</span>
+            </div>
+            <form id="staffInviteForm" class="stacked-form">
+              <div id="staffPlanNotice" class="plan-limit-note"></div>
+              <label>
+                Full Name
+                <input id="staffName" autocomplete="name" required />
+              </label>
+              <label>
+                Phone Number
+                <input id="staffPhone" autocomplete="tel" required />
+              </label>
+              <label>
+                Email Address
+                <input id="staffEmail" type="email" autocomplete="email" required />
+              </label>
+              <label>
+                Temporary Password
+                <input id="staffPassword" type="password" minlength="8" required />
+              </label>
+              <label>
+                Assigned Properties
+                <select id="staffProperties" multiple required></select>
+              </label>
+              <button id="staffInviteButton" class="primary-button" type="submit">Create Caretaker Login</button>
+            </form>
+          </section>
+
+          <section class="panel wide-panel">
+            <div class="panel-header">
+              <h2>Caretaker Access</h2>
+              <span id="staffCountLabel" class="pill success">0 caretakers</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Caretaker</th>
+                    <th>Assigned Properties</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="staffTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="rent" class="view" aria-labelledby="viewTitle">
+        <div class="content-grid form-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Record Payment</h2>
+              <span id="paymentStatusPill" class="pill neutral">Ready</span>
+            </div>
+            <form id="paymentForm" class="stacked-form">
+              <label>
+                Tenant
+                <select id="paymentTenant" name="paymentTenant" required></select>
+              </label>
+              <div class="split-fields">
+                <label>
+                  Rent Payment Amount
+                  <input id="paymentAmount" name="paymentAmount" type="number" min="0" step="1000" required />
+                  <small class="form-helper">Enter only rent received. Do not repeat the tenant's security deposit
+                    here.</small>
+                </label>
+                <label>
+                  Date
+                  <input id="paymentDate" name="paymentDate" type="date" required />
+                </label>
+              </div>
+              <label>
+                Method
+                <select id="paymentMethod" name="paymentMethod">
+                  <option value="MTN MoMo">MTN MoMo</option>
+                  <option value="Airtel Money">Airtel Money</option>
+                  <option value="Bank transfer">Bank transfer</option>
+                  <option value="Cash">Cash</option>
+                </select>
+              </label>
+              <label>
+                Transaction Reference
+                <input id="paymentReference" name="paymentReference" placeholder="e.g. MOMO-48391" />
+              </label>
+              <label>
+                Proof / Screenshot Link
+                <input id="paymentProof" name="paymentProof" placeholder="e.g. MoMo screenshot URL or note" />
+              </label>
+              <label>
+                Verification Status
+                <select id="paymentVerification" name="paymentVerification">
+                  <option value="Unverified">Unverified</option>
+                  <option value="Verified">Verified</option>
+                  <option value="Disputed">Disputed</option>
+                </select>
+              </label>
+              <div id="tenantBalancePreview" class="balance-preview"></div>
+              <button class="primary-button" type="submit">Confirm Payment</button>
+            </form>
+          </section>
+
+          <section class="panel wide-panel">
+            <div class="panel-header">
+              <h2>Rent Status</h2>
+              <span id="rentStatusLabel" class="pill neutral">Current month</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tenant</th>
+                    <th>Room</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Advance</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="rentStatusTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Payment History</h2>
+            <div class="button-row">
+              <span id="paymentCountLabel" class="pill success">0 payments</span>
+              <button id="downloadRentReport" class="text-button" type="button">Download Report</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tenant</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Receipt</th>
+                  <th>Reference</th>
+                  <th>Proof</th>
+                  <th>Date</th>
+                  <th>Balance</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="paymentHistoryTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="support" class="view" aria-labelledby="viewTitle">
+        <div class="content-grid form-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Request Help</h2>
+              <span class="pill neutral">Super admin</span>
+            </div>
+            <div class="verification-request-box">
+              <div>
+                <strong>Blue tick Verified badge</strong>
+                <span id="verifiedBadgeRequestStatus">Request super admin review for your public profile.</span>
+              </div>
+              <button id="requestVerifiedBadgeButton" class="ghost-button" type="button">Request Badge</button>
+            </div>
+            <form id="landlordSupportForm" class="stacked-form">
+              <label>
+                Issue
+                <input id="landlordSupportSubject" placeholder="e.g. Help correcting tenant balance" required />
+              </label>
+              <label>
+                Priority
+                <select id="landlordSupportPriority">
+                  <option value="High">High</option>
+                  <option value="Medium" selected>Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </label>
+              <label>
+                Message
+                <textarea id="landlordSupportNote" rows="5" placeholder="Tell the super admin what you need help with"
+                  required></textarea>
+              </label>
+              <button class="primary-button" type="submit">Send Support Request</button>
+            </form>
+          </section>
+
+          <section class="panel wide-panel">
+            <div class="panel-header">
+              <h2>My Support Requests</h2>
+              <span id="landlordSupportCount" class="pill warning">0 open</span>
+            </div>
+            <div id="landlordSupportList" class="support-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="expenses" class="view" aria-labelledby="viewTitle">
+        <div class="content-grid form-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Add Expense</h2>
+              <span id="expenseMonthLabel" class="pill neutral"></span>
+            </div>
+            <form id="expenseForm" class="stacked-form">
+              <label>
+                Property
+                <select id="expenseProperty" name="expenseProperty" required></select>
+              </label>
+              <label>
+                Type
+                <select id="expenseType" name="expenseType">
+                  <option value="Broken tap">Broken tap</option>
+                  <option value="Plumbing">Plumbing</option>
+                  <option value="Wiring">Wiring</option>
+                  <option value="Painting">Painting</option>
+                  <option value="Repairs">Repairs</option>
+                  <option value="Water Bill">Water Bill</option>
+                  <option value="Electricity">Electricity</option>
+                  <option value="Caretaker Salary">Caretaker Salary</option>
+                  <option value="Security">Security</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <div class="split-fields">
+                <label>
+                  Amount
+                  <input id="expenseAmount" name="expenseAmount" type="number" min="0" step="1000" required />
+                </label>
+                <label>
+                  Date
+                  <input id="expenseDate" name="expenseDate" type="date" required />
+                </label>
+              </div>
+              <button class="primary-button" type="submit">Save Expense</button>
+            </form>
+          </section>
+
+          <section class="panel wide-panel">
+            <div class="panel-header">
+              <h2>Expense Records</h2>
+              <div class="button-row">
+                <span id="expenseTotalLabel" class="pill danger">USh 0</span>
+                <button id="downloadExpenseReport" class="text-button" type="button">Expense Report</button>
+              </div>
+            </div>
+            <div class="expense-summary" id="expenseSummary"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Property</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="expenseTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="reminders" class="view" aria-labelledby="viewTitle">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Reminder Queue</h2>
+            <div class="button-row">
+              <span id="reminderCountLabel" class="pill warning">0 reminders</span>
+              <button id="queueReminderAlerts" class="text-button" type="button">Queue Alerts</button>
+            </div>
+          </div>
+          <div id="reminderList" class="reminder-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Message Templates</h2>
+            <span class="pill neutral">SMS / WhatsApp</span>
+          </div>
+          <div class="template-grid">
+            <article class="template-item">
+              <h3>Due Tomorrow</h3>
+              <p id="dueTomorrowTemplate"></p>
+            </article>
+            <article class="template-item">
+              <h3>Payment Received</h3>
+              <p id="receivedTemplate"></p>
+            </article>
+            <article class="template-item">
+              <h3>Overdue Balance</h3>
+              <p id="overdueTemplate"></p>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <section id="platformLandlords" class="view" aria-labelledby="viewTitle">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Landlord Accounts</h2>
+            <div class="button-row">
+              <span id="ownerLandlordCountLabel" class="pill success">0 landlords</span>
+              <button id="createDemoAccountButton" class="text-button" type="button">Create Demo Account</button>
+            </div>
+          </div>
+          <div id="ownerLandlordSummary" class="owner-summary-grid"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Account</th>
+                  <th>Package</th>
+                  <th>Status</th>
+                  <th>Portfolio</th>
+                  <th>Billing</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ownerLandlordTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="platformDetail" class="view platform-detail-view" aria-labelledby="viewTitle">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 id="platformDetailTitle">Details</h2>
+              <p id="platformDetailMeta" class="notification-modal-meta"></p>
+            </div>
+            <button class="ghost-button" data-platform-detail-back type="button">Back</button>
+          </div>
+          <div id="platformDetailBody" class="detail-modal-body platform-detail-body"></div>
+        </section>
+      </section>
+
+      <section id="platformBilling" class="view" aria-labelledby="viewTitle">
+        <div class="content-grid form-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Confirm SaaS Payment</h2>
+              <span class="pill neutral">Subscription income</span>
+            </div>
+            <form id="ownerPaymentForm" class="stacked-form">
+              <label>
+                Landlord
+                <select id="ownerPaymentLandlord" required></select>
+              </label>
+              <label>
+                Plan fee
+                <input id="ownerPaymentAmount" type="number" min="0" step="1000" readonly required />
+              </label>
+              <div class="split-fields">
+                <label>
+                  Date
+                  <input id="ownerPaymentDate" type="date" required />
+                </label>
+                <label>
+                  Payment channel
+                  <input id="ownerPaymentMethod" type="text" value="Landlord chooses on Pesapal" readonly />
+                </label>
+              </div>
+              <label>
+                Note
+                <input id="ownerPaymentNote" placeholder="e.g. May subscription cleared" />
+              </label>
+              <label>
+                Billing Status
+                <select id="ownerPaymentStatus">
+                  <option value="Active">Active</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Overdue">Overdue</option>
+                  <option value="Paused">Paused</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </label>
+              <button class="primary-button" type="submit">Confirm Subscription Payment</button>
+            </form>
+          </section>
+
+          <section class="panel wide-panel">
+            <div class="panel-header">
+              <h2>Software Revenue</h2>
+              <span id="ownerBillingTotalLabel" class="pill success">USh 0</span>
+            </div>
+            <div class="billing-toolbar">
+              <label for="ownerBillingLandlordFilter">Landlord</label>
+              <select id="ownerBillingLandlordFilter" class="billing-filter-select"
+                aria-label="Filter billing by landlord"></select>
+            </div>
+            <div id="ownerBillingSummary" class="owner-summary-grid"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Landlord</th>
+                    <th>Plan</th>
+                    <th>Monthly Fee</th>
+                    <th>Last Paid</th>
+                    <th>Next Billing</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerBillingTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="platformSupport" class="view support-center-view" aria-labelledby="viewTitle">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Support Center</h2>
+            <span id="systemStorageLabel" class="pill info">Checking</span>
+          </div>
+          <div id="systemMonitorSummary" class="owner-summary-grid"></div>
+          <div class="support-tabs" role="tablist" aria-label="Support Center tabs">
+            <button class="support-tab active" data-support-tab="tickets" type="button">Tickets</button>
+            <button class="support-tab" data-support-tab="corrections" type="button">Corrections</button>
+            <button class="support-tab" data-support-tab="notifications" type="button">Notifications</button>
+            <button class="support-tab" data-support-tab="audit" type="button">Audit Logs</button>
+            <button class="support-tab" data-support-tab="health" type="button">System Health</button>
+          </div>
+        </section>
+
+        <div class="support-panel active" data-support-panel="tickets">
           <div class="content-grid form-layout">
             <section class="panel">
               <div class="panel-header">
-                <h2>Confirm SaaS Payment</h2>
-                <span class="pill neutral">Subscription income</span>
+                <h2>Log Landlord Assistance</h2>
+                <span class="pill neutral">Backend support</span>
               </div>
-              <form id="ownerPaymentForm" class="stacked-form">
+              <form id="supportTicketForm" class="stacked-form">
                 <label>
                   Landlord
-                  <select id="ownerPaymentLandlord" required></select>
+                  <select id="supportOwner" required></select>
                 </label>
                 <label>
-                  Plan fee
-                  <input id="ownerPaymentAmount" type="number" min="0" step="1000" readonly required />
+                  Issue
+                  <input id="supportSubject" placeholder="e.g. Help correcting tenant balance" required />
+                </label>
+                <label>
+                  Description
+                  <textarea id="supportNote" rows="4" placeholder="What the landlord needs help with"></textarea>
                 </label>
                 <div class="split-fields">
                   <label>
-                    Date
-                    <input id="ownerPaymentDate" type="date" required />
-                  </label>
-                  <label>
-                    Payment channel
-                    <input id="ownerPaymentMethod" type="text" value="Landlord chooses on Pesapal" readonly />
-                  </label>
-                </div>
-                <label>
-                  Note
-                  <input id="ownerPaymentNote" placeholder="e.g. May subscription cleared" />
-                </label>
-                <label>
-                  Billing Status
-                  <select id="ownerPaymentStatus">
-                    <option value="Active">Active</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Overdue">Overdue</option>
-                    <option value="Paused">Paused</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </label>
-                <button class="primary-button" type="submit">Confirm Subscription Payment</button>
-              </form>
-            </section>
-
-            <section class="panel wide-panel">
-              <div class="panel-header">
-                <h2>Software Revenue</h2>
-                <span id="ownerBillingTotalLabel" class="pill success">USh 0</span>
-              </div>
-              <div class="billing-toolbar">
-                <label for="ownerBillingLandlordFilter">Landlord</label>
-                <select id="ownerBillingLandlordFilter" class="billing-filter-select" aria-label="Filter billing by landlord"></select>
-              </div>
-              <div id="ownerBillingSummary" class="owner-summary-grid"></div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Landlord</th>
-                      <th>Plan</th>
-                      <th>Monthly Fee</th>
-                      <th>Last Paid</th>
-                      <th>Next Billing</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="ownerBillingTable"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <section id="platformSupport" class="view support-center-view" aria-labelledby="viewTitle">
-          <section class="panel">
-            <div class="panel-header">
-              <h2>Support Center</h2>
-              <span id="systemStorageLabel" class="pill info">Checking</span>
-            </div>
-            <div id="systemMonitorSummary" class="owner-summary-grid"></div>
-            <div class="support-tabs" role="tablist" aria-label="Support Center tabs">
-              <button class="support-tab active" data-support-tab="tickets" type="button">Tickets</button>
-              <button class="support-tab" data-support-tab="corrections" type="button">Corrections</button>
-              <button class="support-tab" data-support-tab="notifications" type="button">Notifications</button>
-              <button class="support-tab" data-support-tab="audit" type="button">Audit Logs</button>
-              <button class="support-tab" data-support-tab="health" type="button">System Health</button>
-            </div>
-          </section>
-
-          <div class="support-panel active" data-support-panel="tickets">
-            <div class="content-grid form-layout">
-              <section class="panel">
-                <div class="panel-header">
-                  <h2>Log Landlord Assistance</h2>
-                  <span class="pill neutral">Backend support</span>
-                </div>
-                <form id="supportTicketForm" class="stacked-form">
-                  <label>
-                    Landlord
-                    <select id="supportOwner" required></select>
-                  </label>
-                  <label>
-                    Issue
-                    <input id="supportSubject" placeholder="e.g. Help correcting tenant balance" required />
-                  </label>
-                  <label>
-                    Description
-                    <textarea id="supportNote" rows="4" placeholder="What the landlord needs help with"></textarea>
-                  </label>
-                  <div class="split-fields">
-                    <label>
-                      Priority
-                      <select id="supportPriority">
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
-                      </select>
-                    </label>
-                    <label>
-                      Status
-                      <select id="supportStatus">
-                        <option value="Open">Open</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
-                        <option value="Closed">Closed</option>
-                      </select>
-                    </label>
-                  </div>
-                  <button class="primary-button" type="submit">Save Support Ticket</button>
-                </form>
-              </section>
-
-              <section class="panel wide-panel">
-                <div class="panel-header">
-                  <h2>Support Desk</h2>
-                  <span id="supportTicketCount" class="pill warning">0 open</span>
-                </div>
-                <div class="support-toolbar">
-                  <label>
-                    Search
-                    <input id="supportTicketSearch" class="search-input" placeholder="Ticket, landlord, note" />
-                  </label>
-                  <label>
-                    Landlord
-                    <select id="supportTicketOwnerFilter"></select>
+                    Priority
+                    <select id="supportPriority">
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
                   </label>
                   <label>
                     Status
-                    <select id="supportTicketStatusFilter">
-                      <option value="all">All statuses</option>
+                    <select id="supportStatus">
                       <option value="Open">Open</option>
                       <option value="In Progress">In Progress</option>
                       <option value="Resolved">Resolved</option>
                       <option value="Closed">Closed</option>
                     </select>
                   </label>
-                  <label>
-                    Priority
-                    <select id="supportTicketPriorityFilter">
-                      <option value="all">All priorities</option>
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                    </select>
-                  </label>
                 </div>
-                <div id="supportTicketList" class="support-list"></div>
-              </section>
-            </div>
-          </div>
-
-          <div class="support-panel" data-support-panel="corrections">
-            <div class="content-grid form-layout">
-              <section class="panel wide-panel">
-                <div class="panel-header">
-                  <h2>Backend Correction</h2>
-                  <span class="pill warning">Super admin</span>
-                </div>
-                <form id="backendSupportForm" class="stacked-form">
-                  <div class="split-fields">
-                    <label>
-                      Landlord
-                      <select id="backendSupportOwner" required></select>
-                    </label>
-                    <label>
-                      Record type
-                      <select id="backendSupportType">
-                        <option value="account">Account</option>
-                        <option value="property">Property</option>
-                        <option value="unit">Room / Shop</option>
-                        <option value="tenant">Tenant</option>
-                        <option value="payment">Payment</option>
-                        <option value="expense">Expense</option>
-                        <option value="subscription">Subscription</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="split-fields">
-                    <label>
-                      Record
-                      <select id="backendSupportRecord" required></select>
-                    </label>
-                    <label>
-                      Correction
-                      <select id="backendSupportAction" required></select>
-                    </label>
-                  </div>
-                  <label>
-                    Correct value
-                    <input id="backendSupportValue" placeholder="Choose a correction first" />
-                  </label>
-                  <label>
-                    Support note
-                    <textarea id="backendSupportNote" rows="3" placeholder="Why this correction is needed"></textarea>
-                  </label>
-                  <p id="backendSupportPreview" class="support-note">Choose a landlord and record to start a correction.</p>
-                  <div class="button-row">
-                    <button class="primary-button" type="submit">Apply Correction</button>
-                    <button id="backendSupportOpenAccount" class="ghost-button" type="button">Open Account</button>
-                  </div>
-                </form>
-              </section>
-            </div>
-          </div>
-
-          <div class="support-panel" data-support-panel="notifications">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Notification Center</h2>
-                <span id="supportNotificationCount" class="pill neutral">0 notifications</span>
-              </div>
-              <div id="supportNotificationList" class="support-list"></div>
-            </section>
-          </div>
-
-          <div class="support-panel" data-support-panel="audit">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Audit Logs</h2>
-                <span id="auditLogCount" class="pill neutral">0 logs</span>
-              </div>
-              <div id="auditLogList" class="support-list"></div>
-            </section>
-          </div>
-
-          <div class="support-panel" data-support-panel="health">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>System Health</h2>
-                <span class="pill info">Live checks</span>
-              </div>
-              <div id="systemSignalList" class="support-list"></div>
-            </section>
-          </div>
-        </section>
-
-        <section id="platformMessages" class="view" aria-labelledby="viewTitle">
-          <div class="content-grid form-layout">
-            <section class="panel">
-              <div class="panel-header">
-                <h2>Message Landlord</h2>
-                <span class="pill info">Communication</span>
-              </div>
-              <form id="adminMessageForm" class="stacked-form">
-                <label>
-                  Landlord
-                  <select id="adminMessageOwner" required></select>
-                </label>
-                <label>
-                  Template
-                  <select id="adminMessageTemplate">
-                    <option value="">Custom message</option>
-                    <option value="welcome">Welcome Message</option>
-                    <option value="subscription">Subscription Reminder</option>
-                    <option value="payment">Payment Reminder</option>
-                    <option value="support">Support Follow Up</option>
-                    <option value="maintenance">Maintenance Notice</option>
-                  </select>
-                </label>
-                <label>
-                  Subject
-                  <input id="adminMessageTitle" placeholder="e.g. Subscription reminder" required />
-                </label>
-                <label>
-                  Message
-                  <textarea id="adminMessageBody" rows="4" placeholder="Write the message for the landlord" required></textarea>
-                </label>
-                <button class="primary-button" type="submit">Send Message</button>
+                <button class="primary-button" type="submit">Save Support Ticket</button>
               </form>
             </section>
 
             <section class="panel wide-panel">
               <div class="panel-header">
-                <h2>Message History</h2>
-                <span id="adminMessageCount" class="pill neutral">0 sent</span>
+                <h2>Support Desk</h2>
+                <span id="supportTicketCount" class="pill warning">0 open</span>
               </div>
-              <div id="adminMessageList" class="support-list"></div>
+              <div class="support-toolbar">
+                <label>
+                  Search
+                  <input id="supportTicketSearch" class="search-input" placeholder="Ticket, landlord, note" />
+                </label>
+                <label>
+                  Landlord
+                  <select id="supportTicketOwnerFilter"></select>
+                </label>
+                <label>
+                  Status
+                  <select id="supportTicketStatusFilter">
+                    <option value="all">All statuses</option>
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Closed">Closed</option>
+                  </select>
+                </label>
+                <label>
+                  Priority
+                  <select id="supportTicketPriorityFilter">
+                    <option value="all">All priorities</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </label>
+              </div>
+              <div id="supportTicketList" class="support-list"></div>
             </section>
           </div>
-        </section>
+        </div>
 
-        <section id="platformReports" class="view" aria-labelledby="viewTitle">
-          <section class="panel">
-            <div class="panel-header">
-              <h2>System Reports</h2>
-              <span class="pill info">Super admin</span>
-            </div>
-            <div id="platformReportSummary" class="owner-summary-grid"></div>
-          </section>
-        </section>
-
-        <section id="platformSettings" class="view" aria-labelledby="viewTitle">
+        <div class="support-panel" data-support-panel="corrections">
           <div class="content-grid form-layout">
-            <section class="panel">
+            <section class="panel wide-panel">
               <div class="panel-header">
-                <h2>Admin Password Reset</h2>
+                <h2>Backend Correction</h2>
                 <span class="pill warning">Super admin</span>
               </div>
-              <form id="adminPasswordResetForm" class="stacked-form">
+              <form id="backendSupportForm" class="stacked-form">
+                <div class="split-fields">
+                  <label>
+                    Landlord
+                    <select id="backendSupportOwner" required></select>
+                  </label>
+                  <label>
+                    Record type
+                    <select id="backendSupportType">
+                      <option value="account">Account</option>
+                      <option value="property">Property</option>
+                      <option value="unit">Room / Shop</option>
+                      <option value="tenant">Tenant</option>
+                      <option value="payment">Payment</option>
+                      <option value="expense">Expense</option>
+                      <option value="subscription">Subscription</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="split-fields">
+                  <label>
+                    Record
+                    <select id="backendSupportRecord" required></select>
+                  </label>
+                  <label>
+                    Correction
+                    <select id="backendSupportAction" required></select>
+                  </label>
+                </div>
                 <label>
-                  Account
-                  <select id="adminPasswordResetUser" required></select>
+                  Correct value
+                  <input id="backendSupportValue" placeholder="Choose a correction first" />
                 </label>
-                <button class="primary-button" type="submit">Send Reset OTP</button>
+                <label>
+                  Support note
+                  <textarea id="backendSupportNote" rows="3" placeholder="Why this correction is needed"></textarea>
+                </label>
+                <p id="backendSupportPreview" class="support-note">Choose a landlord and record to start a correction.
+                </p>
+                <div class="button-row">
+                  <button class="primary-button" type="submit">Apply Correction</button>
+                  <button id="backendSupportOpenAccount" class="ghost-button" type="button">Open Account</button>
+                </div>
               </form>
             </section>
           </div>
+        </div>
+
+        <div class="support-panel" data-support-panel="notifications">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Notification Center</h2>
+              <span id="supportNotificationCount" class="pill neutral">0 notifications</span>
+            </div>
+            <div id="supportNotificationList" class="support-list"></div>
+          </section>
+        </div>
+
+        <div class="support-panel" data-support-panel="audit">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Audit Logs</h2>
+              <span id="auditLogCount" class="pill neutral">0 logs</span>
+            </div>
+            <div id="auditLogList" class="support-list"></div>
+          </section>
+        </div>
+
+        <div class="support-panel" data-support-panel="health">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>System Health</h2>
+              <span class="pill info">Live checks</span>
+            </div>
+            <div id="systemSignalList" class="support-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="platformMessages" class="view" aria-labelledby="viewTitle">
+        <div class="content-grid form-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Message Landlord</h2>
+              <span class="pill info">Communication</span>
+            </div>
+            <form id="adminMessageForm" class="stacked-form">
+              <label>
+                Landlord
+                <select id="adminMessageOwner" required></select>
+              </label>
+              <label>
+                Template
+                <select id="adminMessageTemplate">
+                  <option value="">Custom message</option>
+                  <option value="welcome">Welcome Message</option>
+                  <option value="subscription">Subscription Reminder</option>
+                  <option value="payment">Payment Reminder</option>
+                  <option value="support">Support Follow Up</option>
+                  <option value="maintenance">Maintenance Notice</option>
+                </select>
+              </label>
+              <label>
+                Subject
+                <input id="adminMessageTitle" placeholder="e.g. Subscription reminder" required />
+              </label>
+              <label>
+                Message
+                <textarea id="adminMessageBody" rows="4" placeholder="Write the message for the landlord"
+                  required></textarea>
+              </label>
+              <button class="primary-button" type="submit">Send Message</button>
+            </form>
+          </section>
+
+          <section class="panel wide-panel">
+            <div class="panel-header">
+              <h2>Message History</h2>
+              <span id="adminMessageCount" class="pill neutral">0 sent</span>
+            </div>
+            <div id="adminMessageList" class="support-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="platformReports" class="view" aria-labelledby="viewTitle">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>System Reports</h2>
+            <span class="pill info">Super admin</span>
+          </div>
+          <div id="platformReportSummary" class="owner-summary-grid"></div>
         </section>
-      </main>
-    </div>
-
-    <div id="notificationModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="notificationModalTitle">
-      <section class="receipt-modal notification-modal">
-        <div class="panel-header">
-          <div>
-            <h2 id="notificationModalTitle">Notification</h2>
-            <p id="notificationModalMeta" class="notification-modal-meta"></p>
-          </div>
-          <button id="closeNotificationModal" class="ghost-button" type="button">Close</button>
-        </div>
-        <p id="notificationModalMessage" class="notification-modal-message"></p>
       </section>
-    </div>
 
-    <div id="moveOutModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="moveOutTitle">
-      <section class="receipt-modal">
-        <div class="panel-header">
-          <div>
-            <h2 id="moveOutTitle">Tenant Move Out</h2>
-            <p id="moveOutTenantMeta" class="notification-modal-meta"></p>
-          </div>
-          <button id="cancelMoveOut" class="ghost-button" type="button">Close</button>
+      <section id="platformSettings" class="view" aria-labelledby="viewTitle">
+        <div class="content-grid form-layout">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Admin Password Reset</h2>
+              <span class="pill warning">Super admin</span>
+            </div>
+            <form id="adminPasswordResetForm" class="stacked-form">
+              <label>
+                Account
+                <select id="adminPasswordResetUser" required></select>
+              </label>
+              <button class="primary-button" type="submit">Send Reset OTP</button>
+            </form>
+          </section>
         </div>
-        <form id="moveOutForm" class="stacked-form">
-          <input type="hidden" id="moveOutTenantId" />
+      </section>
+    </main>
+  </div>
+
+  <div id="notificationModal" class="modal-backdrop hidden" role="dialog" aria-modal="true"
+    aria-labelledby="notificationModalTitle">
+    <section class="receipt-modal notification-modal">
+      <div class="panel-header">
+        <div>
+          <h2 id="notificationModalTitle">Notification</h2>
+          <p id="notificationModalMeta" class="notification-modal-meta"></p>
+        </div>
+        <button id="closeNotificationModal" class="ghost-button" type="button">Close</button>
+      </div>
+      <p id="notificationModalMessage" class="notification-modal-message"></p>
+    </section>
+  </div>
+
+  <div id="moveOutModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="moveOutTitle">
+    <section class="receipt-modal">
+      <div class="panel-header">
+        <div>
+          <h2 id="moveOutTitle">Tenant Move Out</h2>
+          <p id="moveOutTenantMeta" class="notification-modal-meta"></p>
+        </div>
+        <button id="cancelMoveOut" class="ghost-button" type="button">Close</button>
+      </div>
+      <form id="moveOutForm" class="stacked-form">
+        <input type="hidden" id="moveOutTenantId" />
+        <label>
+          Balance Remaining
+          <input id="moveOutBalance" readonly />
+        </label>
+        <div class="split-fields">
           <label>
-            Balance Remaining
-            <input id="moveOutBalance" readonly />
+            Damages
+            <input id="moveOutDamages" type="number" min="0" step="1000" value="0" />
           </label>
-          <div class="split-fields">
-            <label>
-              Damages
-              <input id="moveOutDamages" type="number" min="0" step="1000" value="0" />
-            </label>
-            <label>
-              Refund
-              <input id="moveOutRefund" type="number" min="0" step="1000" value="0" />
-            </label>
-          </div>
           <label>
-            Notes
-            <textarea id="moveOutNote" rows="3" placeholder="e.g. Keys returned, painting needed"></textarea>
+            Refund
+            <input id="moveOutRefund" type="number" min="0" step="1000" value="0" />
           </label>
-          <div class="form-actions">
-            <button class="ghost-button" type="button" data-close-move-out>Cancel</button>
-            <button class="primary-button" type="submit">Complete Move Out</button>
-          </div>
-        </form>
-      </section>
-    </div>
-
-    <div id="dashboardDetailModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="dashboardDetailTitle">
-      <section class="receipt-modal detail-modal">
-        <div class="panel-header">
-          <div>
-            <h2 id="dashboardDetailTitle">Details</h2>
-            <p id="dashboardDetailMeta" class="notification-modal-meta"></p>
-          </div>
-          <button id="closeDashboardDetail" class="ghost-button" type="button">Close</button>
         </div>
-        <div id="dashboardDetailBody" class="detail-modal-body"></div>
-      </section>
-    </div>
-
-    <div id="receiptModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="receiptTitle">
-      <section class="receipt-modal">
-        <div class="panel-header">
-          <h2 id="receiptTitle">Payment Receipt</h2>
-          <button id="closeReceipt" class="ghost-button" type="button">Close</button>
-        </div>
-        <div id="receiptContent" class="receipt-content"></div>
+        <label>
+          Notes
+          <textarea id="moveOutNote" rows="3" placeholder="e.g. Keys returned, painting needed"></textarea>
+        </label>
         <div class="form-actions">
-          <a id="shareReceiptWhatsApp" class="text-button link-button hidden" href="#" target="_blank" rel="noreferrer">WhatsApp Receipt</a>
-          <button id="downloadReceipt" class="ghost-button" type="button">Download PDF</button>
-          <button id="printReceipt" class="primary-button" type="button">Print Receipt</button>
+          <button class="ghost-button" type="button" data-close-move-out>Cancel</button>
+          <button class="primary-button" type="submit">Complete Move Out</button>
         </div>
-      </section>
-    </div>
+      </form>
+    </section>
+  </div>
 
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="dashboardDetailModal" class="modal-backdrop hidden" role="dialog" aria-modal="true"
+    aria-labelledby="dashboardDetailTitle">
+    <section class="receipt-modal detail-modal">
+      <div class="panel-header">
+        <div>
+          <h2 id="dashboardDetailTitle">Details</h2>
+          <p id="dashboardDetailMeta" class="notification-modal-meta"></p>
+        </div>
+        <button id="closeDashboardDetail" class="ghost-button" type="button">Close</button>
+      </div>
+      <div id="dashboardDetailBody" class="detail-modal-body"></div>
+    </section>
+  </div>
 
-    <script src="supabase-config.js?v=20260529-startup-gate"></script>
-    <script src="app.js?v=20260610-walkthrough-controls"></script>
-  </body>
+  <div id="receiptModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="receiptTitle">
+    <section class="receipt-modal">
+      <div class="panel-header">
+        <h2 id="receiptTitle">Payment Receipt</h2>
+        <button id="closeReceipt" class="ghost-button" type="button">Close</button>
+      </div>
+      <div id="receiptContent" class="receipt-content"></div>
+      <div class="form-actions">
+        <a id="shareReceiptWhatsApp" class="text-button link-button hidden" href="#" target="_blank"
+          rel="noreferrer">WhatsApp Receipt</a>
+        <button id="downloadReceipt" class="ghost-button" type="button">Download PDF</button>
+        <button id="printReceipt" class="primary-button" type="button">Print Receipt</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="supabase-config.js?v=20260529-startup-gate"></script>
+  <script src="app.js?v=20260610-walkthrough-controls"></script>
+</body>
+
 </html>
