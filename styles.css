@@ -4514,8 +4514,25 @@ div.empty-row::before {
 
 button.button-loading {
   position: relative;
-  overflow: hidden;
+  color: transparent;
   cursor: progress;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+button.button-loading::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: button-spinner 600ms linear infinite;
+  opacity: 0.7;
 }
 
 button.button-loading::after {
@@ -4523,13 +4540,32 @@ button.button-loading::after {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent 0%, rgba(15, 118, 110, 0.18) 45%, transparent 78%);
+  background: linear-gradient(90deg, transparent 0%, rgba(15, 118, 110, 0.08) 45%, transparent 78%);
   animation: button-loading-sweep 900ms ease-in-out infinite;
 }
 
-.primary-button.button-loading::after,
+.primary-button.button-loading::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 45%, transparent 78%);
+}
+
 .mobile-tab.active.button-loading::after {
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.34) 45%, transparent 78%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 45%, transparent 78%);
+}
+
+.primary-button.button-loading::before,
+.mobile-tab.active.button-loading::before {
+  border-color: rgba(255, 255, 255, 0.6);
+  border-right-color: transparent;
+}
+
+@keyframes button-spinner {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 @keyframes button-loading-sweep {
