@@ -1,340 +1,461 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RentFlow Receipt</title>
+    <title>RentFlow UG Receipt</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
+        :root {
+            color-scheme: light;
+            --bg: #f3f6fb;
+            --surface: #ffffff;
+            --surface-strong: #0b1f3a;
+            --brand: #16a34a;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #dbeafe;
+            --shadow: 0 24px 80px rgba(11, 31, 58, 0.12);
+            --radius: 24px;
+            --radius-sm: 16px;
+            --font: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f7fa;
-            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            font-family: var(--font);
+            background: linear-gradient(180deg, #edf2fb 0%, #f8fafc 100%);
+            color: var(--text);
+            padding: 24px;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
         }
 
-        .receipt-container {
-            background: white;
-            max-width: 900px;
+        .receipt-frame {
             width: 100%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+            max-width: 900px;
+            background: var(--surface);
+            border-radius: calc(var(--radius) + 8px);
             overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(11, 31, 58, 0.05);
         }
 
-        .receipt-header {
-            background: linear-gradient(135deg, #0a1f3a 0%, #1a3a52 100%);
-            padding: 40px;
+        .receipt-inner {
+            padding: 36px 40px;
+        }
+
+        .receipt-topbar {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            color: white;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 32px;
         }
 
-        .logo-section h1 {
-            font-size: 28px;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo-section p {
-            font-size: 13px;
-            opacity: 0.9;
-            color: #4ade80;
-        }
-
-        .receipt-badge {
-            text-align: right;
-        }
-
-        .receipt-badge p {
-            font-size: 12px;
-            opacity: 0.8;
-            margin-bottom: 8px;
-        }
-
-        .receipt-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #4ade80;
-        }
-
-        .success-message {
-            background: #f0fdf4;
-            border-left: 4px solid #4ade80;
-            padding: 16px 20px;
-            margin: 20px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
+        .brand-stack {
+            display: grid;
             gap: 12px;
         }
 
-        .success-icon {
-            color: #4ade80;
+        .brand-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
             font-size: 24px;
-            font-weight: bold;
+            letter-spacing: -0.04em;
+            color: var(--surface-strong);
         }
 
-        .success-message p {
-            color: #166534;
-            font-size: 14px;
-        }
-
-        .receipt-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            padding: 30px 40px;
-        }
-
-        .transaction-details {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .detail-row {
-            display: flex;
+        .brand-logo-mark {
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .detail-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #666;
-            font-size: 14px;
-            min-width: 100px;
-        }
-
-        .detail-icon {
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: var(--brand);
+            color: white;
             font-size: 18px;
         }
 
-        .detail-value {
-            font-weight: 600;
-            color: #1f2937;
+        .brand-copy {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .receipt-titlepanel {
+            text-align: right;
+        }
+
+        .receipt-title {
+            margin: 0;
+            font-size: 44px;
+            line-height: 1;
+            letter-spacing: -0.03em;
+            color: var(--surface-strong);
+        }
+
+        .receipt-subtitle {
+            margin: 12px 0 0;
+            color: var(--brand);
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .receipt-number {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .success-banner {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 24px;
+            border: 1px solid rgba(22, 163, 74, 0.18);
+            background: #effaf3;
+            border-radius: 16px;
+            margin-bottom: 32px;
+        }
+
+        .success-banner-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: rgba(22, 163, 74, 0.12);
+            color: var(--brand);
+            font-size: 20px;
+        }
+
+        .success-banner-text {
             font-size: 15px;
+            color: var(--surface-strong);
+            line-height: 1.7;
+            font-weight: 500;
         }
 
-        .detail-value.amount {
-            color: #4ade80;
-            font-size: 16px;
-            font-weight: bold;
+        .receipt-grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 28px;
         }
 
-        .detail-value.unverified {
-            background: #fef3c7;
-            color: #b45309;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
+        .detail-card {
+            display: grid;
+            gap: 18px;
+            padding: 28px;
+            background: #f8fbfe;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(11, 31, 58, 0.08);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
         }
 
-        .security-section {
+        .detail-card .card-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 4px;
+        }
+
+        .detail-card h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--surface-strong);
+            letter-spacing: -0.02em;
+        }
+
+        .detail-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .detail-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .detail-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 16px;
+            align-items: center;
+            padding: 18px 20px;
             background: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            border-radius: 16px;
+            border: 1px solid rgba(11, 31, 58, 0.06);
+            box-shadow: 0 10px 24px rgba(11, 31, 58, 0.04);
         }
 
-        .security-icon {
-            width: 60px;
-            height: 60px;
-            background: #f0fdf4;
-            border-radius: 50%;
-            display: flex;
+        .detail-item-label {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
-            font-size: 30px;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
         }
 
-        .security-section h3 {
-            color: #1f2937;
+        .detail-item-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(11, 31, 58, 0.05);
+            color: var(--surface-strong);
             font-size: 16px;
-            margin-bottom: 8px;
         }
 
-        .security-section p {
-            color: #666;
-            font-size: 13px;
-            line-height: 1.6;
-            margin-bottom: 20px;
+        .detail-item-value {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--surface-strong);
+            text-align: right;
         }
 
-        .house-illustration {
-            width: 100%;
-            max-width: 300px;
-            margin: 0 auto;
+        .detail-item-value.amount {
+            color: var(--brand);
+            font-size: 22px;
         }
 
-        .thank-you-box {
-            background: #f9fafb;
-            padding: 24px;
-            border-radius: 8px;
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .thank-you-box h4 {
-            font-family: 'Brush Script MT', cursive;
-            font-size: 28px;
-            color: #4ade80;
-            margin-bottom: 8px;
-        }
-
-        .thank-you-box p {
-            color: #4ade80;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .verified-badge {
-            display: flex;
+        .detail-item-value.status {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            margin-top: 16px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(251, 191, 36, 0.18);
+            background: rgba(254, 243, 199, 0.8);
+            color: #92400e;
+            font-size: 13px;
+            white-space: nowrap;
         }
 
-        .verified-circle {
-            width: 50px;
-            height: 50px;
-            border: 2px solid #4ade80;
-            border-radius: 50%;
-            display: flex;
+        .sidebar-card {
+            display: grid;
+            gap: 24px;
+            padding: 28px 26px;
+            background: linear-gradient(180deg, #0b1f3a 0%, #112a49 100%);
+            border-radius: var(--radius-sm);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .sidebar-card .sidebar-icon {
+            width: 62px;
+            height: 62px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
-            color: #4ade80;
+            color: var(--brand);
         }
 
-        .verified-text {
-            text-align: center;
-            font-size: 11px;
-            color: #666;
-        }
-
-        .receipt-footer {
-            background: #0a1f3a;
-            color: white;
-            padding: 30px 40px;
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 30px;
-            align-items: center;
-        }
-
-        .footer-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .footer-icon {
+        .sidebar-card h3 {
+            margin: 0;
             font-size: 20px;
-            opacity: 0.8;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
         }
 
-        .footer-text {
-            display: flex;
-            flex-direction: column;
+        .sidebar-card p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.78);
+            line-height: 1.75;
+            font-size: 15px;
         }
 
-        .footer-text p {
-            font-size: 13px;
-            margin-bottom: 2px;
+        .sidebar-illustration {
+            width: 100%;
+            border-radius: 22px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 18px;
         }
 
-        .footer-text a {
-            color: #4ade80;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 14px;
+        .sidebar-illustration svg {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
-        .powered-by {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 8px;
-            font-size: 12px;
-        }
-
-        .powered-by strong {
-            color: #4ade80;
-            font-size: 13px;
-        }
-
-        .download-btn {
-            background: #4ade80;
-            color: #0a1f3a;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            margin: 20px;
-            transition: background 0.3s;
-        }
-
-        .download-btn:hover {
-            background: #22c55e;
-        }
-
-        .button-container {
+        .stamp-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px dashed rgba(255, 255, 255, 0.24);
+            border-radius: 20px;
+            padding: 24px;
+            display: grid;
+            gap: 18px;
             text-align: center;
-            padding: 0;
         }
 
-        @media (max-width: 768px) {
-            .receipt-header {
-                flex-direction: column;
-                text-align: center;
-                gap: 20px;
+        .stamp-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: rgba(255, 255, 255, 0.64);
+        }
+
+        .stamp-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 82px;
+            height: 82px;
+            margin: 0 auto;
+            border-radius: 50%;
+            border: 2px solid rgba(22, 163, 74, 0.7);
+            color: #d9f99d;
+            background: rgba(22, 163, 74, 0.08);
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .stamp-text {
+            margin: 0;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+        }
+
+        .footer-panel {
+            margin-top: 32px;
+            padding: 28px 40px;
+            background: #ffffff;
+            border-top: 1px solid rgba(11, 31, 58, 0.08);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: center;
+            border-bottom-left-radius: 28px;
+            border-bottom-right-radius: 28px;
+        }
+
+        .footer-copy {
+            display: grid;
+            gap: 6px;
+        }
+
+        .footer-copy p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .footer-copy strong {
+            color: var(--surface-strong);
+            font-size: 15px;
+        }
+
+        .footer-meta {
+            display: grid;
+            gap: 10px;
+            justify-self: end;
+            text-align: right;
+        }
+
+        .footer-meta a {
+            display: inline-flex;
+            gap: 10px;
+            color: var(--surface-strong);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-meta span {
+            display: inline-flex;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 13px;
+            align-items: center;
+        }
+
+        .footer-meta svg {
+            width: 16px;
+            height: 16px;
+            display: block;
+            color: var(--brand);
+        }
+
+        .footer-cta {
+            margin-top: 16px;
+            color: var(--muted);
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 18px;
             }
 
-            .receipt-content {
+            .receipt-frame {
+                max-width: 100%;
+            }
+
+            .receipt-topbar,
+            .receipt-grid,
+            .footer-panel {
                 grid-template-columns: 1fr;
-                padding: 20px;
-            }
-
-            .receipt-footer {
-                grid-template-columns: 1fr;
                 text-align: center;
             }
 
-            .footer-item {
-                justify-content: center;
+            .receipt-topbar {
+                align-items: center;
             }
 
-            .powered-by {
-                justify-content: center;
+            .receipt-titlepanel {
+                text-align: center;
             }
+
+            .detail-item {
+                grid-template-columns: 1fr;
+                text-align: left;
+            }
+
+            .detail-item-value {
+                text-align: left;
+            }
+
+            .footer-meta {
+                justify-self: center;
+                text-align: center;
+            }
+        }
+
+        @page {
+            size: A4;
+            margin: 18mm;
         }
 
         @media print {
@@ -346,215 +467,159 @@
             .download-btn {
                 display: none;
             }
+
+            .receipt-frame {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="receipt-container" id="receipt">
-        <div class="receipt-header">
-            <div class="logo-section">
-                <h1>🏠 RentFlow<span style="color: #4ade80;">UG</span></h1>
-                <p>Smart Rent. Smooth Flow.</p>
-            </div>
-            <div class="receipt-badge">
-                <p>RECEIPT</p>
-                <p class="receipt-number">RL-<span id="receiptId">20260630-601438</span></p>
-            </div>
-        </div>
-
-        <div class="success-message">
-            <div class="success-icon">✓</div>
-            <p>This receipt confirms rent payment captured in RentFlow UG.</p>
-        </div>
-
-        <div class="receipt-content">
-            <div class="transaction-details">
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">👤</span>
-                        Landlord
+    <div class="receipt-frame">
+        <div class="receipt-inner">
+            <div class="receipt-topbar">
+                <div class="brand-stack">
+                    <div class="brand-logo">
+                        <span class="brand-logo-mark">RF</span>
+                        <span>RentFlow UG</span>
                     </div>
-                    <div class="detail-value" id="landlord">KIGOJA MARK</div>
+                    <p class="brand-copy">Smart Rent. Smooth Flow.</p>
                 </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">👥</span>
-                        Tenant
-                    </div>
-                    <div class="detail-value" id="tenant">KALULE</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">🏢</span>
-                        Property
-                    </div>
-                    <div class="detail-value" id="property">KASENGE APARTMENTS</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">🚪</span>
-                        Room
-                    </div>
-                    <div class="detail-value" id="room">VIP ROOM</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">💰</span>
-                        Amount Paid
-                    </div>
-                    <div class="detail-value amount" id="amountPaid">USh 2,000,000</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">⚖️</span>
-                        Balance
-                    </div>
-                    <div class="detail-value" id="balance">USh 0</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">💳</span>
-                        Method
-                    </div>
-                    <div class="detail-value" id="method">Cash</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">🔗</span>
-                        Payment Ref.
-                    </div>
-                    <div class="detail-value" id="paymentRef">PAY-69591</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">📄</span>
-                        Proof
-                    </div>
-                    <div class="detail-value" id="proof">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">✓</span>
-                        Verification
-                    </div>
-                    <div class="detail-value unverified" id="verification">Unverified</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">
-                        <span class="detail-icon">📅</span>
-                        Date
-                    </div>
-                    <div class="detail-value" id="date">30 Jun 2026</div>
+                <div class="receipt-titlepanel">
+                    <p class="receipt-subtitle">Receipt</p>
+                    <h1 class="receipt-title">RECEIPT</h1>
+                    <p class="receipt-number">No. <span id="receiptId">RL-20260630-601438</span></p>
                 </div>
             </div>
 
-            <div class="security-section">
-                <div class="security-icon">✓</div>
-                <h3>Secure, Reliable, Yours.</h3>
-                <p>Every payment you make is recorded securely and managed with care.</p>
-                <svg class="house-illustration" viewBox="0 0 300 250" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Grass -->
-                    <ellipse cx="150" cy="220" rx="140" ry="25" fill="#4ade80" opacity="0.3" />
+            <div class="success-banner">
+                <span class="success-banner-icon">✓</span>
+                <p class="success-banner-text">This receipt confirms rent payment captured in RentFlow UG.</p>
+            </div>
 
-                    <!-- Trees -->
-                    <circle cx="50" cy="160" r="15" fill="#4ade80" />
-                    <rect x="45" y="170" width="10" height="40" fill="#8b6f47" />
+            <div class="receipt-grid">
+                <div class="detail-card">
+                    <div class="card-heading">
+                        <div>
+                            <h2>Payment Details</h2>
+                            <p>Summary of the rent payment transaction.</p>
+                        </div>
+                    </div>
+                    <div class="detail-list">
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">👤</span>Landlord</div>
+                            <p class="detail-item-value" id="landlord">KIGOJA MARK</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">👥</span>Tenant</div>
+                            <p class="detail-item-value" id="tenant">KALULE</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">🏢</span>Property</div>
+                            <p class="detail-item-value" id="property">KASENGE APARTMENTS</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">🚪</span>Room</div>
+                            <p class="detail-item-value" id="room">VIP ROOM</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">💰</span>Amount Paid</div>
+                            <p class="detail-item-value amount" id="amountPaid">USh 2,000,000</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">⚖️</span>Balance</div>
+                            <p class="detail-item-value" id="balance">USh 0</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">💳</span>Payment Method</div>
+                            <p class="detail-item-value" id="method">Cash</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">🔗</span>Payment Reference</div>
+                            <p class="detail-item-value" id="paymentRef">PAY-69591</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">📄</span>Proof</div>
+                            <p class="detail-item-value" id="proof">-</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">✔️</span>Verification</div>
+                            <p class="detail-item-value status" id="verification">Unverified</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-item-label"><span class="detail-item-icon">📅</span>Date</div>
+                            <p class="detail-item-value" id="date">30 Jun 2026</p>
+                        </div>
+                    </div>
+                </div>
 
-                    <circle cx="250" cy="170" r="18" fill="#4ade80" />
-                    <rect x="243" y="185" width="14" height="45" fill="#8b6f47" />
-
-                    <!-- House -->
-                    <rect x="80" y="120" width="140" height="100" fill="#e8d4b8" stroke="#0a1f3a" stroke-width="2" />
-
-                    <!-- Roof -->
-                    <polygon points="150,80 80,120 220,120" fill="#4ade80" stroke="#0a1f3a" stroke-width="2" />
-
-                    <!-- Door -->
-                    <rect x="135" y="165" width="30" height="55" fill="#8b6f47" stroke="#0a1f3a" stroke-width="1" />
-                    <circle cx="162" cy="192" r="2" fill="#ffd700" />
-
-                    <!-- Windows -->
-                    <rect x="100" y="140" width="20" height="20" fill="#87ceeb" stroke="#0a1f3a" stroke-width="1" />
-                    <line x1="110" y1="140" x2="110" y2="160" />
-                    <line x1="100" y1="150" x2="120" y2="150" />
-
-                    <rect x="180" y="140" width="20" height="20" fill="#87ceeb" stroke="#0a1f3a" stroke-width="1" />
-                    <line x1="190" y1="140" x2="190" y2="160" />
-                    <line x1="180" y1="150" x2="200" y2="150" />
-
-                    <rect x="100" y="155" width="20" height="20" fill="#87ceeb" stroke="#0a1f3a" stroke-width="1" />
-                    <line x1="110" y1="155" x2="110" y2="175" />
-                    <line x1="100" y1="165" x2="120" y2="165" />
-
-                    <rect x="180" y="155" width="20" height="20" fill="#87ceeb" stroke="#0a1f3a" stroke-width="1" />
-                    <line x1="190" y1="155" x2="190" y2="175" />
-                    <line x1="180" y1="165" x2="200" y2="165" />
-                </svg>
-                <div class="thank-you-box">
-                    <h4>RentFlow UG</h4>
-                    <p>Thank you for using RentFlow UG</p>
-                    <div class="verified-badge">
-                        <div class="verified-circle">✓</div>
-                        <div class="verified-text">RENTFLOW UG<br />VERIFIED</div>
+                <div class="sidebar-card">
+                    <div>
+                        <div class="sidebar-icon">🛡️</div>
+                        <h3>Secure. Reliable. Yours.</h3>
+                        <p>Every payment is recorded securely and managed with care in the RentFlow platform.</p>
+                    </div>
+                    <div class="sidebar-illustration">
+                        <svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="bggrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#0b1f3a" stop-opacity="0.85" />
+                                    <stop offset="100%" stop-color="#16a34a" stop-opacity="0.12" />
+                                </linearGradient>
+                            </defs>
+                            <rect x="0" y="0" width="320" height="220" rx="24" fill="url(#bggrad)" />
+                            <rect x="58" y="96" width="204" height="88" rx="18" fill="#ffffff" opacity="0.96" />
+                            <polygon points="52,102 160,24 268,102" fill="#16a34a" opacity="0.96" />
+                            <rect x="142" y="132" width="36" height="52" rx="8" fill="#0b1f3a" />
+                            <rect x="96" y="122" width="28" height="26" rx="6" fill="#d9f99d" />
+                            <rect x="196" y="122" width="28" height="26" rx="6" fill="#d9f99d" />
+                            <ellipse cx="90" cy="188" rx="28" ry="18" fill="#16a34a" opacity="0.92" />
+                            <ellipse cx="230" cy="196" rx="34" ry="20" fill="#16a34a" opacity="0.92" />
+                            <path d="M 58 192 C 108 176 212 176 262 192" stroke="#0b1f3a" stroke-width="6" fill="none" opacity="0.12" />
+                        </svg>
+                    </div>
+                    <div class="stamp-card">
+                        <div class="stamp-label">Verification Stamp</div>
+                        <div class="stamp-mark">Verified</div>
+                        <p class="stamp-text">This payment has been recorded and confirmed by RentFlow UG.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="receipt-footer">
-            <div class="footer-item">
-                <span class="footer-icon">📞</span>
-                <div class="footer-text">
-                    <p>Phone</p>
-                    <a href="tel:+256701871473">+256 701 871 473</a>
-                </div>
+        <div class="footer-panel">
+            <div class="footer-copy">
+                <p><strong>Thank you for using RentFlow UG</strong></p>
+                <p>Your property. Your rules. Our platform.</p>
             </div>
-            <div class="footer-item">
-                <span class="footer-icon">✉️</span>
-                <div class="footer-text">
-                    <p>Email</p>
-                    <a href="mailto:support@rentflow.ug">support@rentflow.ug</a>
-                </div>
-            </div>
-            <div class="footer-item">
-                <span class="footer-icon">🌐</span>
-                <div class="footer-text">
-                    <p>Website</p>
-                    <a href="https://www.rentflow.ug">www.rentflow.ug</a>
-                </div>
-            </div>
-        </div>
-
-        <div style="background: #0a1f3a; color: white; padding: 15px 40px; text-align: right; font-size: 11px;">
-            <div class="powered-by">
-                <span>Powered by</span>
-                <strong>RentFlow UG</strong>
-                <span style="color: #999;">Property Management</span>
-                <span style="color: #999;">Made Simple.</span>
+            <div class="footer-meta">
+                <a href="tel:+256701871473">📞 +256 701 871 473</a>
+                <a href="mailto:support@rentflow.ug">✉️ support@rentflow.ug</a>
+                <a href="https://www.rentflow.ug">🌐 www.rentflow.ug</a>
             </div>
         </div>
     </div>
 
     <div class="button-container">
-        <button class="download-btn" onclick="downloadPDF()">📥 Download as PDF</button>
+        <button class="download-btn" onclick="downloadPDF()">Download as PDF</button>
     </div>
 
     <script>
-        // Function to download receipt as PDF
         function downloadPDF() {
             const element = document.getElementById('receipt');
             const opt = {
-                margin: 10,
+                margin: 16,
                 filename: `RentFlow-Receipt-${document.getElementById('receiptId').textContent}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
             html2pdf().set(opt).from(element).save();
         }
 
-        // Function to populate receipt data from query parameters or localStorage
         function populateReceipt(data) {
             if (data.receiptId) document.getElementById('receiptId').textContent = data.receiptId;
             if (data.landlord) document.getElementById('landlord').textContent = data.landlord;
@@ -570,7 +635,6 @@
             if (data.date) document.getElementById('date').textContent = data.date;
         }
 
-        // Check for data in localStorage (set from payment success page)
         const receiptData = localStorage.getItem('receiptData');
         if (receiptData) {
             populateReceipt(JSON.parse(receiptData));
@@ -578,5 +642,4 @@
         }
     </script>
 </body>
-
 </html>
