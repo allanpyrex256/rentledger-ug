@@ -8079,25 +8079,49 @@
     const phone = details.tenant ? normalizePhone(details.tenant.phone) : "";
     const receiptMessage = paymentReceiptMessage(payment);
     ui.receiptContent.innerHTML = `
-      <div class="receipt-brand">
-        <strong>RentFlow UG</strong>
-        <span>Receipt ${escapeHtml(details.receiptNo)}</span>
+      <div class="receipt-panel">
+        <div class="receipt-panel-header">
+          <div>
+            <div class="receipt-logo">
+              <span class="receipt-logo-mark">🏠</span>
+              <strong>RentFlow UG</strong>
+            </div>
+            <p class="receipt-header-copy">This receipt confirms rent payment captured in RentFlow UG.</p>
+          </div>
+          <div class="receipt-badge-panel">
+            <span class="receipt-badge-label">RECEIPT</span>
+            <strong class="receipt-number">${escapeHtml(details.receiptNo)}</strong>
+          </div>
+        </div>
+        <div class="receipt-panel-body">
+          <div class="receipt-details-grid">
+            <div><span>Landlord</span><strong>${escapeHtml(details.ownerName)}</strong></div>
+            <div><span>Tenant</span><strong>${escapeHtml(details.tenantName)}</strong></div>
+            <div><span>Property</span><strong>${escapeHtml(details.propertyName)}</strong></div>
+            <div><span>Room</span><strong>${escapeHtml(details.unitNumber)}</strong></div>
+            <div><span>Amount Paid</span><strong class="amount-value">${formatMoney(payment.amount)}</strong></div>
+            <div><span>Balance</span><strong>${formatMoney(payment.balance)}</strong></div>
+            <div><span>Method</span><strong>${escapeHtml(payment.payment_method)}</strong></div>
+            <div><span>Payment Ref.</span><strong>${escapeHtml(payment.reference || "-")}</strong></div>
+            <div><span>Proof</span><strong>${escapeHtml(payment.payment_proof || "-")}</strong></div>
+            <div><span>Verification</span><strong class="verification-status ${escapeHtml((payment.verification_status || "Unverified").toLowerCase())}">${escapeHtml(payment.verification_status || "Unverified")}</strong></div>
+            <div><span>Date</span><strong>${formatDate(payment.payment_date)}</strong></div>
+          </div>
+          <aside class="receipt-sidecard">
+            <div class="receipt-feature-card">
+              <div class="receipt-feature-icon">✔</div>
+              <h3>Secure. Reliable. Yours.</h3>
+              <p>Every payment you make is recorded securely and managed with care.</p>
+            </div>
+            <div class="receipt-brand-block">
+              <strong>RentFlow UG</strong>
+              <p>Thank you for using RentFlow UG</p>
+              <div class="receipt-stamp">VERIFIED</div>
+            </div>
+          </aside>
+        </div>
+        <p class="receipt-note receipt-note-bottom">Page 1 of 1</p>
       </div>
-      <div class="receipt-grid">
-        <span>Receipt No.</span><strong>${escapeHtml(details.receiptNo)}</strong>
-        <span>Landlord</span><strong>${escapeHtml(details.ownerName)}</strong>
-        <span>Tenant</span><strong>${escapeHtml(details.tenantName)}</strong>
-        <span>Property</span><strong>${escapeHtml(details.propertyName)}</strong>
-        <span>Room</span><strong>${escapeHtml(details.unitNumber)}</strong>
-        <span>Amount Paid</span><strong>${formatMoney(payment.amount)}</strong>
-        <span>Balance</span><strong>${formatMoney(payment.balance)}</strong>
-        <span>Method</span><strong>${escapeHtml(payment.payment_method)}</strong>
-        <span>Payment Ref.</span><strong>${escapeHtml(payment.reference || "-")}</strong>
-        <span>Proof</span><strong>${escapeHtml(payment.payment_proof || "-")}</strong>
-        <span>Verification</span><strong>${escapeHtml(payment.verification_status || "Unverified")}</strong>
-        <span>Date</span><strong>${formatDate(payment.payment_date)}</strong>
-      </div>
-      <p class="receipt-note">This receipt confirms rent payment captured in RentFlow UG.</p>
     `;
     ui.receiptModal.dataset.paymentId = paymentId;
     ui.receiptModal.dataset.receiptNumber = details.receiptNo;
