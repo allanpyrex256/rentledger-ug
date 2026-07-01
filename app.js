@@ -1374,7 +1374,7 @@
   }
 
   async function openUserSession(userId) {
-    if (supabaseReady && supabaseClient) {
+    if (supabaseReady && supabaseClient && (await hasActiveSupabaseSession())) {
       const remote = applyDeletedRowIdsToStateRows(await fetchSupabaseState(supabaseClient), state.deletedRowIds);
       const sessionState = {
         currentUserId: userId,
@@ -8957,7 +8957,6 @@
     ui.notificationCount.textContent = unread.length;
     ui.notificationList.innerHTML =
       notifications
-        .slice(0, 8)
         .map((item) => `
           <button class="notification-item ${isNotificationRead(item) ? "read" : ""}" data-open-notification="${escapeHtml(item.id)}" type="button">
             <strong>${escapeHtml(item.title)}</strong>
@@ -9383,7 +9382,7 @@
     const fresh = migrateState(seedState());
     Object.keys(state).forEach((key) => delete state[key]);
     Object.assign(state, fresh);
-    saveState();
+    saveLocalStateOnly();
     renderSession();
     showToast("Demo data reset.");
   }
@@ -9411,6 +9410,10 @@
       toggleProductionDemoControls();
 
       if (!session?.user) {
+        if (state.currentUserId) {
+          saveLocalStateOnly();
+          return;
+        }
         const remote = await safeFetchPublicSupabaseState(client);
         replaceState(anonymousStateWithPublicListings(remote));
         saveLocalStateOnly();
