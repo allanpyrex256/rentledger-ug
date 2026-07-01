@@ -15,6 +15,7 @@
   let highlightedUnitId = null;
   let highlightedOwnerId = null;
   let unitPhotoPreviewUrl = null;
+  let paymentProofFileDataUrl = "";
   let activeDashboardMonthKey = monthKey(new Date());
   let dashboardMonthPinned = false;
   let dashboardPastMonthsOpen = false;
@@ -263,9 +264,11 @@
     paymentAmount: document.getElementById("paymentAmount"),
     paymentDate: document.getElementById("paymentDate"),
     paymentMethod: document.getElementById("paymentMethod"),
-    paymentReference: document.getElementById("paymentReference"),
     paymentProof: document.getElementById("paymentProof"),
-    paymentVerification: document.getElementById("paymentVerification"),
+    paymentProofUploadButton: document.getElementById("paymentProofUploadButton"),
+    paymentProofFile: document.getElementById("paymentProofFile"),
+    // paymentVerification removed: verification is super-admin only now
+    paymentVerification: null,
     paymentStatusPill: document.getElementById("paymentStatusPill"),
     tenantBalancePreview: document.getElementById("tenantBalancePreview"),
     rentStatusTable: document.getElementById("rentStatusTable"),
@@ -580,6 +583,8 @@
     ui.paymentForm.addEventListener("submit", savePayment);
     ui.paymentTenant.addEventListener("change", updatePaymentPreview);
     ui.paymentAmount.addEventListener("input", updatePaymentPreview);
+    if (ui.paymentProofUploadButton) ui.paymentProofUploadButton.addEventListener("click", () => ui.paymentProofFile?.click());
+    if (ui.paymentProofFile) ui.paymentProofFile.addEventListener("change", handlePaymentProofFileSelect);
     if (ui.landlordSupportForm) ui.landlordSupportForm.addEventListener("submit", saveLandlordSupportTicket);
     if (ui.requestVerifiedBadgeButton) ui.requestVerifiedBadgeButton.addEventListener("click", requestVerifiedBadge);
     if (ui.dashboardMonthPicker) {
@@ -2105,7 +2110,7 @@
           const unit = tenant ? unitById(tenant.unit_id) : null;
           return `
             <tr>
-              <td>${personCell(tenant ? tenant.name : "Removed tenant", payment.reference || payment.payment_method)}</td>
+              <td>${personCell(tenant ? tenant.name : "Removed tenant", payment.payment_method)}</td>
               <td>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</td>
               <td><strong>${formatMoney(payment.amount)}</strong></td>
               <td>${escapeHtml(paymentTimeLabel(payment))}</td>
@@ -2220,7 +2225,7 @@
           const unit = tenant ? unitById(tenant.unit_id) : null;
           return `
             <tr>
-              <td>${personCell(tenant ? tenant.name : "Removed tenant", payment.reference || payment.payment_method)}</td>
+              <td>${personCell(tenant ? tenant.name : "Removed tenant", payment.payment_method)}</td>
               <td>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</td>
               <td><strong>${formatMoney(payment.amount)}</strong></td>
               <td>${escapeHtml(paymentTimeLabel(payment))}</td>
@@ -2743,7 +2748,7 @@
           ["Balance after payment", formatMoney(payment.balance)],
           ["Method", payment.payment_method],
           ["Receipt No.", receiptNumber(payment)],
-          ["Reference", payment.reference || "-"],
+
           ["Proof", payment.payment_proof || "-"],
           ["Verification", payment.verification_status || "Unverified"],
           ["Date", formatDate(payment.payment_date)],
@@ -2825,7 +2830,7 @@
               <button class="detail-list-item" data-payment-detail="${escapeHtml(payment.id)}" type="button">
                 <span>
                   <strong>${escapeHtml(tenant ? tenant.name : "Removed tenant")}</strong>
-                  <small>${escapeHtml(unit ? unit.unit_number : "Unassigned")} - ${escapeHtml(payment.payment_method)}${payment.reference ? ` - ${escapeHtml(payment.reference)}` : ""}</small>
+                  <small>${escapeHtml(unit ? unit.unit_number : "Unassigned")} - ${escapeHtml(payment.payment_method)}</small>
                 </span>
                 <b>${formatMoney(payment.amount)}</b>
               </button>
@@ -3277,7 +3282,6 @@
         detail: `${tenant ? tenant.name : "Removed tenant"} paid ${formatMoney(payment.amount)} by ${payment.payment_method}.`,
         message: [
           `${tenant ? tenant.name : "Removed tenant"} paid ${formatMoney(payment.amount)} by ${payment.payment_method}.`,
-          `Reference: ${payment.reference || "Not recorded"}`,
           `Balance after payment: ${formatMoney(payment.balance)}`,
           `Payment date: ${formatDate(payment.payment_date)}`,
         ].join("\n"),
@@ -3956,11 +3960,11 @@
     return `
       <tr>
         <td>${formatDate(payment.payment_date)}</td>
-        <td>${personCell(tenant ? tenant.name : "Removed tenant", tenant?.phone || payment.reference || payment.payment_method)}</td>
+        <td>${personCell(tenant ? tenant.name : "Removed tenant", tenant?.phone || payment.payment_method)}</td>
         <td>${escapeHtml(unit ? unit.unit_number : "Unassigned")}</td>
         <td><strong>${formatMoney(payment.amount)}</strong></td>
         <td>${escapeHtml(payment.payment_method || "-")}</td>
-        <td>${escapeHtml(payment.reference || "-")}</td>
+        <td>-</td>
         <td>${statusPill(payment.verification_status || "Unverified")}</td>
         <td><button class="text-button compact-link-button" data-payment-detail="${escapeHtml(payment.id)}" type="button">Details</button></td>
       </tr>
@@ -5748,7 +5752,6 @@
           tenant ? tenant.name : "",
           unit ? unit.unit_number : "",
           payment.payment_method,
-          payment.reference,
           receiptNumber(payment),
           payment.amount,
         ]);
@@ -5766,11 +5769,7 @@
               <td>${formatMoney(payment.amount)}</td>
               <td>${escapeHtml(payment.payment_method)}</td>
               <td>${escapeHtml(receiptNumber(payment))}</td>
-              <td>${escapeHtml(payment.reference || "-")}</td>
-              <td>
-                ${statusPill(payment.verification_status || "Unverified")}
-                <small class="table-subtext">${escapeHtml(payment.payment_proof || "No proof attached")}</small>
-              </td>
+              <td>${escapeHtml(paymentProofSummary(payment))}</td>
               <td>${formatDate(payment.payment_date)}</td>
               <td>${formatMoney(payment.balance)}</td>
               <td>
@@ -6536,9 +6535,10 @@
     const amount = Number(ui.paymentAmount.value);
     const balance = Math.max(0, Number(tenant.rent_amount) - existingPaid - amount);
     const method = ui.paymentMethod.value;
-    const reference = ui.paymentReference.value.trim() || autoReference(method);
-    const proof = ui.paymentProof.value.trim();
-    const verificationStatus = ui.paymentVerification.value || "Unverified";
+    const proofText = ui.paymentProof.value.trim();
+    const proof = paymentProofFileDataUrl ? (proofText ? `${proofText}\n${paymentProofFileDataUrl}` : paymentProofFileDataUrl) : proofText;
+    // verification now defaulted to Unverified for non-admins
+    const verificationStatus = "Unverified";
     const paymentId = makeId("payment");
     const receiptNumber = generateReceiptNumber(ui.paymentDate.value, paymentId);
 
@@ -6554,7 +6554,7 @@
       payment_method: method,
       payment_date: ui.paymentDate.value,
       balance,
-      reference,
+      reference: autoReference(method),
       receipt_number: receiptNumber,
       payment_proof: proof,
       verification_status: verificationStatus,
@@ -6570,13 +6570,39 @@
 
     saveState();
     ui.paymentForm.reset();
-    ui.paymentVerification.value = "Unverified";
+    // paymentVerification control removed; nothing to reset
+    paymentProofFileDataUrl = "";
     setTodayDefaults();
     renderAll();
     ui.paymentStatusPill.textContent = method.includes("Money") || method.includes("MoMo") ? "MoMo confirmed" : "Recorded";
     ui.paymentStatusPill.className = "pill success";
     openReceipt(payment.id);
     showToast(`Receipt ${receiptNumber} generated for ${tenant.name}.`);
+  }
+
+  async function handlePaymentProofFileSelect() {
+    const file = ui.paymentProofFile?.files?.[0];
+    if (!file) return;
+    try {
+      paymentProofFileDataUrl = await imageFileToDataUrl(file);
+      const label = file.name || "Screenshot attached";
+      if (ui.paymentProof) ui.paymentProof.value = ui.paymentProof.value.trim() ? ui.paymentProof.value.trim() : label;
+      showToast("Screenshot attached to the payment proof field.");
+    } catch (error) {
+      console.error("Payment proof upload failed", error);
+      showToast(error.message || "Could not attach screenshot.");
+    } finally {
+      if (ui.paymentProofFile) ui.paymentProofFile.value = "";
+    }
+  }
+
+  function paymentProofSummary(payment) {
+    const proof = String(payment.payment_proof || "").trim();
+    if (!proof) return "-";
+    const hasImage = proof.includes("data:image/");
+    const lines = proof.split("\n").filter(Boolean);
+    const text = lines.find((line) => !line.startsWith("data:image/")) || "Screenshot attached";
+    return `${text}${hasImage ? " (screenshot)" : ""}`;
   }
 
   function saveExpense(event) {
@@ -8102,7 +8128,6 @@
             <div><span>Amount Paid</span><strong class="amount-value">${formatMoney(payment.amount)}</strong></div>
             <div><span>Balance</span><strong>${formatMoney(payment.balance)}</strong></div>
             <div><span>Method</span><strong>${escapeHtml(payment.payment_method)}</strong></div>
-            <div><span>Payment Ref.</span><strong>${escapeHtml(payment.reference || "-")}</strong></div>
             <div><span>Proof</span><strong>${escapeHtml(payment.payment_proof || "-")}</strong></div>
             <div><span>Verification</span><strong class="verification-status ${escapeHtml((payment.verification_status || "Unverified").toLowerCase())}">${escapeHtml(payment.verification_status || "Unverified")}</strong></div>
             <div><span>Date</span><strong>${formatDate(payment.payment_date)}</strong></div>
@@ -8147,8 +8172,36 @@
     const payment = state.payments.find((item) => item.id === ui.receiptModal.dataset.paymentId);
     if (!payment) return;
     const details = receiptDetails(payment);
-    const pdf = buildReceiptPdf(details);
-    downloadBlobFile(`rentflow-receipt-${details.receiptNo}.pdf`, pdf, "application/pdf");
+    // populate receipt.html data and open the template which renders a professional PDF
+    const data = {
+      receiptId: details.receiptNo,
+      date: `${new Date().toLocaleString('en-UG')}`,
+      landlordName: details.ownerName,
+      landlordPhone: details.owner?.phone || '',
+      landlordEmail: details.owner?.email || '',
+      tenant: details.tenantName,
+      phone: details.tenant?.phone || '',
+      tenantId: details.tenant?.national_id || '',
+      property: details.propertyName,
+      room: details.unitNumber,
+      address: details.property?.location || '',
+      description: payment.description || 'Rent payment',
+      period: monthName(new Date(payment.payment_date)),
+      amount: Number(payment.amount || 0),
+      prevBalance: Number(0),
+      amountPaid: Number(payment.amount || 0),
+      balance: Number(payment.balance || 0),
+      method: payment.payment_method || '',
+      receivedBy: currentUser()?.name || '',
+    };
+    try {
+      localStorage.setItem('receiptData', JSON.stringify(data));
+    } catch (e) {
+      console.error('Could not store receipt data', e);
+    }
+    // open receipt.html with auto-download flag
+    const url = 'receipt.html?download=1';
+    window.open(url, '_blank');
   }
 
   function receiptDetails(payment) {
@@ -8183,7 +8236,6 @@
       `Amount Paid: ${formatMoney(payment.amount)}`,
       `Balance: ${formatMoney(payment.balance)}`,
       `Method: ${payment.payment_method}`,
-      `Payment Ref.: ${payment.reference || "-"}`,
       `Proof: ${payment.payment_proof || "-"}`,
       `Verification: ${payment.verification_status || "Unverified"}`,
       `Date: ${formatDate(payment.payment_date)}`,
@@ -8219,7 +8271,7 @@
       ? report.monthPayments.map((payment) => {
         const tenant = (scope.tenants || []).find((item) => item.id === payment.tenant_id) || tenantById(payment.tenant_id);
         const unit = tenant ? (scope.units || []).find((item) => item.id === tenant.unit_id) || unitById(tenant.unit_id) : null;
-        return `${formatDate(payment.payment_date)} | ${tenant ? tenant.name : "Removed tenant"} | ${unit ? unit.unit_number : "Unassigned"} | ${formatMoney(payment.amount)} | ${payment.payment_method || "-"} | ${payment.reference || "-"} | ${payment.verification_status || "Unverified"}`;
+        return `${formatDate(payment.payment_date)} | ${tenant ? tenant.name : "Removed tenant"} | ${unit ? unit.unit_number : "Unassigned"} | ${formatMoney(payment.amount)} | ${payment.payment_method || "-"} | ${payment.verification_status || "Unverified"}`;
       })
       : ["No payments recorded for this month."];
     const unpaidLines = report.unpaidRows.length
@@ -8248,7 +8300,7 @@
       ...breakdown.map((row) => `${row.label}: ${row.count} ${row.label === "Vacant" ? "units" : "tenants"}`),
       "",
       "Payment History",
-      "Date | Tenant | Room | Amount | Method | Reference | Status",
+      "Date | Tenant | Room | Amount | Method | Status",
       ...paymentLines,
       "",
       "Outstanding Balances",
@@ -8370,7 +8422,7 @@
           unit ? unit.unit_number : "Unassigned",
           formatMoney(payment.amount),
           payment.payment_method,
-          payment.reference || "-",
+          "-",
           payment.payment_proof || "-",
           payment.verification_status || "Unverified",
           formatDate(payment.payment_date),
@@ -9225,7 +9277,6 @@
       `Room: ${unit ? unit.unit_number : "Unassigned"}.`,
       `Date: ${formatDate(payment.payment_date)}.`,
       `Balance: ${formatMoney(payment.balance)}.`,
-      `Reference: ${payment.reference || "-"}.`,
       "Thank you.",
     ].join(" ");
   }
@@ -9421,6 +9472,35 @@
       }
 
       const remote = applyDeletedRowIdsToStateRows(await fetchSupabaseState(client), state.deletedRowIds);
+      // Create a browser backup of the current local state before replacing it
+      try {
+        const localSnapshot = loadState();
+        try {
+          localStorage.setItem(`${STORAGE_KEY}_backup`, JSON.stringify(localSnapshot));
+        } catch (e) {
+          console.warn('Could not write local backup to localStorage', e);
+        }
+
+        // Merge critical local rows that may not yet exist remotely to avoid data loss
+        const mergeArray = (key) => {
+          const localRows = Array.isArray(localSnapshot[key]) ? localSnapshot[key] : [];
+          const remoteRows = Array.isArray(remote[key]) ? remote[key] : [];
+          const remoteIds = new Set((remoteRows || []).map((r) => r && r.id));
+          const unsynced = (localRows || []).filter((r) => r && r.id && !remoteIds.has(r.id));
+          return remoteRows.concat(unsynced);
+        };
+
+        // Merge payments, tenants, units and properties which are most likely to be created locally
+        remote.payments = mergeArray('payments');
+        remote.tenants = mergeArray('tenants');
+        remote.units = mergeArray('units');
+        remote.properties = mergeArray('properties');
+
+        // persist merged state back to browser so user doesn't lose local entries
+        saveLocalStateOnly();
+      } catch (err) {
+        console.warn('Could not merge local state into remote snapshot', err);
+      }
       const sessionState = {
         currentUserId: session.user.id,
         selectedPropertyId: state.selectedPropertyId,

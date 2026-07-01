@@ -1359,21 +1359,16 @@
                 </select>
               </label>
               <label>
-                Transaction Reference
-                <input id="paymentReference" name="paymentReference" placeholder="e.g. MOMO-48391" />
+                Proof / Screenshot
+                <div class="upload-field-row">
+                  <input id="paymentProof" name="paymentProof" placeholder="Screenshot URL or note" />
+                  <button id="paymentProofUploadButton" class="secondary-button" type="button">Upload
+                    screenshot</button>
+                </div>
+                <small class="form-helper">Upload a tenant screenshot or paste a proof link.</small>
               </label>
-              <label>
-                Proof / Screenshot Link
-                <input id="paymentProof" name="paymentProof" placeholder="e.g. MoMo screenshot URL or note" />
-              </label>
-              <label>
-                Verification Status
-                <select id="paymentVerification" name="paymentVerification">
-                  <option value="Unverified">Unverified</option>
-                  <option value="Verified">Verified</option>
-                  <option value="Disputed">Disputed</option>
-                </select>
-              </label>
+              <input id="paymentProofFile" class="hidden" type="file" accept="image/*" />
+              <!-- Verification Status removed from payment form (managed by super-admin) -->
               <div id="tenantBalancePreview" class="balance-preview"></div>
               <button class="primary-button" type="submit">Confirm Payment</button>
             </form>
@@ -1419,7 +1414,6 @@
                   <th>Amount</th>
                   <th>Method</th>
                   <th>Receipt</th>
-                  <th>Reference</th>
                   <th>Proof</th>
                   <th>Date</th>
                   <th>Balance</th>
@@ -1438,13 +1432,6 @@
             <div class="panel-header">
               <h2>Request Help</h2>
               <span class="pill neutral">Super admin</span>
-            </div>
-            <div class="verification-request-box">
-              <div>
-                <strong>Blue tick Verified badge</strong>
-                <span id="verifiedBadgeRequestStatus">Request super admin review for your public profile.</span>
-              </div>
-              <button id="requestVerifiedBadgeButton" class="ghost-button" type="button">Request Badge</button>
             </div>
             <form id="landlordSupportForm" class="stacked-form">
               <label>

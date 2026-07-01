@@ -48,7 +48,11 @@ async function recordPayment(request, response) {
   const paymentDate = normalizePaymentDate(body.payment_date || body.paymentDate);
   const reference = String(body.reference || body.transaction_reference || body.transactionReference || "").trim();
   const paymentProof = normalizePaymentProof(body.payment_proof || body.paymentProof || body.proof || "");
-  const verificationStatus = normalizeVerificationStatus(body.verification_status || body.verificationStatus || "Unverified");
+  let verificationStatus = normalizeVerificationStatus(body.verification_status || body.verificationStatus || "Unverified");
+  // Only super admins may set verification status via this API. Non-admins' submissions default to Unverified.
+  if (String(profile.role || "").toLowerCase() !== "saas-owner") {
+    verificationStatus = "Unverified";
+  }
   const paymentId = String(body.id || body.payment_id || body.paymentId || "").trim() || makeId("payment");
   const receiptNumber = String(body.receipt_number || body.receiptNumber || "").trim() || generateReceiptNumber(paymentDate, paymentId);
 

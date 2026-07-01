@@ -2237,6 +2237,21 @@ button {
   line-height: 1.35;
 }
 
+.upload-field-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.upload-field-row input {
+  min-width: 0;
+}
+
+.upload-field-row button {
+  white-space: nowrap;
+}
+
 .checkbox-consent {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;

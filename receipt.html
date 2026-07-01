@@ -52,6 +52,174 @@
             border: 1px solid rgba(11, 31, 58, 0.1);
         }
 
+        .receipt-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px 28px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .receipt-logo {
+            width: 160px;
+            height: auto;
+            display: block
+        }
+
+        .main-title {
+            margin: 0;
+            font-size: 22px;
+            letter-spacing: 0.12em;
+            font-weight: 800;
+        }
+
+        .receipt-meta-block {
+            text-align: right;
+        }
+
+        .receipt-meta-block .meta-row {
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        .receipt-meta-block .meta-row strong {
+            display: block;
+            color: var(--text);
+            font-weight: 700
+        }
+
+        .info-sections {
+            display: flex;
+            gap: 16px;
+            padding: 20px 28px;
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            flex: 1
+        }
+
+        .section-heading {
+            margin: 0 0 8px;
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 700
+        }
+
+        .section-body div {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 6px 0
+        }
+
+        .label {
+            color: var(--muted)
+        }
+
+        .value {
+            font-weight: 700
+        }
+
+        .payment-table-wrap {
+            padding: 18px 28px
+        }
+
+        .table-heading {
+            display: grid;
+            grid-template-columns: 1.8fr 1fr 1fr;
+            gap: 12px;
+            font-weight: 700;
+            color: var(--muted)
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 1.8fr 1fr 1fr;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .info-grid-bottom {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 28px
+        }
+
+        .info-grid-bottom .label {
+            color: var(--muted);
+            min-width: 120px
+        }
+
+        .info-grid-bottom .paid-badge {
+            margin-left: auto;
+            background: #dcfce7;
+            color: #166534;
+            font-weight: 900;
+            padding: 14px 28px;
+            border-radius: 30px
+        }
+
+        .summary-block {
+            padding: 12px 28px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 18px;
+            justify-content: flex-end
+        }
+
+        .summary-row {
+            display: flex;
+            gap: 12px;
+            align-items: center
+        }
+
+        .summary-row span:first-child {
+            color: var(--muted);
+            min-width: 160px
+        }
+
+        .balance-due strong {
+            color: #dc2626;
+            font-size: 16px
+        }
+
+        .footer-panel {
+            padding: 18px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        /* Watermark */
+        .receipt-inner::before {
+            content: '';
+            background-image: url('assets/rentflow-logo-full.png');
+            background-size: 360px auto;
+            opacity: 0.06;
+            position: absolute;
+            left: 50%;
+            top: 40%;
+            transform: translate(-50%, -50%);
+            width: 360px;
+            height: 360px;
+            pointer-events: none;
+            z-index: 0
+        }
+
+        /* ensure printed page uses full A4 width */
+        @media print {
+            .receipt-frame {
+                max-width: 840px
+            }
+        }
+
         .receipt-inner {
             padding: 32px 34px;
         }
@@ -495,79 +663,95 @@
 <body>
     <div class="receipt-frame">
         <div class="receipt-inner" id="receipt">
-            <div class="receipt-header">
-                <img class="receipt-logo" src="assets/rentflow-logo-full.png" alt="RentFlow logo" />
-                <h1 class="receipt-brand">RENTFLOW</h1>
-                <p class="receipt-main-title">PAYMENT RECEIPT</p>
-            </div>
-
-            <div class="receipt-meta">
-                <div><span>Receipt No:</span><span id="receiptId">RF-2026-0001</span></div>
-                <div><span>Date:</span><span id="date">01 Jul 2026 10:30 AM</span></div>
-            </div>
-
-            <div class="info-block">
-                <p class="section-heading">Tenant Information</p>
-                <div class="info-grid">
-                    <div class="info-row"><span class="info-label">Name:</span><span class="info-value" id="tenant">John
-                            Doe</span></div>
-                    <div class="info-row"><span class="info-label">Phone:</span><span class="info-value"
-                            id="phone">07XXXXXXXX</span></div>
+            <div class="receipt-topbar">
+                <div class="receipt-titlepanel">
+                    <img src="assets/rentflow-logo-full.png" alt="RentFlow" class="receipt-logo" />
+                    <h2 class="main-title">PAYMENT RECEIPT</h2>
+                </div>
+                <div class="receipt-meta-block">
+                    <div class="meta-row"><span>Receipt No.</span><strong id="receiptId">-</strong></div>
+                    <div class="meta-row"><span>Date</span><strong id="date">-</strong></div>
                 </div>
             </div>
 
-            <div class="info-block">
-                <p class="section-heading">Property Information</p>
-                <div class="info-grid">
-                    <div class="info-row"><span class="info-label">Property:</span><span class="info-value"
-                            id="property">Green Apartments</span></div>
-                    <div class="info-row"><span class="info-label">Unit:</span><span class="info-value"
-                            id="room">A-12</span></div>
-                </div>
+            <div class="info-sections">
+                <section class="card section-landlord">
+                    <h3 class="section-heading">Landlord</h3>
+                    <div class="section-body">
+                        <div><span class="label">Name</span><span id="landlord" class="value">-</span></div>
+                        <div><span class="label">Phone</span><span id="landlordPhone" class="value">-</span></div>
+                        <div><span class="label">Email</span><span id="landlordEmail" class="value">-</span></div>
+                    </div>
+                </section>
+
+                <section class="card section-tenant">
+                    <h3 class="section-heading">Tenant</h3>
+                    <div class="section-body">
+                        <div><span class="label">Name</span><span id="tenant" class="value">-</span></div>
+                        <div><span class="label">Phone</span><span id="phone" class="value">-</span></div>
+                        <div><span class="label">National ID</span><span id="tenantId" class="value">-</span></div>
+                    </div>
+                </section>
+
+                <section class="card section-property">
+                    <h3 class="section-heading">Property</h3>
+                    <div class="section-body">
+                        <div><span class="label">Property</span><span id="property" class="value">-</span></div>
+                        <div><span class="label">Unit</span><span id="room" class="value">-</span></div>
+                        <div><span class="label">Address</span><span id="address" class="value">-</span></div>
+                    </div>
+                </section>
             </div>
 
-            <div class="table-heading">
-                <span>Description</span>
-                <span>Period</span>
-                <span>Amount</span>
-            </div>
-            <div class="table-row">
-                <span id="description">Monthly Rent</span>
-                <span id="period">Jul 2026</span>
-                <span id="amount">UGX 500,000</span>
+            <div class="payment-table-wrap">
+                <div class="table-heading">
+                    <span>Description</span>
+                    <span>Billing Period</span>
+                    <span style="text-align:right">Amount</span>
+                </div>
+                <div class="table-row">
+                    <span id="description">Rent payment</span>
+                    <span id="period">-</span>
+                    <span id="amount" style="text-align:right">UGX 0</span>
+                </div>
             </div>
 
             <div class="summary-block">
-                <div class="summary-row"><span>Previous Balance</span><span id="prevBalance">UGX 50,000</span></div>
-                <div class="summary-row"><span>Amount Paid</span><span id="amountPaid">UGX 500,000</span></div>
-                <div class="summary-row balance-due"><span>Balance Due</span><span id="balance">UGX 50,000</span></div>
-            </div>
-
-            <div class="info-block">
-                <div class="info-grid">
-                    <div class="info-row"><span class="info-label">Payment Method:</span><span class="info-value"
-                            id="method">MTN Mobile Money</span></div>
-                    <div class="info-row"><span class="info-label">Received By:</span><span class="info-value"
-                            id="receivedBy">Allan</span></div>
+                <div class="summary-row"><span>Previous Balance</span><strong id="prevBalance">UGX 0</strong></div>
+                <div class="summary-row"><span>Amount Paid</span><strong id="amountPaid">UGX 0</strong></div>
+                <div class="summary-row balance-due"><span>Remaining Balance</span><strong id="balance">UGX 0</strong>
                 </div>
             </div>
 
-            <div class="status-badge">✓ PAID</div>
-            <p class="footer-note">Thank you for your payment.</p>
-            <p class="receipt-copy">This is a computer-generated receipt.</p>
+            <div class="info-grid-bottom">
+                <div><span class="label">Payment Method</span><span id="method">-</span></div>
+                <div><span class="label">Received By</span><span id="receivedBy">-</span></div>
+                <div class="paid-badge">PAID</div>
+            </div>
+
+            <div class="footer-panel">
+                <div class="footer-copy">
+                    <p>Thank you for your payment.</p>
+                    <p>This is a computer-generated receipt and does not require a signature.</p>
+                </div>
+                <div class="footer-meta">
+                    <img src="assets/rentflow-logo-full.png" alt="RentFlow" style="opacity:0.18;width:160px;" />
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="button-container">
-        <button class="download-btn" onclick="downloadPDF()">Download as PDF</button>
+        <button class="download-btn" id="downloadBtn" onclick="downloadPDF()">Download as PDF</button>
     </div>
 
     <script>
         function downloadPDF() {
             const element = document.getElementById('receipt');
+            const fileName = `RentFlow-Receipt-${document.getElementById('receiptId').textContent}.pdf`;
             const opt = {
-                margin: 16,
-                filename: `RentFlow-Receipt-${document.getElementById('receiptId').textContent}.pdf`,
+                margin: 12,
+                filename: fileName,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -575,27 +759,54 @@
             html2pdf().set(opt).from(element).save();
         }
 
-        function populateReceipt(data) {
-            if (data.receiptId) document.getElementById('receiptId').textContent = data.receiptId;
-            if (data.date) document.getElementById('date').textContent = data.date;
-            if (data.tenant) document.getElementById('tenant').textContent = data.tenant;
-            if (data.phone) document.getElementById('phone').textContent = data.phone;
-            if (data.property) document.getElementById('property').textContent = data.property;
-            if (data.room) document.getElementById('room').textContent = data.room;
-            if (data.description) document.getElementById('description').textContent = data.description;
-            if (data.period) document.getElementById('period').textContent = data.period;
-            if (data.amount) document.getElementById('amount').textContent = data.amount;
-            if (data.prevBalance) document.getElementById('prevBalance').textContent = data.prevBalance;
-            if (data.amountPaid) document.getElementById('amountPaid').textContent = data.amountPaid;
-            if (data.balance) document.getElementById('balance').textContent = data.balance;
-            if (data.method) document.getElementById('method').textContent = data.method;
-            if (data.receivedBy) document.getElementById('receivedBy').textContent = data.receivedBy;
+        function formatUGX(value) {
+            const n = Number(value || 0);
+            return 'UGX ' + n.toLocaleString('en-UG', { maximumFractionDigits: 0 });
         }
 
-        const receiptData = localStorage.getItem('receiptData');
-        if (receiptData) {
-            populateReceipt(JSON.parse(receiptData));
+        function populateReceipt(data) {
+            if (!data) return;
+            document.getElementById('receiptId').textContent = data.receiptId || '-';
+            // transaction reference intentionally omitted from printed receipt
+            document.getElementById('date').textContent = data.date || '-';
+            document.getElementById('landlord').textContent = data.landlordName || '-';
+            document.getElementById('landlordPhone').textContent = data.landlordPhone || '-';
+            document.getElementById('landlordEmail').textContent = data.landlordEmail || '-';
+            document.getElementById('tenant').textContent = data.tenant || '-';
+            document.getElementById('phone').textContent = data.phone || '-';
+            document.getElementById('tenantId').textContent = data.tenantId || '-';
+            document.getElementById('property').textContent = data.property || '-';
+            document.getElementById('room').textContent = data.room || '-';
+            document.getElementById('address').textContent = data.address || '-';
+            document.getElementById('description').textContent = data.description || 'Rent payment';
+            document.getElementById('period').textContent = data.period || '-';
+            document.getElementById('amount').textContent = formatUGX(data.amount || 0);
+            document.getElementById('prevBalance').textContent = formatUGX(data.prevBalance || 0);
+            document.getElementById('amountPaid').textContent = formatUGX(data.amountPaid || 0);
+            document.getElementById('balance').textContent = formatUGX(data.balance || 0);
+            document.getElementById('method').textContent = data.method || '-';
+            document.getElementById('receivedBy').textContent = data.receivedBy || '-';
         }
+
+        (function init() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const auto = params.get('download') === '1';
+                const receiptData = localStorage.getItem('receiptData');
+                const data = receiptData ? JSON.parse(receiptData) : null;
+                populateReceipt(data);
+                if (auto) {
+                    // slight delay to ensure images load
+                    setTimeout(() => {
+                        downloadPDF();
+                        // optional: close window after download
+                        // setTimeout(() => window.close(), 1200);
+                    }, 700);
+                }
+            } catch (err) {
+                console.error('Receipt init failed', err);
+            }
+        })();
     </script>
 </body>
 
