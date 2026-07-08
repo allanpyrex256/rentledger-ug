@@ -306,6 +306,62 @@ function isPaidSubscription(subscription) {
   return ["successful", "manual", "paid", "completed"].includes(paymentStatus);
 }
 
+function subscriptionPlanFee(subscription) {
+  return Number(subscription?.monthly_fee || 0);
+}
+
+function effectiveSubscriptionStatus(subscription) {
+  const status = String(subscription?.status || "Active").trim();
+  return status || "Active";
+}
+
+function stripTime(date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function accountStatus(owner) {
+  return String(owner?.account_status || "Trial");
+}
+
+function trialEndDateForAccount(owner, subscription) {
+  if (subscription?.next_billing_date) return subscription.next_billing_date;
+  const createdDate = String(owner?.created_at || "").slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(createdDate) ? addDays(createdDate, TRIAL_DAYS) : "";
+}
+
+function trialHasEnded(owner, subscription) {
+  const endDate = trialEndDateForAccount(owner, subscription);
+  if (!endDate) return false;
+  const trialEnd = new Date(`${endDate}T00:00:00`);
+  if (Number.isNaN(trialEnd.getTime())) return false;
+  return trialEnd <= stripTime(new Date());
+}
+
+function billingSubscriptionStatus(subscription) {
+  const status = effectiveSubscriptionStatus(subscription);
+  if (["Active", "Cancelling"].includes(status) && subscriptionPlanFee(subscription) > 0 && !isPaidSubscription(subscription)) {
+    return "Pending";
+  }
+  return status;
+}
+
+function canActivateEndedTrialAccount(owner, subscription) {
+  if (
+    !owner ||
+    owner.role !== "landlord" ||
+    String(owner.account_status || "").trim().toLowerCase() === "active" ||
+    isPaidSubscription(subscription)
+  )
+    return false;
+  const status = billingSubscriptionStatus(subscription);
+  return Boolean(
+    trialHasEnded(owner, subscription) ||
+    ["Pending", "Overdue", "Expired", "Cancelled", "Paused"].includes(status)
+  );
+}
+
 async function endTrial(response, ownerId) {
   if (!ownerId) return send(response, 400, { error: "Owner is required." });
 
@@ -373,6 +429,10 @@ async function activateAccount(response, ownerId) {
 
   const rows = await supabaseFetch(`/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(ownerId)}&select=*`);
   const subscription = rows[0];
+  if (!canActivateEndedTrialAccount(owner, subscription)) {
+    return send(response, 400, { error: "Account cannot be activated manually at this time." });
+  }
+
   const paidPackage = paidPackageForEndedTrial(subscription);
   if (!paidPackage) return send(response, 400, { error: "No paid package is available." });
 
@@ -392,7 +452,7 @@ async function activateAccount(response, ownerId) {
     cancel_at_period_end: false,
     cancellation_requested_at: null,
     provider_payment_status: "Manual",
-    provider_next_action: null,
+    provider_next_action: "",
   };
 
   if (subscription) {

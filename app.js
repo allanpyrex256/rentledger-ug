@@ -1381,13 +1381,26 @@
   async function openUserSession(userId) {
     if (supabaseReady && supabaseClient && (await hasActiveSupabaseSession())) {
       const remote = applyDeletedRowIdsToStateRows(await fetchSupabaseState(supabaseClient), state.deletedRowIds);
+      const localSnapshot = loadState();
+      const mergedRemote = mergeRemoteStateWithLocalRows(remote, localSnapshot, [
+        'payments',
+        'tenants',
+        'units',
+        'properties',
+        'subscriptions',
+        'supportTickets',
+        'supportMessages',
+        'auditLogs',
+        'notifications',
+        'users',
+      ], localSnapshot.deletedRowIds);
       const sessionState = {
         currentUserId: userId,
         selectedPropertyId: "all",
         role: state.role,
         searchTerm: state.searchTerm,
       };
-      replaceState(migrateState({ ...emptyState(), ...remote, ...sessionState }));
+      replaceState(migrateState({ ...emptyState(), ...mergedRemote, ...sessionState }));
       saveLocalStateOnly();
       await syncPendingDeletedRows();
     }
@@ -1413,10 +1426,23 @@
     if (!supabaseReady || !supabaseClient) return;
     const { data: sessionData } = await supabaseClient.auth.getSession();
     const remote = applyDeletedRowIdsToStateRows(await fetchSupabaseState(supabaseClient), state.deletedRowIds);
+    const localSnapshot = loadState();
+    const mergedRemote = mergeRemoteStateWithLocalRows(remote, localSnapshot, [
+      'payments',
+      'tenants',
+      'units',
+      'properties',
+      'subscriptions',
+      'supportTickets',
+      'supportMessages',
+      'auditLogs',
+      'notifications',
+      'users',
+    ], localSnapshot.deletedRowIds);
     replaceState(
       migrateState({
         ...emptyState(),
-        ...remote,
+        ...mergedRemote,
         currentUserId: sessionData.session?.user?.id || state.currentUserId,
         selectedPropertyId: state.selectedPropertyId || "all",
         role: state.role,
@@ -1491,6 +1517,8 @@
     setAppLoading.token = (setAppLoading.token || 0) + 1;
     ui.loadingBar.querySelector("strong").textContent = message;
     ui.loadingBar.classList.remove("hidden");
+    document.body.classList.add("app-busy");
+    document.body.style.cursor = "wait";
     window.clearTimeout(setAppLoading.timer);
     return setAppLoading.token;
   }
@@ -1501,7 +1529,9 @@
     window.clearTimeout(setAppLoading.timer);
     setAppLoading.timer = window.setTimeout(() => {
       ui.loadingBar.classList.add("hidden");
-    }, 380);
+      document.body.classList.remove("app-busy");
+      document.body.style.cursor = "";
+    }, 650);
   }
 
   function showButtonLoadingFeedback(event) {
@@ -1518,7 +1548,7 @@
       button.classList.remove("button-loading");
       button.removeAttribute("aria-busy");
       clearAppLoading(loadingToken);
-    }, 720);
+    }, 1100);
   }
 
   function renderNavigation() {
@@ -3521,7 +3551,9 @@
     const status = effectiveSubscriptionStatus(subscription);
     if (!["Active", "Cancelling"].includes(status)) return false;
     const paymentStatus = String(subscription.provider_payment_status || "").trim().toLowerCase();
-    return ["successful", "manual", "paid", "completed"].includes(paymentStatus);
+    if (["successful", "manual", "paid", "completed"].includes(paymentStatus)) return true;
+    if (!paymentStatus && !subscription.provider_next_action && status === "Active") return true;
+    return false;
   }
 
   function billingSubscriptionStatus(subscription) {
@@ -3611,7 +3643,13 @@
   }
 
   function canActivateEndedTrialAccount(user, subscription = subscriptionByOwner(user?.id)) {
-    if (!user || user.role !== "landlord" || isPaidSubscription(subscription)) return false;
+    if (
+      !user ||
+      user.role !== "landlord" ||
+      String(accountStatus(user) || "").trim().toLowerCase() === "active" ||
+      isPaidSubscription(subscription)
+    )
+      return false;
     const status = billingSubscriptionStatus(subscription);
     return Boolean(
       trialHasEnded(user, subscription) ||
@@ -5954,7 +5992,7 @@
       const limit = planLimitForOwner(user.id);
       const portfolio = ownerPortfolio(user.id);
       if (portfolio.properties.length >= limit.properties) {
-        showToast(`Your ${limit.plan} plan allows ${limitPhrase(limit.properties, "property", "properties")}. Upgrade to add more.`);
+        showMonthlyToast(`Your ${limit.plan} plan allows ${limitPhrase(limit.properties, "property", "properties")}. Upgrade to add more.`, "property-limit");
         return;
       }
       state.properties.push(property);
@@ -6041,7 +6079,7 @@
     const limit = planLimitForOwner(property.owner_id);
     const portfolio = ownerPortfolio(property.owner_id);
     if (portfolio.units.length >= limit.units) {
-      showToast(`Your ${limit.plan} plan allows ${limitPhrase(limit.units, "unit", "units")}. Upgrade before adding more rooms.`);
+      showMonthlyToast(`Your ${limit.plan} plan allows ${limitPhrase(limit.units, "unit", "units")}. Upgrade before adding more rooms.`, "unit-limit");
       return;
     }
 
@@ -9471,7 +9509,7 @@
         return;
       }
 
-      const remote = applyDeletedRowIdsToStateRows(await fetchSupabaseState(client), state.deletedRowIds);
+      let remote = applyDeletedRowIdsToStateRows(await fetchSupabaseState(client), state.deletedRowIds);
       // Create a browser backup of the current local state before replacing it
       try {
         const localSnapshot = loadState();
@@ -9481,20 +9519,19 @@
           console.warn('Could not write local backup to localStorage', e);
         }
 
-        // Merge critical local rows that may not yet exist remotely to avoid data loss
-        const mergeArray = (key) => {
-          const localRows = Array.isArray(localSnapshot[key]) ? localSnapshot[key] : [];
-          const remoteRows = Array.isArray(remote[key]) ? remote[key] : [];
-          const remoteIds = new Set((remoteRows || []).map((r) => r && r.id));
-          const unsynced = (localRows || []).filter((r) => r && r.id && !remoteIds.has(r.id));
-          return remoteRows.concat(unsynced);
-        };
-
-        // Merge payments, tenants, units and properties which are most likely to be created locally
-        remote.payments = mergeArray('payments');
-        remote.tenants = mergeArray('tenants');
-        remote.units = mergeArray('units');
-        remote.properties = mergeArray('properties');
+        // Merge locally created rows that may not yet exist remotely into the fetched snapshot.
+        remote = mergeRemoteStateWithLocalRows(remote, localSnapshot, [
+          'payments',
+          'tenants',
+          'units',
+          'properties',
+          'subscriptions',
+          'supportTickets',
+          'supportMessages',
+          'auditLogs',
+          'notifications',
+          'users',
+        ], localSnapshot.deletedRowIds);
 
         // persist merged state back to browser so user doesn't lose local entries
         saveLocalStateOnly();
@@ -9748,6 +9785,27 @@
     (remoteRows || []).filter((row) => row?.id).forEach((row) => rowsById.set(row.id, row));
     (localRows || []).filter((row) => row?.id).forEach((row) => rowsById.set(row.id, { ...rowsById.get(row.id), ...row }));
     return [...rowsById.values()];
+  }
+
+  function mergeRemoteStateWithLocalRows(remote = {}, localSnapshot = {}, stateKeys = [], deletedRowIds = {}) {
+    if (!remote || !localSnapshot) return remote;
+    const deletedIdsByKey = normalizeDeletedRowIds(deletedRowIds);
+    return stateKeys.reduce((merged, key) => {
+      const localRows = (localSnapshot[key] || []).filter(
+        (row) => row?.id && !(deletedIdsByKey[key] || []).includes(row.id)
+      );
+      const mergedRows = mergeRowsPreservingLocal(localRows, remote[key]);
+      if (localRows.length || mergedRows.length !== (remote[key] || []).length) {
+        console.debug(`Merged local/remote rows for ${key}:`, {
+          remote: (remote[key] || []).length,
+          local: localRows.length,
+          merged: mergedRows.length,
+          excludedDeleted: (localSnapshot[key] || []).length - localRows.length,
+        });
+      }
+      merged[key] = mergedRows;
+      return merged;
+    }, { ...remote });
   }
 
   function settingValue(settings, key, fallback) {

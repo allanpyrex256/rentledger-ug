@@ -2643,6 +2643,10 @@ button {
   animation: spin 800ms linear infinite;
 }
 
+body.app-busy {
+  cursor: wait;
+}
+
 .loading-bar strong {
   color: var(--brand-dark);
   font-size: 12px;
