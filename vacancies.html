@@ -1,93 +1,91 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Find Rental | RentFlow UG</title>
-    <link rel="canonical" href="https://rentflowug.etohubs.com/vacancies" />
-    <meta property="og:url" content="https://rentflowug.etohubs.com/vacancies" />
-    <link rel="icon" type="image/png" href="assets/rentflow-logo-icon.png" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <section class="landing-page vacancy-page">
-      <header class="landing-nav">
-        <div class="brand-block landing-brand">
-          <div class="brand-mark">
-            <img src="assets/rentflow-logo-icon.png" alt="RentFlow logo" />
-          </div>
-          <div>
-            <div class="brand-name">RentFlow UG</div>
-            <div class="brand-meta">Smart Rent. Smooth Flow</div>
-          </div>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Find Rental | RentFlow UG</title>
+  <link rel="canonical" href="https://rentflowug.etohubs.com/vacancies" />
+  <meta property="og:url" content="https://rentflowug.etohubs.com/vacancies" />
+  <link rel="icon" type="image/png" href="assets/rentflow-logo-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <section class="landing-page vacancy-page">
+    <header class="landing-nav">
+      <div class="brand-block landing-brand">
+        <div class="brand-mark">
+          <img src="assets/rentflow-logo-icon.png" alt="RentFlow logo" />
         </div>
-        <nav class="landing-links" aria-label="Vacancy navigation">
-          <a href="index.html">Home</a>
-          <a href="vacancies.html">Find rental</a>
-          <a href="index.html#howItWorks">How It Works</a>
-          <a href="index.html#pricing">Pricing</a>
-          <button class="ghost-button" type="button" onclick="location.href='index.html#authScreen'">Landlord Sign In</button>
-        </nav>
-      </header>
+        <div>
+          <div class="brand-name">RentFlow UG</div>
+          <div class="brand-meta">Smart Rent. Smooth Flow</div>
+        </div>
+      </div>
+      <nav class="landing-links" aria-label="Vacancy navigation">
+        <a href="index.html">Home</a>
+        <a href="vacancies.html">Find rental</a>
+        <a href="index.html#howItWorks">How It Works</a>
+        <a href="index.html#pricing">Pricing</a>
+        <button class="ghost-button" type="button" onclick="location.href='index.html#authScreen'">Landlord Sign
+          In</button>
+      </nav>
+    </header>
 
-      <main>
-        <section class="vacancy-hero landing-section">
-          <div class="section-heading">
-            <span class="hero-kicker">Find rental</span>
-            <h1>Find rentals by district, rent price, and direct landlord contact.</h1>
-            <p>Search rooms, shops, houses, and boys quarters published directly by landlords using RentFlow UG. Featured listings show photos, posted-today badges, profiles, and WhatsApp buttons for faster viewings.</p>
-          </div>
-          <div class="marketplace-highlights" aria-label="Rental marketplace highlights">
-            <span>Search by district</span>
-            <span>Posted today badges</span>
-            <span>WhatsApp landlord</span>
-          </div>
-        </section>
+    <main>
+      <section class="vacancy-hero landing-section">
+        <div class="section-heading">
+          <span class="hero-kicker">Find rental</span>
+          <h1>Find rentals by district, rent price, and direct landlord contact.</h1>
+          <p>Search rooms, shops, houses, and boys quarters published directly by landlords using RentFlow UG. Featured
+            listings show photos, posted-today badges, profiles, and WhatsApp buttons for faster viewings.</p>
+        </div>
+        <div class="marketplace-highlights" aria-label="Rental marketplace highlights">
+          <span>Search by district</span>
+          <span>Posted today badges</span>
+          <span>WhatsApp landlord</span>
+        </div>
+      </section>
 
-        <section class="landing-section public-listings-section">
-          <div class="listing-filters" aria-label="Rental listing filters">
-            <label>
-              Search by district
-              <input id="listingLocationFilter" placeholder="e.g. Kira, Ntinda, Mukono" />
-            </label>
-            <label>
-              Rent price
-              <input id="listingPriceFilter" type="number" min="0" step="50000" placeholder="Max monthly rent" />
-            </label>
-            <label>
-              Room Type
-              <select id="listingTypeFilter">
-                <option value="all">All rentals</option>
-                <option value="room">Rooms</option>
-                <option value="shop">Shops</option>
-                <option value="house">Houses</option>
-                <option value="boys quarters">Boys Quarters</option>
-              </select>
-            </label>
-            <label>
-              Furnishing
-              <select id="listingFurnishedFilter">
-                <option value="all">Any</option>
-                <option value="furnished">Furnished</option>
-                <option value="unfurnished">Unfurnished</option>
-              </select>
-            </label>
-            <button id="listingSearchButton" class="primary-button listing-search-button" type="button">Search</button>
-          </div>
-          <section id="featuredListingSection" class="featured-listing-section" aria-labelledby="featuredListingTitle">
-            <div class="section-heading compact-heading">
-              <span class="hero-kicker">Featured listings</span>
-              <h2 id="featuredListingTitle">Fresh rentals with photos and WhatsApp-ready landlord contact.</h2>
-            </div>
-            <div id="featuredListingGrid" class="public-listing-grid featured-listing-grid"></div>
-          </section>
-          <p id="vacancyStatus" class="vacancy-status">Loading rental marketplace...</p>
-          <div id="publicListingGrid" class="public-listing-grid"></div>
-        </section>
-      </main>
-    </section>
+      <section class="landing-section public-listings-section">
+        <div class="listing-filters" aria-label="Rental listing filters">
+          <label>
+            Search by district
+            <input id="listingLocationFilter" placeholder="e.g. Kira, Ntinda, Mukono" />
+          </label>
+          <label>
+            Rent price
+            <input id="listingPriceFilter" type="number" min="0" step="50000" placeholder="Max monthly rent" />
+          </label>
+          <label>
+            Room Type
+            <select id="listingTypeFilter">
+              <option value="all">All rentals</option>
+              <option value="room">Rooms</option>
+              <option value="shop">Shops</option>
+              <option value="house">Houses</option>
+              <option value="boys quarters">Boys Quarters</option>
+            </select>
+          </label>
+          <label>
+            Furnishing
+            <select id="listingFurnishedFilter">
+              <option value="all">Any</option>
+              <option value="furnished">Furnished</option>
+              <option value="unfurnished">Unfurnished</option>
+            </select>
+          </label>
+          <button id="listingSearchButton" class="primary-button listing-search-button" type="button">Search</button>
+        </div>
+        <p id="vacancyStatus" class="vacancy-status">Loading rental marketplace...</p>
+        <div id="publicListingGrid" class="public-listing-grid"></div>
+      </section>
+    </main>
+  </section>
 
-    <script src="supabase-config.js?v=20260529-manual-publish"></script>
-    <script src="vacancies.js?v=20260529-manual-publish"></script>
-  </body>
+  <script src="supabase-config.js?v=20260529-manual-publish"></script>
+  <script src="vacancies.js?v=20260529-manual-publish"></script>
+</body>
+
 </html>

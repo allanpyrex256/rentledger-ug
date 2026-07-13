@@ -60,95 +60,7 @@
   }
 
   function fallbackListings() {
-    const today = new Date().toISOString();
-    const owner = {
-      id: "user-1",
-      name: "Landlord Demo",
-      phone: "0772123456",
-      email: "landlord@rentflow.ug",
-      account_status: "Active",
-      property_count: 5,
-      occupied_units_count: 19,
-      verified_badge: false,
-      verification_label: "RentFlow profile",
-    };
-    return [
-      {
-        owner,
-        property: {
-          id: "property-2",
-          owner_id: owner.id,
-          property_name: "Ntinda Court",
-          location: "Ntinda",
-          property_type: "Single Room",
-        },
-        unit: {
-          id: "unit-6",
-          property_id: "property-2",
-          unit_number: "N2",
-          rent_amount: 380000,
-          status: "vacant",
-          listing_published: true,
-          listing_bedrooms: 1,
-          listing_bathrooms: 1,
-          listing_furnished: false,
-          listing_photo: "assets/apartment-exterior.jpg",
-          listing_note: "Single room near Ntinda trading center. Water and power available.",
-          listing_published_at: today,
-          created_at: today,
-        },
-      },
-      {
-        owner,
-        property: {
-          id: "property-4",
-          owner_id: owner.id,
-          property_name: "Kololo Heights Villas",
-          location: "Kololo",
-          property_type: "Shops",
-        },
-        unit: {
-          id: "unit-15",
-          property_id: "property-4",
-          unit_number: "K5",
-          rent_amount: 850000,
-          status: "vacant",
-          listing_published: true,
-          listing_bedrooms: 1,
-          listing_bathrooms: 1,
-          listing_furnished: true,
-          listing_photo: "assets/property-keys.jpg",
-          listing_note: "Empty shop space on a busy Kololo access road.",
-          listing_published_at: today,
-          created_at: today,
-        },
-      },
-      {
-        owner,
-        property: {
-          id: "property-6",
-          owner_id: owner.id,
-          property_name: "Najjera Garden Homes",
-          location: "Najjera",
-          property_type: "Boys Quarters",
-        },
-        unit: {
-          id: "unit-27",
-          property_id: "property-6",
-          unit_number: "G6",
-          rent_amount: 820000,
-          status: "vacant",
-          listing_published: true,
-          listing_bedrooms: 1,
-          listing_bathrooms: 1,
-          listing_furnished: true,
-          listing_photo: "assets/apartment-exterior.jpg",
-          listing_note: "Boys quarter with secure compound access in Najjera.",
-          listing_published_at: today,
-          created_at: today,
-        },
-      },
-    ].sort(publicListingSort);
+    return [];
   }
 
   function renderListings() {
@@ -175,24 +87,9 @@
     ui.status.textContent = listings.length
       ? `${listings.length} rental${listings.length === 1 ? "" : "s"} available`
       : "No rentals match those filters.";
-    const featuredListings = featuredListingItems(listings);
-    const featuredIds = new Set(featuredListings.map((item) => item.unit.id));
-    if (ui.featuredSection && ui.featuredGrid) {
-      ui.featuredSection.classList.toggle("hidden", !featuredListings.length);
-      ui.featuredGrid.innerHTML = featuredListings.map((item) => publicListingCard(item, { featured: true })).join("");
-    }
-    const regularListings = listings.filter((item) => !featuredIds.has(item.unit.id));
     ui.grid.innerHTML =
-      regularListings.map((item) => publicListingCard(item)).join("") ||
-      (featuredListings.length ? "" : emptyBlock("Try another district, budget, or room type."));
-  }
-
-  function featuredListingItems(listings) {
-    return listings
-      .slice()
-      .sort((left, right) => featuredScore(right) - featuredScore(left) || Number(left.unit.rent_amount) - Number(right.unit.rent_amount))
-      .slice(0, Math.min(3, listings.length))
-      .filter((item) => featuredScore(item) > 0);
+      listings.map((item) => publicListingCard(item)).join("") ||
+      emptyBlock("Try another district, budget, or room type.");
   }
 
   function publicListingSort(left, right) {

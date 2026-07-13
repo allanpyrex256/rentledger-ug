@@ -26,7 +26,7 @@ module.exports = async function handler(request, response) {
   };
 
   try {
-    await supabaseFetch("/rest/v1/app_settings?select=id&limit=1");
+    await supabaseFetch("/rest/v1/app_settings?select=setting_key&limit=1");
     supabase.reachable = true;
   } catch (error) {
     supabase.error = error.message || "Supabase check failed";

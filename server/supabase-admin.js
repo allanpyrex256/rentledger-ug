@@ -7,7 +7,7 @@ const PACKAGE_OPTIONS = [
 
 const PLAN_LIMITS = {
   Trial: { properties: 1, units: 5, caretakers: 0, publicListings: false },
-  Starter: { properties: Number.POSITIVE_INFINITY, units: 20, caretakers: 1, publicListings: false },
+  Starter: { properties: Number.POSITIVE_INFINITY, units: 20, caretakers: 1, publicListings: true },
   Professional: { properties: 5, units: 100, caretakers: 10, publicListings: true },
   Enterprise: {
     properties: Number.POSITIVE_INFINITY,

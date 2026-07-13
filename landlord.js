@@ -1,6 +1,7 @@
 (function () {
   const STORAGE_KEY = "rentflow_ug_mvp_v1";
   const PLAN_FEATURES = {
+    Starter: { publicListings: true },
     Professional: { publicListings: true },
     Enterprise: { publicListings: true },
   };
