@@ -429,10 +429,6 @@ async function activateAccount(response, ownerId) {
 
   const rows = await supabaseFetch(`/rest/v1/subscriptions?owner_id=eq.${encodeURIComponent(ownerId)}&select=*`);
   const subscription = rows[0];
-  if (!canActivateEndedTrialAccount(owner, subscription)) {
-    return send(response, 400, { error: "Account cannot be activated manually at this time." });
-  }
-
   const paidPackage = paidPackageForEndedTrial(subscription);
   if (!paidPackage) return send(response, 400, { error: "No paid package is available." });
 
